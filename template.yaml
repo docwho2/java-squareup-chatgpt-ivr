@@ -1,0 +1,545 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 
+  - AWS::Serverless-2016-10-31
+  - AWS::LanguageExtensions
+
+Description: >
+  Square AWS Chime SMA Bot IVR
+
+Parameters:
+  SMAID:
+    Description: Chime Voice Sip Media Application (SMA) ID
+    Type: String
+    Default: cf3e17cd-f4e5-44c3-ab04-XXXXXXXXXXXX
+  OPENAIAPIKEY:
+    Description: OpenAI Key stored in parameter store
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: OPENAI_API_KEY
+  OPENAIMODEL:
+    Description: OpenAI ChatGPT Model
+    Type: String
+    Default: gpt-3.5-turbo-0613
+    AllowedValues: # https://platform.openai.com/docs/models/overview
+        - gpt-3.5-turbo-0613
+        - gpt-3.5-turbo
+        - gpt-4
+  VOICEIDEN:
+    Description: The voice used for LEX and prompt generation for English
+    Type: String
+    Default: Joanna
+    AllowedValues: # https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
+        - Ivy      # Female (child)
+        - Joanna   # Female
+        - Kendra   # Female
+        - Kimberly # Female
+        - Salli    # Female
+        - Joey     # Male
+        - Justin   # Male (child)
+        - Kevin    # Male (child)
+        - Matthew  # Male
+        - Ruth     # Female
+        - Stephen  # Male
+  VOICEIDES:
+    Description: The voice used for LEX and prompt generation for Spanish
+    Type: String
+    Default: Lupe
+    AllowedValues:
+        - Mia      # Female (Mexican)
+        - Andrés   # Male (Mexican)
+        - Lupe     # Female (US)
+        - Pedro    # Male (US)
+
+Globals:
+  Function:
+    Runtime: java17
+    Timeout: 30
+    MemorySize: 3009
+    Architectures:  # SnapStart on Java 17 requires x86
+        - x86_64
+
+Resources:
+    
+  PromptBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    
+  PromptBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PromptBucket
+      PolicyDocument:  
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowChimeAccessRead
+            Effect: Allow
+            Principal:
+              Service: voiceconnector.chime.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              - !GetAtt PromptBucket.Arn
+              - !Join [ "", [ !GetAtt PromptBucket.Arn , '/*' ] ]
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+  
+  PromptCopier:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PromptCopier
+      Description: Copy Static prompts in repo to S3 to be used in Chime SMA
+      Handler: cloud.cleo.chimesma.PromptCopier
+      CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      Environment: 
+        Variables:
+            PROMPT_BUCKET: !Ref PromptBucket
+      Policies: 
+        - S3CrudPolicy:
+            BucketName: !Ref PromptBucket
+  
+  StaticPrompts:
+    Type: Custom::PromptCopier
+    Properties:
+        ServiceToken: !GetAtt PromptCopier.Arn
+  
+  RecordBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    
+  RecordBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref RecordBucket
+      PolicyDocument:  
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowChimeAccessRecord
+            Effect: Allow
+            Principal:
+              Service: voiceconnector.chime.amazonaws.com
+            Action:
+              - s3:PutObject
+              - s3:PutObjectAcl
+              - s3:GetObject
+            Resource:
+              - !GetAtt RecordBucket.Arn
+              - !Join [ "", [ !GetAtt RecordBucket.Arn , '/*' ] ]
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"                
+ 
+  PromptCreator:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PromptCreator
+      Description: Creates Static prompts to be used in Chime Voice SDK
+      Handler: cloud.cleo.chimesma.PollyPromptGenerator
+      CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      Environment: 
+        Variables:
+            PROMPT_BUCKET: !Ref PromptBucket
+      Policies: 
+        - S3CrudPolicy:
+            BucketName: !Ref PromptBucket
+        - Version: '2012-10-17' 
+          Statement:
+            - Effect: Allow
+              Action:
+                - polly:SynthesizeSpeech
+              Resource: '*'
+        
+  
+  MainPromptEast:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: us-east-1-welcome.wav
+        PromptText: |
+            <speak>
+            <break time="1s"/>Welcome to the Chime SMA demo in the <emphasis>US East One</emphasis> region.
+            </speak>
+            
+  MainPromptWest:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: us-west-2-welcome.wav
+        PromptText: |
+            <speak>
+            <break time="1s"/>Welcome to the Chime SMA demo in the <emphasis>US West Two</emphasis> region.
+            </speak>
+  
+  
+  MainMenuEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: main-menu-en-US.wav
+        PromptText: |
+            Main menu.
+            Press One for Chat GPT Bot English. Press Two for Chat GPT Bot Spanish. 
+            Press Three for Connect take back and transfer. 
+            Press Four for recording functions. 
+            Any other key to end the call.
+        
+  MainMenuES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: main-menu-es-US.wav
+        PromptText: |
+            Menú principal.
+            Presiona Uno para Chat GPT Bot Inglés. Presiona Dos para Chat GPT Bot Español.
+            Presione Tres para la devolución y transferencia de Connect.
+            Presione Cuatro para las funciones de grabación.
+            Cualquier otra tecla para finalizar la llamada.
+  
+  TryAgainEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: try-again-en-US.wav
+        PromptText: Please try again.
+        
+  TryAgainES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: try-again-es-US.wav
+        PromptText: Inténtalo de nuevo.
+  
+  
+  TansferPromptEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: transfer-en-US.wav
+        PromptText: |
+            <speak>
+                Transferring <break time="10s"/>
+            </speak>
+            
+  TansferPromptES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: transfer-es-US.wav
+        PromptText: |
+            <speak>
+                Transfiriendo <break time="10s"/>
+            </speak>
+        
+  GoodbyePromptEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: goodbye-en-US.wav
+        PromptText: Thank you for calling, good bye.
+        
+  GoodbyePromptES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: goodbye-es-US.wav
+        PromptText: Gracias por llamar, adiós.
+                
+  ChimeSMA:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ChimeSMA
+      Description: Square Chime SMA Call FLow Director
+      Handler: cloud.cleo.chimesma.squareup.ChimeSMA
+      AutoPublishAlias: SNAPSTART
+      CodeUri: ./ChimeSMA
+      Environment: 
+        Variables:
+          PROMPT_BUCKET: !Ref PromptBucket
+          RECORD_BUCKET: !Ref RecordBucket
+          BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
+          LANGUAGE_VOICE_MAP:
+              Fn::ToJsonString:
+                  - Locale: en-US
+                    VoiceId: !Ref VOICEIDEN
+                  - Locale: es-US
+                    VoiceId: !Ref VOICEIDES
+      SnapStart:
+        ApplyOn: PublishedVersions
+  
+        
+  ChimeSMAPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChimeSMA
+        Action: lambda:InvokeFunction
+        Principal: voiceconnector.chime.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  ChimeSMASnapPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChimeSMA.Alias
+        Action: lambda:InvokeFunction
+        Principal: voiceconnector.chime.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+      
+                
+  BotRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lex.amazonaws.com
+                - lexv2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-${AWS::Region}-Bot-Role-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "polly:SynthesizeSpeech"
+                  - "comprehend:DetectSentiment"
+                  - "lambda:invokeFunction"
+                Resource: "*"
+  
+
+  LexBotGPT:
+    Type: AWS::Lex::Bot
+    Properties:
+      Name: !Sub ${AWS::StackName}-Lex-Bot-GPT
+      Description: ChatGPT Bot 
+      RoleArn: !GetAtt BotRuntimeRole.Arn
+      DataPrivacy:
+        ChildDirected: false
+      AutoBuildBotLocales: true
+      IdleSessionTTLInSeconds: 300
+      BotLocales:
+        - LocaleId: en_US
+          Description: ChatGPT Bot English
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDEN
+          Intents:
+            - Name: "Quit"
+              Description: "Hang Up the call"
+              SampleUtterances:
+                - Utterance: "quit"
+                - Utterance: "I'm done"
+                - Utterance: "good bye"
+                - Utterance: "talk to you later"
+                - Utterance: "see ya"
+                - Utterance: "later"
+                - Utterance: "exit"
+                - Utterance: "Thank you"
+                - Utterance: "all done"
+                - Utterance: "That's it'"
+                - Utterance: "nothing else"
+            - Name: "Transfer"
+              Description: "Send Call to a Person"
+              SampleUtterances:
+                - Utterance: "speak with someone"
+                - Utterance: "talk to someone"
+                - Utterance: "speak with a person"
+                - Utterance: "Representative"
+                - Utterance: "real person"
+                - Utterance: "someone real"
+            - Name: "FallbackIntent"
+              Description: "Default intent when no other intent matches, send to GPT"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: Thinking
+                            Variations:
+                              - PlainTextMessage:
+                                  Value: Working
+                              - PlainTextMessage:
+                                  Value: Processing
+        - LocaleId: es_US
+          Description: ChatGPT Bot Spanish
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDES
+          Intents:
+            - Name: "Quit"
+              Description: "Hang Up the call"
+              SampleUtterances:
+                - Utterance: "abandonar"
+                - Utterance: "He terminado"
+                - Utterance: "adiós"
+                - Utterance: "Hablaré contigo más tarde"
+                - Utterance: "salida"
+                - Utterance: "gracias"
+            - Name: "Transfer"
+              Description: "Send Call to a Person"
+              SampleUtterances:
+                - Utterance: "hablar con alguien"
+                - Utterance: "hablar con una persona" 
+                - Utterance: "Representante"
+            - Name: "FallbackIntent"
+              Description: "Default intent when no other intent matches, send to GPT"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: Pensamiento
+                            Variations:
+                              - PlainTextMessage:
+                                  Value: trabajador
+                              - PlainTextMessage:
+                                  Value: "la transformación"
+        
+  BotVersionGPT:
+    Type: AWS::Lex::BotVersion
+    Properties:
+      BotId: !Ref LexBotGPT
+      BotVersionLocaleSpecification:
+        - LocaleId: en_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: es_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+      Description: ChatGPT Bot V1
+      
+  BotAliasGPT:
+    Type: AWS::Lex::BotAlias
+    Properties:
+      BotId: !Ref LexBotGPT
+      BotAliasName: "Latest"
+      BotVersion: !GetAtt BotVersionGPT.BotVersion
+      SentimentAnalysisSettings:
+        DetectSentiment: false
+      BotAliasLocaleSettings:
+        - LocaleId: en_US
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: es_US
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+                
+  ChatGPT:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ChatGPT
+      Description: Lex fullfilment that talks to ChatGPT service
+      Handler: cloud.cleo.squareup.ChatGPTLambda
+      AutoPublishAlias: SNAPSTART
+      CodeUri: ./ChatGPT
+      Environment: 
+        Variables:
+          OPENAI_MODEL: !Ref OPENAIMODEL
+          OPENAI_API_KEY: !Ref OPENAIAPIKEY
+          SESSION_TABLE_NAME: !Ref SessionTable
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Policies: 
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref SessionTable
+  
+        
+  LexToChatGPTPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChatGPT
+        Action: lambda:InvokeFunction
+        Principal: lexv2.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  LexToChatGPTSnapPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChatGPT.Alias
+        Action: lambda:InvokeFunction
+        Principal: lexv2.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  SessionTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      TableName: !Sub ${AWS::StackName}-session
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: phoneNumber
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: phoneNumber
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+      TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+            
+            
+  
+      
+  ChimeCallLexGPT:
+    Type: 'AWS::Lex::ResourcePolicy'
+    Properties:
+      ResourceArn: !GetAtt BotAliasGPT.Arn
+      Policy:
+       {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+           "Sid": "AllowChimePstnAudioUseBotGPT",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "voiceconnector.chime.amazonaws.com"
+            },
+            "Action": "lex:StartConversation",
+            "Resource": !Sub "${BotAliasGPT.Arn}",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
+                    },
+                    "ArnEquals": {
+                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
+                    }
+                }
+              }
+            ]
+      }
+      
+      

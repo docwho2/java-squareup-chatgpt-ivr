@@ -1,0 +1,92 @@
+# More information about the configuration file can be found here:
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+version = 0.1
+
+[default]
+[default.global]
+[default.global.parameters]
+stack_name = "squareup-chatgpt-ivr"
+
+[default.build]
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate]
+[default.validate.parameters]
+lint = true
+
+[default.deploy]
+[default.deploy.parameters]
+region = "us-east-1"
+parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\""
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+resolve_s3 = true
+profile = "CLEO"
+
+[default.package]
+[default.package.parameters]
+resolve_s3 = true
+
+[default.sync]
+[default.sync.parameters]
+watch = true
+
+[default.local_start_api]
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.local_start_lambda]
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
+[east.deploy]
+[east.deploy.parameters]
+region = "us-east-1"
+parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\""
+stack_name = "squareup-chatgpt-ivr"
+resolve_s3 = true
+s3_prefix = "squareup-chatgpt-ivr"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+
+[west.deploy]
+[west.deploy.parameters]
+region = "us-west-2"
+parameter_overrides = "SMAID=\"f6fb2553-e7e0-4900-866b-1b51b91f575a\""
+stack_name = "squareup-chatgpt-ivr"
+resolve_s3 = true
+s3_prefix = "squareup-chatgpt-ivr"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[frankfurt.deploy]
+[frankfurt.deploy.parameters]
+region = "eu-central-1"
+parameter_overrides = "SMAID=\"dbfa4d4d-9b94-440f-b471-77d8e14c7d1e\""
+stack_name = "squareup-chatgpt-ivr"
+resolve_s3 = true
+s3_prefix = "squareup-chatgpt-ivr"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[london.deploy]
+[london.deploy.parameters]
+region = "eu-west-2"
+parameter_overrides = "SMAID=\"ce1681cf-e71a-448c-a1ea-7d0fde81b0dd\""
+stack_name = "squareup-chatgpt-ivr"
+resolve_s3 = true
+s3_prefix = "squareup-chatgpt-ivr"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+

@@ -1,0 +1,131 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>cloud.cleo.chimesma.squareup</groupId>
+    <artifactId>parent-pom</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0</version>
+    <name>Square Chime SMA Parent POM</name>
+    <description>Top Level POM for Square Chime Project</description>
+    
+    <organization>
+        <name>CLEO Cloud Solutions</name>
+        <url>https://cleo.cloud</url>
+    </organization>
+    
+    <developers>
+        <developer>
+            <name>Steve Jensen</name>
+            <email>steve@cleo.cloud</email>
+            <organization>CLEO Cloud Solutions</organization>
+            <organizationUrl>https://www.cleo.cloud</organizationUrl>
+        </developer>
+    </developers>
+    
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+    
+    <modules>
+         <!-- These are needed for lex events (bots) and JSON processing -->
+        <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-serialization</module>
+        <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-events</module>
+        <module>ChimeSMALibrary/ChimeSMAEvent</module>
+        <module>ChimeSMALibrary/ChimeSMAFlow</module>
+        <module>ChimeSMALibrary/PollyPromptCreation</module>
+        <module>ChatGPT</module>
+        <module>ChimeSMA</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.20.51</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-core</artifactId>
+                <version>1.2.2</version>
+            </dependency>
+            
+            
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-serialization</artifactId>
+                <version>2.0.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.gson</groupId>
+                        <artifactId>gson</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            
+            
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-events</artifactId>
+                <version>4.0.0</version>
+            </dependency>
+            
+            
+            <!-- Lambda Logging --> 
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-log4j2</artifactId>
+                <version>1.5.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>2.20.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.20.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j18-impl</artifactId>
+                <version>2.18.0</version>
+            </dependency>
+            
+            
+            <!-- Used when we need to respond to CloudFormation for Custom Resources --> 
+            <dependency>
+                <groupId>software.amazon.lambda</groupId>
+                <artifactId>powertools-cloudformation</artifactId>
+                <version>1.15.0</version>
+            </dependency>
+            
+            <dependency>
+                <groupId>com.theokanning.openai-gpt3-java</groupId>
+                <artifactId>service</artifactId>
+                <version>0.16.0</version>       
+            </dependency>
+        
+        </dependencies>
+    </dependencyManagement>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.28</version>
+            <scope>provided</scope>
+        </dependency>
+    
+    </dependencies>
+     
+     
+    
+</project>
