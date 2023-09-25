@@ -29,11 +29,7 @@
     
     <modules>
          <!-- These are needed for lex events (bots) and JSON processing -->
-        <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-serialization</module>
-        <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-events</module>
-        <module>ChimeSMALibrary/ChimeSMAEvent</module>
-        <module>ChimeSMALibrary/ChimeSMAFlow</module>
-        <module>ChimeSMALibrary/PollyPromptCreation</module>
+        <module>ChimeSMALibrary</module>
         <module>ChatGPT</module>
         <module>ChimeSMA</module>
     </modules>
