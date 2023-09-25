@@ -11,18 +11,21 @@ Parameters:
     Description: Chime Voice Sip Media Application (SMA) ID
     Type: String
     Default: cf3e17cd-f4e5-44c3-ab04-XXXXXXXXXXXX
+  SQUAREAPIKEY:
+    Description: Square API Key stored in parameter store
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SQUARE_API_KEY
   OPENAIAPIKEY:
     Description: OpenAI Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
     Default: OPENAI_API_KEY
   OPENAIMODEL:
-    Description: OpenAI ChatGPT Model
+    Description: OpenAI ChatGPT Model that has function calling enabled
     Type: String
     Default: gpt-3.5-turbo-0613
-    AllowedValues: # https://platform.openai.com/docs/models/overview
+    AllowedValues: # https://platform.openai.com/docs/models/overview (requres model with function calling)
         - gpt-3.5-turbo-0613
-        - gpt-3.5-turbo
-        - gpt-4
+        - gpt-4-0613
   VOICEIDEN:
     Description: The voice used for LEX and prompt generation for English
     Type: String
@@ -465,6 +468,7 @@ Resources:
         Variables:
           OPENAI_MODEL: !Ref OPENAIMODEL
           OPENAI_API_KEY: !Ref OPENAIAPIKEY
+          SQUARE_API_KEY: !Ref SQUAREAPIKEY
           SESSION_TABLE_NAME: !Ref SessionTable
       SnapStart:
         ApplyOn: PublishedVersions
