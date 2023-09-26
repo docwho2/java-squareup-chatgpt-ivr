@@ -30,8 +30,8 @@
         </dependency>
         
         <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>dynamodb-enhanced</artifactId>
+            <groupId>com.squareup</groupId>
+            <artifactId>square</artifactId>
         </dependency>
 
     </dependencies>
@@ -41,9 +41,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    
-                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>

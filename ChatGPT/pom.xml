@@ -55,6 +55,16 @@
             <artifactId>service</artifactId>     
         </dependency>
         
+        <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>square</artifactId>
+        </dependency>
+        
+         <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+        </dependency>
+        
     </dependencies>
     
     
@@ -64,9 +74,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    
-                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>

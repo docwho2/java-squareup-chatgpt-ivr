@@ -15,6 +15,10 @@ Parameters:
     Description: Square API Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
     Default: SQUARE_API_KEY
+  SQUARELOCATIONID:
+    Description: The Square Location ID to use
+    Type: String
+    Default: L5KK29RDQG17Q
   OPENAIAPIKEY:
     Description: OpenAI Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
@@ -85,51 +89,6 @@ Resources:
             Condition:
               StringEquals:
                 "aws:SourceAccount": !Sub "${AWS::AccountId}"
-  
-  PromptCopier:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-PromptCopier
-      Description: Copy Static prompts in repo to S3 to be used in Chime SMA
-      Handler: cloud.cleo.chimesma.PromptCopier
-      CodeUri: ./ChimeSMALibrary/PollyPromptCreation
-      Environment: 
-        Variables:
-            PROMPT_BUCKET: !Ref PromptBucket
-      Policies: 
-        - S3CrudPolicy:
-            BucketName: !Ref PromptBucket
-  
-  StaticPrompts:
-    Type: Custom::PromptCopier
-    Properties:
-        ServiceToken: !GetAtt PromptCopier.Arn
-  
-  RecordBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    
-  RecordBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref RecordBucket
-      PolicyDocument:  
-        Version: 2012-10-17
-        Statement:
-          - Sid: AllowChimeAccessRecord
-            Effect: Allow
-            Principal:
-              Service: voiceconnector.chime.amazonaws.com
-            Action:
-              - s3:PutObject
-              - s3:PutObjectAcl
-              - s3:GetObject
-            Resource:
-              - !GetAtt RecordBucket.Arn
-              - !Join [ "", [ !GetAtt RecordBucket.Arn , '/*' ] ]
-            Condition:
-              StringEquals:
-                "aws:SourceAccount": !Sub "${AWS::AccountId}"                
  
   PromptCreator:
     Type: AWS::Serverless::Function
@@ -157,49 +116,30 @@ Resources:
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
-        PromptName: us-east-1-welcome.wav
+        PromptName: welcome.wav
         PromptText: |
             <speak>
-            <break time="1s"/>Welcome to the Chime SMA demo in the <emphasis>US East One</emphasis> region.
+            <break time="2s"/>Thank you for calling <emphasis>Copper Fox Gifts</emphasis>.
             </speak>
-            
-  MainPromptWest:
+  
+  
+  OpenEN:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
-        PromptName: us-west-2-welcome.wav
+        PromptName: open.wav
         PromptText: |
-            <speak>
-            <break time="1s"/>Welcome to the Chime SMA demo in the <emphasis>US West Two</emphasis> region.
-            </speak>
-  
-  
-  MainMenuEN:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: main-menu-en-US.wav
-        PromptText: |
-            Main menu.
-            Press One for Chat GPT Bot English. Press Two for Chat GPT Bot Spanish. 
-            Press Three for Connect take back and transfer. 
-            Press Four for recording functions. 
-            Any other key to end the call.
+            Our Store is currently open.
         
-  MainMenuES:
+  ClosedEN:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: main-menu-es-US.wav
+        VoiceId: !Ref VOICEIDEN
+        PromptName: closed.wav
         PromptText: |
-            Menú principal.
-            Presiona Uno para Chat GPT Bot Inglés. Presiona Dos para Chat GPT Bot Español.
-            Presione Tres para la devolución y transferencia de Connect.
-            Presione Cuatro para las funciones de grabación.
-            Cualquier otra tecla para finalizar la llamada.
+            Our store is currently closed.
   
   TryAgainEN:
     Type: Custom::PromptCreator
@@ -267,8 +207,9 @@ Resources:
       Environment: 
         Variables:
           PROMPT_BUCKET: !Ref PromptBucket
-          RECORD_BUCKET: !Ref RecordBucket
           BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
+          SQUARE_API_KEY: !Ref SQUAREAPIKEY
+          SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
           LANGUAGE_VOICE_MAP:
               Fn::ToJsonString:
                   - Locale: en-US
@@ -469,6 +410,7 @@ Resources:
           OPENAI_MODEL: !Ref OPENAIMODEL
           OPENAI_API_KEY: !Ref OPENAIAPIKEY
           SQUARE_API_KEY: !Ref SQUAREAPIKEY
+          SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
           SESSION_TABLE_NAME: !Ref SessionTable
       SnapStart:
         ApplyOn: PublishedVersions

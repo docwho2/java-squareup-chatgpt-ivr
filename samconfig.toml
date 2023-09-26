@@ -19,7 +19,7 @@ lint = true
 [default.deploy]
 [default.deploy.parameters]
 region = "us-east-1"
-parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\""
+parameter_overrides = "SMAID=\"d95bf7c0-6ae3-436f-9831-c5c362884b97\""
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
 resolve_s3 = true
@@ -44,7 +44,7 @@ warm_containers = "EAGER"
 [east.deploy]
 [east.deploy.parameters]
 region = "us-east-1"
-parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\""
+parameter_overrides = "SMAID=\"d95bf7c0-6ae3-436f-9831-c5c362884b97\""
 stack_name = "squareup-chatgpt-ivr"
 resolve_s3 = true
 s3_prefix = "squareup-chatgpt-ivr"
