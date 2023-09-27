@@ -41,7 +41,10 @@ public class ChatGPTSessionState {
         var initMsg = new ChatGPTMessage(ChatGPTMessage.MessageRole.system, """
         I am interacting via a telephone interface.  please keep answers short and concise.
         Please be a helpfull assistant for a retail store named "Copper Fox Gifts".
-        The store is located at 160 Main Street, Wahkon MN  56386 near lake Mille Lacs.                                                        
+        The store is located at 160 Main Street, Wahkon MN  56386 near lake Mille Lacs.
+        Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.                                                                                                                
+        When the caller indicates they are done with the conversation, please respond with just the word "HANGUP".
+        To transfer or speak with a Team Member that has a phone number, please respond with just the word "TRANSFER" followed by the E164 phone number.                                                                    
         """);
 
         //initMsg.setName("TelephoneTimesheets");

@@ -119,7 +119,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         sessionState.deleteItem(key);
 
-        return buildQuitResponse(lexRequest, null);
+        return buildQuitResponse(lexRequest);
     }
 
     private LexV2Response processGPT(LexV2Event lexRequest) {
@@ -139,7 +139,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             if (count > 2) {
                 log.debug("Two blank responses, sending to Quit Intent");
                 // Hang up on caller after 2 silience requests
-                return buildQuitResponse(lexRequest, null);
+                return buildQuitResponse(lexRequest);
             } else {
                 attrs.put("blankCounter", count.toString());
                 // If we get slience (timeout without speech), then we get empty string on the transcript
@@ -168,9 +168,12 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         session.addUserMessage(input);
 
         String botResponse;
+        // Set for special case of transfer call
+        ChatFunctionCall transferCall = null;
         try {
             FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter();
             functionExecutor.setObjectMapper(mapper);
+
             while (true) {
                 final var chatMessages = session.getChatMessages();
                 ChatCompletionRequest request = ChatCompletionRequest.builder()
@@ -184,9 +187,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                         .build();
 
                 log.debug(chatMessages);
-                log.debug("Start API Call to ChatGPT");
+                log.debug("Start API Completion Call to ChatGPT");
                 final var completion = open_ai_service.createChatCompletion(request);
-                log.debug("End API Call to ChatGPT");
+                log.debug("End API Completion Call to ChatGPT");
                 log.debug(completion);
 
                 ChatMessage responseMessage = completion.getChoices().get(0).getMessage();
@@ -198,6 +201,13 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 ChatFunctionCall functionCall = responseMessage.getFunctionCall();
                 if (functionCall != null) {
                     log.debug("Trying to execute " + functionCall.getName() + "...");
+
+                    if (functionCall.getName().equals("TRANSFER")) {
+                        log.debug("Function call is transfer, so don't actually try and execute since this is speical processing");
+                        transferCall = functionCall;
+                        break;
+                    }
+
                     Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
                     /* You can also try 'executeAndConvertToMessage' inside a try-catch block, and add the following line inside the catch:
                 "message = executor.handleException(exception);"
@@ -229,7 +239,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             // Since we have a valid response, add message asking if there is anything else
             if (!"Text".equalsIgnoreCase(lexRequest.getInputMode())) {
                 // Only add if not text (added to voice response)
-                botResponse = botResponse + "  What else can I help you with?";
+                if (!botResponse.endsWith("?")) {  // If not is asking question, then we don't need to further append question
+                    botResponse = botResponse + "  What else can I help you with?";
+                }
             }
 
             // Save the session to dynamo
@@ -246,7 +258,18 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             }
         }
 
+        log.debug("botResponse is [" + botResponse + "]");
+
+        if (transferCall != null) {
+            return buildTransferResponse(lexRequest, transferCall.getArguments().asText());
+        }
+
+        if (botResponse.contains("HANGUP")) {
+            return buildQuitResponse(lexRequest);
+        }
+
         return buildResponse(lexRequest, botResponse);
+
     }
 
     /**
@@ -256,22 +279,44 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildQuitResponse(LexV2Event lexRequest, String response) {
+    private LexV2Response buildQuitResponse(LexV2Event lexRequest) {
 
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
                 .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
                 // Send back Quit Intent
-                .withIntent(Intent.builder().withName("Quit").withState("Fulfilled").build())
-                // Indicate the state is closed
-                .withDialogAction(DialogAction.builder().withType("Close").build())
+                .withIntent(Intent.builder().withName("Quit").withState("ReadyForFulfillment").build())
+                // Indicate the state
+                .withDialogAction(DialogAction.builder().withType("Delegate").build())
                 .build();
 
         final var lexV2Res = LexV2Response.builder()
                 .withSessionState(ss)
-                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText",
-            response == null ? "Session Closed, Thank You" : response, null)})
+                .build();
+        log.debug("Response is " + mapper.valueToTree(lexV2Res));
+        return lexV2Res;
+    }
+
+    private LexV2Response buildTransferResponse(LexV2Event lexRequest, String transferNumber) {
+
+        final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        attrs.put("transferNumber", transferNumber);
+        
+        log.debug("Responding with transfer Intent with transfer number [" + transferNumber + "]");
+
+        // State to return
+        final var ss = SessionState.builder()
+                // Retain the current session attributes
+                .withSessionAttributes(attrs)
+                // Send back Quit Intent
+                .withIntent(Intent.builder().withName("Transfer").withState("ReadyForFulfillment").build())
+                // Indicate the state
+                .withDialogAction(DialogAction.builder().withType("Delegate").build())
+                .build();
+
+        final var lexV2Res = LexV2Response.builder()
+                .withSessionState(ss)
                 .build();
         log.debug("Response is " + mapper.valueToTree(lexV2Res));
         return lexV2Res;

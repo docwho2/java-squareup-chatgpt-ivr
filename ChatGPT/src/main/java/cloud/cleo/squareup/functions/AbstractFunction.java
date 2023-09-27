@@ -4,6 +4,7 @@
  */
 package cloud.cleo.squareup.functions;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
 import com.theokanning.openai.completion.chat.ChatFunction;
@@ -26,6 +27,8 @@ public abstract class AbstractFunction<T> implements Cloneable {
 
     // Initialize the Log4j logger.
     protected Logger log = LogManager.getLogger();
+    
+    protected final static ObjectMapper mapper = new ObjectMapper();
 
     private static final List<AbstractFunction> functions = new LinkedList<>();
     private static boolean inited = false;

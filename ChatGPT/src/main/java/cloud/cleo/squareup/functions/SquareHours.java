@@ -4,11 +4,11 @@
  */
 package cloud.cleo.squareup.functions;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.function.Function;
 
 /**
- *
+ *  Return the store hours from Square API
+ * 
  * @author sjensen
  * @param <Request>
  */
@@ -22,7 +22,7 @@ public class SquareHours<Request> extends AbstractFunction {
 
     @Override
     public String getDescription() {
-        return "Return the store hours by day of week entries";
+        return "Return the open store hours by day of week, any day of week not returned means store is closed that day.";
     }
 
     @Override
@@ -38,10 +38,11 @@ public class SquareHours<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                final var locationsApi = client.getLocationsApi();
-                return locationsApi.retrieveLocation(System.getenv("SQUARE_LOCATION_ID")).getLocation().getBusinessHours();
+                return client.getLocationsApi()
+                        .retrieveLocation(System.getenv("SQUARE_LOCATION_ID"))
+                        .getLocation().getBusinessHours();
             } catch (Exception ex) {
-                return new ObjectMapper().createObjectNode().put("error_message", ex.getLocalizedMessage());
+                return mapper.createObjectNode().put("error_message", ex.getLocalizedMessage());
             } 
         };
     }

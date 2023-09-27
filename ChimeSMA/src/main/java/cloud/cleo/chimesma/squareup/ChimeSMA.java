@@ -69,7 +69,11 @@ public class ChimeSMA extends AbstractFlow {
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             return switch (a.getIntentName()) {
                 case "Transfer" ->
-                    goodbye;
+                    CallAndBridgeAction.builder()
+                    .withDescription("Send Call to Team Member")
+                    .withRingbackToneKeyLocale("transfer")
+                    .withUri("+18004444444")
+                    .build();
                 case "Quit" ->
                     goodbye;
                 default ->

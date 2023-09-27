@@ -52,7 +52,13 @@
         
         <dependency>
             <groupId>com.theokanning.openai-gpt3-java</groupId>
-            <artifactId>service</artifactId>     
+            <artifactId>service</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.squareup.okhttp3</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         
         <dependency>
@@ -64,7 +70,11 @@
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
         </dependency>
-        
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.10.0</version>
+        </dependency>
     </dependencies>
     
     
