@@ -44,7 +44,8 @@ public class ChatGPTSessionState {
         The store is located at 160 Main Street, Wahkon MN  56386 near lake Mille Lacs.
         Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.                                                                                                                
         When the caller indicates they are done with the conversation, please respond with just the word "HANGUP".
-        To transfer or speak with a Team Member that has a phone number, please respond with just the word "TRANSFER" followed by the E164 phone number.                                                                    
+        To transfer or speak with a Team Member that has a phone number, please respond with just the word "TRANSFER" followed by the E164 phone number.  
+        If the caller wants to just speak to someone and doesn't know the person to speak with, transfer to +13204952424 which rings the main phone in the store.                                                                                                                            
         """);
 
         //initMsg.setName("TelephoneTimesheets");
