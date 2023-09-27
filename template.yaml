@@ -285,10 +285,11 @@ Resources:
               Description: "Hang Up the call"
               SampleUtterances:
                 - Utterance: "Quit"
+                - Utterance: "good bye"
             - Name: "Transfer"
               Description: "Send Call to a Phone Number"
               SampleUtterances:
-                - Utterance: "Transfer"
+                - Utterance: "null"
             - Name: "FallbackIntent"
               Description: "Default intent when no other intent matches, send to GPT"
               ParentIntentSignature: "AMAZON.FallbackIntent"

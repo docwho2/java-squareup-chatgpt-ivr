@@ -68,12 +68,23 @@ public class ChimeSMA extends AbstractFlow {
         // Two invocations of the bot, so create one function and use for both
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             return switch (a.getIntentName()) {
-                case "Transfer" ->
-                    CallAndBridgeAction.builder()
-                    .withDescription("Send Call to Team Member")
-                    .withRingbackToneKeyLocale("transfer")
-                    .withUri(a.getActionData().getIntentResult().getSessionState().getSessionAttributes().get("transferNumber"))
-                    .build();
+                case "Transfer" -> {
+                    final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
+                    final var botResponse = attrs.get("botResponse");
+                    final var transfer = CallAndBridgeAction.builder()
+                            .withDescription("Send Call to Team Member")
+                            .withRingbackToneKeyLocale("transfer")
+                            .withUri(attrs.get("transferNumber"))
+                            .build();
+                    if (botResponse != null) {
+                        yield SpeakAction.builder()
+                        .withText(botResponse)
+                        .withNextAction(transfer)
+                        .build();
+                    } else {
+                        yield transfer;
+                    }
+                }
                 case "Quit" ->
                     goodbye;
                 default ->
@@ -89,7 +100,8 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * When an error occurs on a Action and the Action did not specify an Error Action
+     * When an error occurs on a Action and the Action did not specify an Error
+     * Action
      *
      * @return the default error Action
      */

@@ -35,6 +35,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -61,6 +62,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     final static OpenAiService open_ai_service = new OpenAiService(System.getenv("OPENAI_API_KEY"), Duration.ofSeconds(25));
     final static String OPENAI_MODEL = System.getenv("OPENAI_MODEL");
+
+    final static Pattern transferPat = Pattern.compile(".*TRANSFER\\s*(\\+\\d{11}).*", Pattern.DOTALL);
 
     static {
         // Build up the mapper 
@@ -95,8 +98,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             log.debug("Intent: " + intentName);
 
             return switch (intentName) {
-                case "Quit" ->
-                    processQuit(lexRequest);
                 default ->
                     processGPT(lexRequest);
             };
@@ -106,20 +107,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             // Unhandled Exception
             return buildResponse(lexRequest, "Sorry, I'm having a problem fulfilling your request.  Chat GPT might be down, Please try again later.");
         }
-    }
-
-    private LexV2Response processQuit(LexV2Event lexRequest) {
-        log.debug("Returing Quit being fullfilled and deleting session data");
-
-        // When testing in lex console input will be text, so use session ID, for speech we shoud have a phone via Connect
-        final var user_id = lexRequest.getSessionId();
-
-        // Key to record in Dynamo
-        final var key = Key.builder().partitionValue(user_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
-
-        sessionState.deleteItem(key);
-
-        return buildQuitResponse(lexRequest);
     }
 
     private LexV2Response processGPT(LexV2Event lexRequest) {
@@ -236,14 +223,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 break;
             }
 
-            // Since we have a valid response, add message asking if there is anything else
-            if (!"Text".equalsIgnoreCase(lexRequest.getInputMode())) {
-                // Only add if not text (added to voice response)
-                if (!botResponse.endsWith("?")) {  // If not is asking question, then we don't need to further append question
-                    botResponse = botResponse + "  What else can I help you with?";
-                }
-            }
-
             // Save the session to dynamo
             log.debug("Start Saving Session State");
             session.incrementCounter();
@@ -260,16 +239,31 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         log.debug("botResponse is [" + botResponse + "]");
 
+        // Check to see if GPT tried to call TRANSFER function
         if (transferCall != null) {
-            return buildTransferResponse(lexRequest, transferCall.getArguments().asText());
+            return buildTransferResponse(lexRequest, transferCall.getArguments().asText(), botResponse);
         }
 
+        // Check to see if GPT just added TRANSFER to the response (sometimes it calls function, sometimes it just adds to response)
+        final var matcher = transferPat.matcher(botResponse);
+        if (matcher.matches()) {
+            return buildTransferResponse(lexRequest, matcher.group(1), botResponse);
+        }
+
+        // Check to see if the GPT says the conversation is done
         if (botResponse.contains("HANGUP")) {
             return buildQuitResponse(lexRequest);
         }
 
-        return buildResponse(lexRequest, botResponse);
+        // Since we have a general response, add message asking if there is anything else
+        if (!"Text".equalsIgnoreCase(lexRequest.getInputMode())) {
+            // Only add if not text (added to voice response)
+            if (!botResponse.endsWith("?")) {  // If ends with question, then we don't need to further append question
+                botResponse = botResponse + "  What else can I help you with?";
+            }
+        }
 
+        return buildResponse(lexRequest, botResponse);
     }
 
     /**
@@ -298,13 +292,32 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         return lexV2Res;
     }
 
-    private LexV2Response buildTransferResponse(LexV2Event lexRequest, String transferNumber) {
+    private LexV2Response buildTransferResponse(LexV2Event lexRequest, String transferNumber, String botResponse) {
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
         attrs.put("transferNumber", transferNumber);
-        
-        log.debug("Responding with transfer Intent with transfer number [" + transferNumber + "]");
+        if (botResponse != null) {
+            // Check to make sure transfer is not in the response
+            if (botResponse.contains("TRANSFER")) {
+                botResponse = botResponse.replace("TRANSFER", "");
+            }
+            if (botResponse.contains(transferNumber)) {
+                botResponse = botResponse.replace(transferNumber, "");
+            }
+            // Sometime GPT also adds HANGUP to the transfer for some reason, so clean it out as well
+            if (botResponse.contains("HANGUP")) {
+                botResponse = botResponse.replace("HANGUP", "");
+            }
 
+            botResponse = botResponse.trim();
+            if (!botResponse.isBlank()) {
+                attrs.put("botResponse", botResponse);
+            }
+        }
+
+        log.debug("Responding with transfer Intent with transfer number [" + transferNumber + "]");
+        log.debug("Bot Response is " + botResponse);
+        
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
@@ -323,7 +336,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at LEX
+     * General Response used to send back a message and Elicit Intent again at
+     * LEX
      *
      * @param lexRequest
      * @param response
