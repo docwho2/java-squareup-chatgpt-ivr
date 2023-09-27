@@ -72,7 +72,7 @@ public class ChimeSMA extends AbstractFlow {
                     CallAndBridgeAction.builder()
                     .withDescription("Send Call to Team Member")
                     .withRingbackToneKeyLocale("transfer")
-                    .withUri("+18004444444")
+                    .withUri(a.getActionData().getIntentResult().getSessionState().getSessionAttributes().get("transferNumber"))
                     .build();
                 case "Quit" ->
                     goodbye;
