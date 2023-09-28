@@ -4,6 +4,7 @@
  */
 package cloud.cleo.squareup.functions;
 
+import cloud.cleo.squareup.LexInputMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
@@ -56,9 +57,12 @@ public abstract class AbstractFunction<T> implements Cloneable {
             try {
                 final var func = (AbstractFunction) clazz.getDeclaredConstructor().newInstance();
                 if (func.isEnabled()) {
+                    System.out.println("Instantiated class: " + clazz.getName());
                     functions.add(func);
+                } else {
+                     System.out.println("Class Disabled, Ignoring: " + clazz.getName());
                 }
-                System.out.println("Instantiated class: " + clazz.getName());
+                
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                 e.printStackTrace();
             }
@@ -69,10 +73,10 @@ public abstract class AbstractFunction<T> implements Cloneable {
     /**
      * Obtain an Executer for all the registered functions
      *
-     * @param user
+     * @param inputMode
      * @return
      */
-    public static FunctionExecutor getFunctionExecuter() {
+    public static FunctionExecutor getFunctionExecuter(LexInputMode inputMode) {
         if (!inited) {
             init();
         }
@@ -82,8 +86,19 @@ public abstract class AbstractFunction<T> implements Cloneable {
         functions.forEach(f -> {
             try {
                 final var func = (AbstractFunction) f.clone();
-
-                list.add(func);
+                switch(inputMode) {
+                    case TEXT -> {
+                        if ( func.isText() ) {
+                            list.add(func);
+                        }
+                    }
+                    case SPEECH, DTMF -> {
+                        if ( func.isVoice() ) {
+                            list.add(func);
+                        }
+                    }    
+                }
+                
             } catch (CloneNotSupportedException ex) {
                 ex.printStackTrace();
             }
@@ -138,6 +153,22 @@ public abstract class AbstractFunction<T> implements Cloneable {
      * @return
      */
     protected boolean isEnabled() {
+        return true;
+    }
+    
+    /**
+     * Provide and enable this function for voice calls.  Override to disable.
+     * @return 
+     */
+    protected boolean isVoice() {
+        return true;
+    }
+    
+    /**
+     * Provide and enable this function for text interactions.  Override to disable.
+     * @return 
+     */
+    protected boolean isText() {
         return true;
     }
 }

@@ -4,6 +4,8 @@
  */
 package cloud.cleo.squareup;
 
+import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
+import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,24 +36,43 @@ public class ChatGPTSessionState {
         this.messages = new LinkedList<>();
     }
 
-    public ChatGPTSessionState(String phoneNumber) {
+    public ChatGPTSessionState(String phoneNumber, LexInputMode inputMode) {
         this.phoneNumber = phoneNumber;
         this.date = LocalDate.now(ZoneId.of("America/Chicago"));
         this.messages = new LinkedList<>();
-        var initMsg = new ChatGPTMessage(ChatGPTMessage.MessageRole.system, """
-        I am interacting via a telephone interface.  please keep answers short and concise.
-        Please be a helpfull assistant for a retail store named "Copper Fox Gifts", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.
-        The store is located at 160 Main Street, Wahkon MN  56386 near lake Mille Lacs.
-        Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.                                                                                                                
-        When the caller indicates they are done with the conversation, please respond with just the word "HANGUP".
-        To transfer or speak with a employee that has a phone number, please respond with just the word "TRANSFER" followed by the phone number.  
-        If the caller wants to just speak to person, execute TRANSFER +13204952424 which rings the main phone in the store.
-        Do not respond with the whole employee list, or provide employee phone numbers, you can use the phone numbers to execute a TRANSFER.  
-        You may confirm the existance of an employee and give the full name, but do not respond with the phone, only use it for TRANSFER.                                                                                                                                                                                                                                              
-        """);
+
+        final var sb = new StringBuilder();
+
+        // General Prompting
+        sb.append("Please be a helpfull assistant for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
+        sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
+        sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
+
+        // Mode specific prompting
+        switch (inputMode) {
+            case TEXT -> {
+                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+                sb.append("To interact with an employee suggest the person call this number instead of texting and ask to speak to that person.  ");
+            }
+            case SPEECH, DTMF -> {
+                sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");
+                
+                // Hangup
+                sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
+                
+                // Transferring
+                sb.append("To transfer or speak with a employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
+                sb.append("If the caller wants to just speak to a person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with +13204952424 which rings the main phone in the store.  ");
+                sb.append("Do not provide employee phone numbers, you can use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
+                
+                // Only recommend resturants for call ins, not SMS
+                sb.append("Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
+            }
+        }
+
 
         //initMsg.setName("TelephoneTimesheets");
-        this.messages.add(initMsg);
+        this.messages.add(new ChatGPTMessage(ChatGPTMessage.MessageRole.system, sb.toString()));
 
         // Expire entries after 60 days
         this.ttl = Instant.now().plus(Duration.ofDays(60)).getEpochSecond();

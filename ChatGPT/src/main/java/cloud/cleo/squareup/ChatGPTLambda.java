@@ -4,6 +4,7 @@
  */
 package cloud.cleo.squareup;
 
+import static cloud.cleo.squareup.LexInputMode.TEXT;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import cloud.cleo.squareup.json.DurationDeserializer;
 import cloud.cleo.squareup.json.DurationSerializer;
@@ -63,8 +64,11 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     final static OpenAiService open_ai_service = new OpenAiService(System.getenv("OPENAI_API_KEY"), Duration.ofSeconds(25));
     final static String OPENAI_MODEL = System.getenv("OPENAI_MODEL");
 
-    final static Pattern transferPat = Pattern.compile(".*TRANSFER\\s*(\\+\\d{11}).*", Pattern.DOTALL);
+    //final static Pattern TRANSFER_PATTERN = Pattern.compile(".*TRANSFER\\s*(\\+\\d{11}).*", Pattern.DOTALL);
 
+    public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
+    public final static String HANGUP_FUNCTION_NAME = "hangup_call";
+    
     static {
         // Build up the mapper 
         mapper = new ObjectMapper();
@@ -113,13 +117,14 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         final var input = lexRequest.getInputTranscript();
         final var localId = lexRequest.getBot().getLocaleId();
-
+        final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
+        final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        
         log.debug("Java Locale is " + localId);
 
         if (input == null || input.isBlank()) {
             log.debug("Got blank input, so just silent or nothing");
 
-            final var attrs = lexRequest.getSessionState().getSessionAttributes();
             var count = Integer.valueOf(attrs.getOrDefault("blankCounter", "0"));
             count++;
 
@@ -132,6 +137,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // If we get slience (timeout without speech), then we get empty string on the transcript
                 return buildResponse(lexRequest, "I'm sorry, I didn't catch that, if your done, simply say good bye, otherwise tell me how I can help?");
             }
+        } else {
+            // The Input is not blank, so always put the counter back to zero
+            attrs.put("blankCounter", "0");
         }
 
         // When testing in lex console input will be text, so use session ID, for speech we shoud have a phone via Connect
@@ -146,7 +154,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         log.debug("End Retreiving Session State");
 
         if (session == null) {
-            session = new ChatGPTSessionState(user_id);
+            session = new ChatGPTSessionState(user_id,inputMode);
         }
 
         // Since we can call and change language during session, always specifiy how we want responses
@@ -155,10 +163,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         session.addUserMessage(input);
 
         String botResponse;
-        // Set for special case of transfer call
-        ChatFunctionCall transferCall = null;
+        // Set for special case of transfer and hangup
+        ChatFunctionCall transferCall = null, hangupCall = null;
         try {
-            FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter();
+            FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(inputMode);
             functionExecutor.setObjectMapper(mapper);
 
             while (true) {
@@ -189,10 +197,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 if (functionCall != null) {
                     log.debug("Trying to execute " + functionCall.getName() + "...");
 
-                    if (functionCall.getName().equals("TRANSFER")) {
-                        log.debug("Function call is transfer, so don't actually try and execute since this is speical processing");
-                        transferCall = functionCall;
-                        break;
+                    // Track these special case functions because executing them does nothing really, we just need to know they were called
+                    switch (functionCall.getName() ) {
+                        case TRANSFER_FUNCTION_NAME -> transferCall = functionCall;
+                        case HANGUP_FUNCTION_NAME -> hangupCall = functionCall;
                     }
 
                     Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
@@ -241,22 +249,17 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         // Check to see if GPT tried to call TRANSFER function
         if (transferCall != null) {
-            return buildTransferResponse(lexRequest, transferCall.getArguments().asText(), botResponse);
+            return buildTransferResponse(lexRequest, transferCall.getArguments().findValue("phone_number").asText(), botResponse);
         }
 
-        // Check to see if GPT just added TRANSFER to the response (sometimes it calls function, sometimes it just adds to response)
-        final var matcher = transferPat.matcher(botResponse);
-        if (matcher.matches()) {
-            return buildTransferResponse(lexRequest, matcher.group(1), botResponse);
-        }
 
         // Check to see if the GPT says the conversation is done
-        if (botResponse.contains("HANGUP")) {
+        if (hangupCall != null) {
             return buildQuitResponse(lexRequest);
         }
 
         // Since we have a general response, add message asking if there is anything else
-        if (!"Text".equalsIgnoreCase(lexRequest.getInputMode())) {
+        if (!TEXT.equals(inputMode)) {
             // Only add if not text (added to voice response)
             if (!botResponse.endsWith("?")) {  // If ends with question, then we don't need to further append question
                 botResponse = botResponse + "  What else can I help you with?";
@@ -298,20 +301,20 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         attrs.put("transferNumber", transferNumber);
         if (botResponse != null) {
             // Check to make sure transfer is not in the response
-            if (botResponse.contains("TRANSFER")) {
-                botResponse = botResponse.replace("TRANSFER", "");
+            if (botResponse.contains(TRANSFER_FUNCTION_NAME) ) {
+                botResponse = botResponse.replace(TRANSFER_FUNCTION_NAME, "");
             }
             if (botResponse.contains(transferNumber)) {
                 botResponse = botResponse.replace(transferNumber, "");
             }
-            // Sometime GPT also adds HANGUP to the transfer for some reason, so clean it out as well
-            if (botResponse.contains("HANGUP")) {
-                botResponse = botResponse.replace("HANGUP", "");
+            // Sometime GPT also adds HANGUP to the transfer for some reason, so clean it out as well if necessary
+            if (botResponse.contains(HANGUP_FUNCTION_NAME)) {
+                botResponse = botResponse.replace(HANGUP_FUNCTION_NAME, "");
             }
 
             botResponse = botResponse.trim();
             if (!botResponse.isBlank()) {
-                attrs.put("botResponse", botResponse);
+                attrs.put("botResponse", botResponse.split("\n")[0]);
             }
         }
 

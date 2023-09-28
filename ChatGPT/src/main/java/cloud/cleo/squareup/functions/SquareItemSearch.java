@@ -50,11 +50,9 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                 if (items != null && !items.isEmpty()) {
                     return items
                             .stream()
-                            // Filter out deleted entries
-                            .filter(item -> !item.getIsDeleted())
                             .map(item -> item.getItemData())
-                            //.flatMap(List::stream).filter(Objects::nonNull)
-                            .map(l -> new Response(l))
+                            // Just return item names for now
+                            .map(l -> l.getName())
                             .toList();
                 } else {
                     return mapper.createObjectNode().put("message", "No items match the search query");
