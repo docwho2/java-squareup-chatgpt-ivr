@@ -11,7 +11,7 @@ and business hours, tranfer to employee cell phones, etc.
 
 ### High Level Components
 
-![Architecture Diagram](assets/ChimeSMA-Demo.png)
+![Architecture Diagram](assets/ChimeSMA-Square-IVR.png)
 
 ### Calling into the IVR Application
 
@@ -25,7 +25,7 @@ In this case, the first SIP URI references a [Voice Connector](https://docs.aws.
 
 #### Chime SDK Phone Number
 
-After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. Chime does not support load balancing, so you must set up an ordered priority. When you call +1-320-200-2007, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
+After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. Chime does not support load balancing, so you must set up an ordered priority. When you call +1-320-425-0645, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
 
 Please note that Chime currently provides PSTN numbers only in the United States and not in all countries. If you are deploying in Europe or other regions, you will need to use a SIP carrier like Twilio, as mentioned above. I have tested these configurations in the Frankfurt and London regions without any issues. For a complete list of available regions for Chime SDK PSTN numbers, refer to the PSTN section in the [Available Regions](https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html) documentation.
 

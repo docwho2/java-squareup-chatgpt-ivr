@@ -55,6 +55,14 @@ Parameters:
         - Andrés   # Male (Mexican)
         - Lupe     # Female (US)
         - Pedro    # Male (US)
+  TRANSFERNUMBER:
+    Description: The E164 Number to be used when transferring to main number
+    Type: String
+    Default: +13204952424
+  VOICECONNECTORARN:
+    Description: The ARN of a Voice Connector (or VC Group) to be used to send calls via SIP (set to PSTN to not use SIP)
+    Type: String
+    Default: PSTN
 
 Globals:
   Function:
@@ -109,7 +117,25 @@ Resources:
               Action:
                 - polly:SynthesizeSpeech
               Resource: '*'
-        
+  
+  PromptCopier:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PromptCopier
+      Description: Copy Static prompts in repo to S3 to be used in Chime SMA
+      Handler: cloud.cleo.chimesma.PromptCopier
+      CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      Environment: 
+        Variables:
+            PROMPT_BUCKET: !Ref PromptBucket
+      Policies: 
+        - S3CrudPolicy:
+            BucketName: !Ref PromptBucket
+  
+  StaticPrompts:
+    Type: Custom::PromptCopier
+    Properties:
+        ServiceToken: !GetAtt PromptCopier.Arn
   
   MainPromptEast:
     Type: Custom::PromptCreator
@@ -210,6 +236,8 @@ Resources:
           BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
           SQUARE_API_KEY: !Ref SQUAREAPIKEY
           SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
+          MAIN_NUMBER: !Ref TRANSFERNUMBER
+          VC_ARN: !Ref VOICECONNECTORARN
           LANGUAGE_VOICE_MAP:
               Fn::ToJsonString:
                   - Locale: en-US
@@ -398,6 +426,7 @@ Resources:
           SQUARE_API_KEY: !Ref SQUAREAPIKEY
           SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
           SESSION_TABLE_NAME: !Ref SessionTable
+          MAIN_NUMBER: !Ref TRANSFERNUMBER
       SnapStart:
         ApplyOn: PublishedVersions
       Policies: 

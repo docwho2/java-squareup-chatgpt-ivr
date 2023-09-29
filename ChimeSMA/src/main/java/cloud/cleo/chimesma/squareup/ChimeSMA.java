@@ -17,7 +17,19 @@ public class ChimeSMA extends AbstractFlow {
 
     private final static Action MAIN_MENU = getMainMenu();
 
+    /**
+     * Simple Object that caches Square data about hours to determine whether store is open or closed
+     */
     private final static SquareHours squareHours = SquareHours.getInstance();
+
+    /**
+     * Main Transfer number used
+     */
+    private final static String MAIN_NUMBER = System.getenv("MAIN_NUMBER");
+    /**
+     * Voice Connector ARN so calls to main number will go SIP to PBX
+     */
+    private final static String VC_ARN = System.getenv("VC_ARN");
 
     @Override
     protected Action getInitialAction() {
@@ -56,9 +68,10 @@ public class ChimeSMA extends AbstractFlow {
         final var lexBotEN = StartBotConversationAction.builder()
                 .withDescription("ChatGPT English")
                 .withLocale(english)
-                .withContent("Tell us how we can help today? You can ask about our products, hours, or location, or speak to one of our team members")
+                .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today? ")
                 .build();
 
+        // Will add Spanish later if needed
         final var lexBotES = StartBotConversationAction.builder()
                 .withDescription("ChatGPT Spanish")
                 .withLocale(spanish)
@@ -71,11 +84,17 @@ public class ChimeSMA extends AbstractFlow {
                 case "Transfer" -> {
                     final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
                     final var botResponse = attrs.get("botResponse");
+                    final var phone = attrs.get("transferNumber");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
-                            .withRingbackToneKeyLocale("transfer")
-                            .withUri(attrs.get("transferNumber"))
+                            .withRingbackToneKey("ringing.wav")
+                            .withUri(phone)
                             .build();
+                    if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
+                        // We are transferring to main number, so use SIP by sending call to Voice Connector
+                        transfer.setArn(VC_ARN);
+                        transfer.setDescription("Send Call to Main Number");
+                    }
                     if (botResponse != null) {
                         yield SpeakAction.builder()
                         .withText(botResponse)
@@ -88,7 +107,10 @@ public class ChimeSMA extends AbstractFlow {
                 case "Quit" ->
                     goodbye;
                 default ->
-                    MAIN_MENU;
+                    SpeakAction.builder()
+                    .withText("A system error has occured, please call back and try again")
+                    .withNextAction(hangup)
+                    .build();
             }; // The Lex bot also has intent to speak with someone
         };
 
@@ -100,8 +122,7 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * When an error occurs on a Action and the Action did not specify an Error
-     * Action
+     * When an error occurs on a Action and the Action did not specify an Error Action
      *
      * @return the default error Action
      */
