@@ -36,7 +36,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -64,11 +63,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     final static OpenAiService open_ai_service = new OpenAiService(System.getenv("OPENAI_API_KEY"), Duration.ofSeconds(25));
     final static String OPENAI_MODEL = System.getenv("OPENAI_MODEL");
 
-    //final static Pattern TRANSFER_PATTERN = Pattern.compile(".*TRANSFER\\s*(\\+\\d{11}).*", Pattern.DOTALL);
-
+    
     public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
-    
+
     static {
         // Build up the mapper 
         mapper = new ObjectMapper();
@@ -119,7 +117,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var localId = lexRequest.getBot().getLocaleId();
         final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
-        
+
         log.debug("Java Locale is " + localId);
 
         if (input == null || input.isBlank()) {
@@ -154,7 +152,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         log.debug("End Retreiving Session State");
 
         if (session == null) {
-            session = new ChatGPTSessionState(user_id,inputMode);
+            session = new ChatGPTSessionState(user_id, inputMode);
         }
 
         // Since we can call and change language during session, always specifiy how we want responses
@@ -198,9 +196,11 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                     log.debug("Trying to execute " + functionCall.getName() + "...");
 
                     // Track these special case functions because executing them does nothing really, we just need to know they were called
-                    switch (functionCall.getName() ) {
-                        case TRANSFER_FUNCTION_NAME -> transferCall = functionCall;
-                        case HANGUP_FUNCTION_NAME -> hangupCall = functionCall;
+                    switch (functionCall.getName()) {
+                        case TRANSFER_FUNCTION_NAME ->
+                            transferCall = functionCall;
+                        case HANGUP_FUNCTION_NAME ->
+                            hangupCall = functionCall;
                     }
 
                     Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
@@ -252,7 +252,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             return buildTransferResponse(lexRequest, transferCall.getArguments().findValue("phone_number").asText(), botResponse);
         }
 
-
         // Check to see if the GPT says the conversation is done
         if (hangupCall != null) {
             return buildQuitResponse(lexRequest);
@@ -270,7 +269,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * Response that sends you to the Quit intent so the call can be ended
+     * Response that sends you to the Quit intent so the call or session can be ended
      *
      * @param lexRequest
      * @param response
@@ -278,14 +277,28 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      */
     private LexV2Response buildQuitResponse(LexV2Event lexRequest) {
 
+        String state, action;
+        switch (LexInputMode.fromString(lexRequest.getInputMode())) {
+            case TEXT -> {
+                // For text, we say Quit is filled and close session
+                state = "Fulfilled";
+                action = "Close";
+            }
+            default -> {
+                // For voice we tell lex to return the intent and let it be fullfilled by Voice controller
+                state = "ReadyForFulfillment";
+                action = "Delegate";
+            }
+        }
+
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
                 .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
                 // Send back Quit Intent
-                .withIntent(Intent.builder().withName("Quit").withState("ReadyForFulfillment").build())
+                .withIntent(Intent.builder().withName("Quit").withState(state).build())
                 // Indicate the state
-                .withDialogAction(DialogAction.builder().withType("Delegate").build())
+                .withDialogAction(DialogAction.builder().withType(action).build())
                 .build();
 
         final var lexV2Res = LexV2Response.builder()
@@ -295,32 +308,37 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         return lexV2Res;
     }
 
+    /**
+     * Response that will trigger a transfer of a voice call (not applicable to Text interface)
+     *
+     * @param lexRequest
+     * @param transferNumber
+     * @param botResponse
+     * @return
+     */
     private LexV2Response buildTransferResponse(LexV2Event lexRequest, String transferNumber, String botResponse) {
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
         attrs.put("transferNumber", transferNumber);
         if (botResponse != null) {
             // Check to make sure transfer is not in the response
-            if (botResponse.contains(TRANSFER_FUNCTION_NAME) ) {
-                botResponse = botResponse.replace(TRANSFER_FUNCTION_NAME, "");
-            }
             if (botResponse.contains(transferNumber)) {
                 botResponse = botResponse.replace(transferNumber, "");
-            }
-            // Sometime GPT also adds HANGUP to the transfer for some reason, so clean it out as well if necessary
-            if (botResponse.contains(HANGUP_FUNCTION_NAME)) {
-                botResponse = botResponse.replace(HANGUP_FUNCTION_NAME, "");
             }
 
             botResponse = botResponse.trim();
             if (!botResponse.isBlank()) {
+                // Split the response on newline because sometimes GPT adds halucination about not being able to transfer a call even though it just did
                 attrs.put("botResponse", botResponse.split("\n")[0]);
+            } else {
+                // Use a default transfer message if somehow no botmessage
+                attrs.put("botResponse", "Your call will no be transferred.");
             }
         }
 
         log.debug("Responding with transfer Intent with transfer number [" + transferNumber + "]");
         log.debug("Bot Response is " + botResponse);
-        
+
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
@@ -339,8 +357,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at
-     * LEX
+     * General Response used to send back a message and Elicit Intent again at LEX
      *
      * @param lexRequest
      * @param response
