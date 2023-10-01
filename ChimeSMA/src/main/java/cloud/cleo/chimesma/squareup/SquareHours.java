@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.squareup;
 
 import com.squareup.square.Environment;
@@ -21,7 +17,9 @@ import java.util.List;
 import lombok.Data;
 
 /**
- *
+ * Determine whether open or closed based on Square Hours from API call.  Cache and
+ * hold last result, so if API is down, we always have a value to return.
+ * 
  * @author sjensen
  */
 public class SquareHours {
@@ -33,6 +31,8 @@ public class SquareHours {
 
     private final static LocationsApi locationsApi = client.getLocationsApi();
 
+    private final static String LOCATION_ID = System.getenv("SQUARE_LOCATION_ID");
+    
     // Cached location result
     private Location loc;
     private ZonedDateTime loc_last;
@@ -67,7 +67,7 @@ public class SquareHours {
 
     private void loadLocation() {
         try {
-            final var res = locationsApi.retrieveLocation(System.getenv("SQUARE_LOCATION_ID"));
+            final var res = locationsApi.retrieveLocation(LOCATION_ID);
             if (res.getLocation() != null) {
                 loc = res.getLocation();
                 loc_last = ZonedDateTime.now();
@@ -109,7 +109,7 @@ public class SquareHours {
                     return now.isAfter(start) && now.isBefore(end);
                 });
             }
-            // We don't have any entries for today, to definitely closed
+            // We don't have any entries for today, so definitely closed
             return false;
         }
     }

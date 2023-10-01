@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.squareup;
 
 import cloud.cleo.chimesma.actions.*;
@@ -9,7 +5,7 @@ import java.util.Locale;
 import java.util.function.Function;
 
 /**
- * Example Flow that exercises many of the SMA library Actions
+ * IVR for Square Retail using Lex Bot backed by ChatGPT.
  *
  * @author sjensen
  */
@@ -31,6 +27,11 @@ public class ChimeSMA extends AbstractFlow {
      */
     private final static String VC_ARN = System.getenv("VC_ARN");
 
+    /**
+     * Initial action is to play welcome message and whether store is open or closed
+     *
+     * @return
+     */
     @Override
     protected Action getInitialAction() {
 
@@ -51,6 +52,12 @@ public class ChimeSMA extends AbstractFlow {
         return welcome;
     }
 
+    /**
+     * Main menu is just a LexBox, and the only outputs are Quit and Transfer. Quit - hang up the call Transfer. -
+     * transfer the call to another number.
+     *
+     * @return
+     */
     public static Action getMainMenu() {
 
         final var english = Locale.forLanguageTag("en-US");
@@ -68,7 +75,7 @@ public class ChimeSMA extends AbstractFlow {
         final var lexBotEN = StartBotConversationAction.builder()
                 .withDescription("ChatGPT English")
                 .withLocale(english)
-                .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today? ")
+                .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
                 .build();
 
         // Will add Spanish later if needed
@@ -93,8 +100,9 @@ public class ChimeSMA extends AbstractFlow {
                     if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
                         // We are transferring to main number, so use SIP by sending call to Voice Connector
                         transfer.setArn(VC_ARN);
-                        transfer.setDescription("Send Call to Main Number");
+                        transfer.setDescription("Send Call to Main Number via SIP");
                     }
+                    // If we have a GPT response for the transfer, play that before transferring
                     if (botResponse != null) {
                         yield SpeakAction.builder()
                         .withText(botResponse)
