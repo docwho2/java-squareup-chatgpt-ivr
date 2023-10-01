@@ -71,11 +71,10 @@ public class ChatGPTSessionState {
         }
 
 
-        //initMsg.setName("TelephoneTimesheets");
         this.messages.add(new ChatGPTMessage(ChatGPTMessage.MessageRole.system, sb.toString()));
 
-        // Expire entries after 60 days
-        this.ttl = Instant.now().plus(Duration.ofDays(60)).getEpochSecond();
+        // Expire entries after 30 days
+        this.ttl = Instant.now().plus(Duration.ofDays(30)).getEpochSecond();
         this.counter = 0L;
     }
 

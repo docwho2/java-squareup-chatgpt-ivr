@@ -140,7 +140,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             attrs.put("blankCounter", "0");
         }
 
-        // When testing in lex console input will be text, so use session ID, for speech we shoud have a phone via Connect
         final var user_id = lexRequest.getSessionId();
 
         // Key to record in Dynamo
@@ -247,7 +246,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         log.debug("botResponse is [" + botResponse + "]");
 
-        // Check to see if GPT tried to call TRANSFER function
+        // Check to see if GPT called the TRANSFER function
         if (transferCall != null) {
             return buildTransferResponse(lexRequest, transferCall.getArguments().findValue("phone_number").asText(), botResponse);
         }
