@@ -2,11 +2,11 @@
 
 ## Background
 
-This project is a [SIP Media Applications](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) and makes use of the 
+This project is a [SIP Media Application](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) and makes use of the 
 [Java Chime SMA Flow Library](https://github.com/docwho2/java-chime-voicesdk-sma) to deliver a [ChatGPT](https://openai.com/chatgpt)  voice bot IVR application.  The IVR application is integrated with the [Square API](https://developer.squareup.com/us/en) to allow callers to ask questions about products 
 and business hours, tranfer to employee cell phones, etc.
 
-### Use Case
+## Use Case
 
 [Copper Fox Gifts](https://www.copperfoxgifts.com) is a retail store located in a small town in MN.  The goal is to field the majority of the calls without human intervention.
 - Over 50% of the calls are "Are you open now?".  This is a typical call in resort type towns where hours change seasonally and frequently.  Many people always call ahead and want to know if the store is open before they leave.
@@ -15,7 +15,7 @@ and business hours, tranfer to employee cell phones, etc.
 - The remaining calls are from vendors working with someone at the store and want to talk with person XYZ. 
 
 
-### Solution Summary
+## Solution Summary
 
 The goal is to provide a "Store Virtual Assistant" based on [OpenAI ChatGPT](https://openai.com/chatgpt) that not only can answer store specific questions, but anything in general the caller asks.
 - Use of [ChatGPT Function Calls](https://platform.openai.com/docs/guides/gpt/function-calling) to enable Sqaure API calls to access inventory, employee, and store hours.
@@ -33,19 +33,174 @@ Features:
   - If the caller just wants to speak with a person, the model is primed with a general number to transfer the call to.
     - When tranferring to the main line, this transfer is optimized to use SIP direct to the store [Asterisk PBX](https://www.asterisk.org).
 
-### High Level Components
+## High Level Components
 
 ![Architecture Diagram](assets/ChimeSMA-Square-IVR.png)
 
+## Call Flow Details
 
+### SMA Controller
 
-#### Chime SDK Phone Number
+The [ChimeSMA](ChimeSMA/src/main/java/cloud/cleo/chimesma/squareup/ChimeSMA.java) controller controls the call at a high level.  Callers are greeted and told whether the store is open or closed.
 
-After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call +1-320-425-0645, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
+```Java
+protected Action getInitialAction() {
 
+        // Play open or closed prompt based on Square Hours  
+        final var openClosed = PlayAudioAction.builder()
+                .withKeyF(f -> squareHours.isOpen() ? "open.wav" : "closed.wav") // This is always in english
+                .withNextAction(MAIN_MENU)
+                .withErrorAction(MAIN_MENU)
+                .build();
 
-![Chime Phone Targets](assets/chimephonenumber.png)
+        // Start with a welcome message
+        final var welcome = PlayAudioAction.builder()
+                .withKey("welcome.wav") // This is always in english
+                .withNextAction(openClosed)
+                .withErrorAction(openClosed)
+                .build();
 
+        return welcome;
+    }
+```
+
+Control is then handed off to a Lex Bot which is backed by ChatGPT to handle the interaction until a terminating event happens.
+
+```Java
+final var lexBotEN = StartBotConversationAction.builder()
+                .withDescription("ChatGPT English")
+                .withLocale(english)
+                .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
+                .build();
+```
+
+If ChatGPT determines the call needs to be transferred or ended, that intent is returned and the SMA Controller transfers or ends the call.
+
+```Java
+Function<StartBotConversationAction, Action> botNextAction = (a) -> {
+            return switch (a.getIntentName()) {
+                case "Transfer" -> {
+                    final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
+                    final var botResponse = attrs.get("botResponse");
+                    final var phone = attrs.get("transferNumber");
+                    final var transfer = CallAndBridgeAction.builder()
+                            .withDescription("Send Call to Team Member")
+                            .withRingbackToneKey("ringing.wav")
+                            .withUri(phone)
+                            .build();
+                    if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
+                        // We are transferring to main number, so use SIP by sending call to Voice Connector
+                        transfer.setArn(VC_ARN);
+                        transfer.setDescription("Send Call to Main Number via SIP");
+                    }
+                    // If we have a GPT response for the transfer, play that before transferring
+                    if (botResponse != null) {
+                        yield SpeakAction.builder()
+                        .withText(botResponse)
+                        .withNextAction(transfer)
+                        .build();
+                    } else {
+                        yield transfer;
+                    }
+                }
+                case "Quit" ->
+                    goodbye;
+                default ->
+                    SpeakAction.builder()
+                    .withText("A system error has occured, please call back and try again")
+                    .withNextAction(hangup)
+                    .build();
+            }; 
+        };
+```
+
+### ChatGPT Fullfillment Lambda
+
+The [ChatGPTLambda](ChatGPT/src/main/java/cloud/cleo/squareup/ChatGPTLambda.java) and [Functions](ChatGPT/src/main/java/cloud/cleo/squareup/functions) allow the caller to interface with ChatGPT and provide answers based on realtime data from Square API's.  The model in initialized when a new [Session](ChatGPT/src/main/java/cloud/cleo/squareup/ChatGPTSessionState.java) is started.
+
+```Java
+         // General Prompting
+        sb.append("Please be a helpfull assistant for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
+        sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
+        sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
+
+        // Mode specific prompting
+        switch (inputMode) {
+            case TEXT -> {
+                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+                sb.append("To interact with an employee suggest the person call this number instead of texting and ask to speak to that person.  ");
+            }
+            case SPEECH, DTMF -> {
+                sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");
+                
+                // Hangup
+                sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
+                
+                // Transferring
+                sb.append("To transfer or speak with a employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
+                sb.append("If the caller wants to just speak to a person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
+                sb.append("Do not provide employee phone numbers, you can use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
+                
+                // Only recommend resturants for call ins, not SMS
+                sb.append("Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
+            }
+        }
+```
+
+### Example ChatGPT Function
+
+The [Store Hours](ChatGPT/src/main/java/cloud/cleo/squareup/functions/SquareHours.java) function is an example of extending the model to provide realtime information.  The executor for the function is rather simple.
+
+```Java
+@Override
+public String getDescription() {
+        return "Return the open store hours by day of week, any day of week not returned means the store is closed that day.";
+    }
+
+public Function<Request, Object> getExecutor() {
+        return (var r) -> {
+            try {
+                return client.getLocationsApi()
+                        .retrieveLocation(System.getenv("SQUARE_LOCATION_ID"))
+                        .getLocation().getBusinessHours();
+            } catch (Exception ex) {
+                return mapper.createObjectNode().put("error_message", ex.getLocalizedMessage());
+            } 
+        };
+    }
+```
+
+This API call to Square returns a JSON structure that is returned directly to ChatGPT for it to interpret.
+
+```Json
+    {
+      "periods": [
+        {
+          "day_of_week": "SUN",
+          "start_local_time": "11:00:00",
+          "end_local_time": "15:00:00"
+        },
+        {
+          "day_of_week": "FRI",
+          "start_local_time": "10:00:00",
+          "end_local_time": "17:00:00"
+        },
+        {
+          "day_of_week": "SAT",
+          "start_local_time": "10:00:00",
+          "end_local_time": "17:00:00"
+        }
+      ]
+    }
+```
+
+Depending on how the caller asks about hours, the model uses the data to answer questions:
+
+- Are you open next Thursday?
+    - No, we are closed on Thursdays (sometimes it will then speak all the open hours)
+- What are your hours?
+    - Speaks out the hours for each day in order (SUN, FRI, SAT)
+    - Sometimes it sumarizes and says Saturday and Sunday from 10 to 5 and Sunday from 11 to 3
 
 ## Deploy the Project
 
@@ -99,6 +254,13 @@ The commands perform the follwoing operations:
 
 You will see the progress as the stack deploys.  As metntioned earlier, you will need to put your OpenAI and Square API Key into parameter store or the deploy will error, but it will give you an error message 
 that tells you there is no value for "OPENAI_API_KEY" or "SQUARE_API_KEY" in the [Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html).
+
+### Chime SDK Phone Number
+
+After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call +1-320-425-0645, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
+
+
+![Chime Phone Targets](assets/chimephonenumber.png)
 
 
 ## Cleanup
