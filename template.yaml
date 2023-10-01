@@ -4,7 +4,7 @@ Transform:
   - AWS::LanguageExtensions
 
 Description: >
-  Square AWS Chime SMA Bot IVR
+  Square AWS Chime SMA ChatGPT IVR
 
 Parameters:
   SMAID:
@@ -58,7 +58,7 @@ Parameters:
   TRANSFERNUMBER:
     Description: The E164 Number to be used when transferring to main number
     Type: String
-    Default: +13204952424
+    Default: '+13204952424'
   VOICECONNECTORARN:
     Description: The ARN of a Voice Connector (or VC Group) to be used to send calls via SIP (set to PSTN to not use SIP)
     Type: String
@@ -166,45 +166,6 @@ Resources:
         PromptName: closed.wav
         PromptText: |
             Our store is currently closed.
-  
-  TryAgainEN:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: try-again-en-US.wav
-        PromptText: Please try again.
-        
-  TryAgainES:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: try-again-es-US.wav
-        PromptText: Inténtalo de nuevo.
-  
-  
-  TansferPromptEN:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: transfer-en-US.wav
-        PromptText: |
-            <speak>
-                Transferring <break time="10s"/>
-            </speak>
-            
-  TansferPromptES:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: transfer-es-US.wav
-        PromptText: |
-            <speak>
-                Transfiriendo <break time="10s"/>
-            </speak>
         
   GoodbyePromptEN:
     Type: Custom::PromptCreator

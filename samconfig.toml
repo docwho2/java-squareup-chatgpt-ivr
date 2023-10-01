@@ -57,31 +57,7 @@ image_repositories = []
 [west.deploy]
 [west.deploy.parameters]
 region = "us-west-2"
-parameter_overrides = "SMAID=\"f6fb2553-e7e0-4900-866b-1b51b91f575a\" VOICECONNECTORARN=\"arn:aws:chime:us-west-2:364253738352:vc/dnpz57kzlmo6uvhb1anu3w\""
-stack_name = "squareup-chatgpt-ivr"
-resolve_s3 = true
-s3_prefix = "squareup-chatgpt-ivr"
-profile = "CLEO"
-confirm_changeset = false
-capabilities = "CAPABILITY_IAM"
-image_repositories = []
-
-[frankfurt.deploy]
-[frankfurt.deploy.parameters]
-region = "eu-central-1"
-parameter_overrides = "SMAID=\"dbfa4d4d-9b94-440f-b471-77d8e14c7d1e\""
-stack_name = "squareup-chatgpt-ivr"
-resolve_s3 = true
-s3_prefix = "squareup-chatgpt-ivr"
-profile = "CLEO"
-confirm_changeset = false
-capabilities = "CAPABILITY_IAM"
-image_repositories = []
-
-[london.deploy]
-[london.deploy.parameters]
-region = "eu-west-2"
-parameter_overrides = "SMAID=\"ce1681cf-e71a-448c-a1ea-7d0fde81b0dd\""
+parameter_overrides = "SMAID=\"14f36d6f-4ecb-4629-ac87-bc11a04b5a35\" VOICECONNECTORARN=\"arn:aws:chime:us-west-2:364253738352:vc/dnpz57kzlmo6uvhb1anu3w\""
 stack_name = "squareup-chatgpt-ivr"
 resolve_s3 = true
 s3_prefix = "squareup-chatgpt-ivr"
