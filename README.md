@@ -239,7 +239,7 @@ sam deploy --config-env west
 You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell and install maven which also installs Java 17 by default, then proceed like above:
 
 ```bash
-sudo yum install maven
+sudo yum -y install maven
 git clone https://github.com/docwho2/java-squareup-chatgpt-ivr.git
 cd java-squareup-chatgpt-ivr
 ./init.bash
