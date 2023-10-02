@@ -3,35 +3,39 @@
 ## Background
 
 This project is a [SIP Media Application](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) and makes use of the 
-[Java Chime SMA Flow Library](https://github.com/docwho2/java-chime-voicesdk-sma) to deliver a [ChatGPT](https://openai.com/chatgpt)  voice bot IVR application.  The IVR application is integrated with the [Square API](https://developer.squareup.com/us/en) to allow callers to ask questions about products 
-and business hours, tranfer to employee cell phones, etc.
+[Java Chime SMA Flow Library](https://github.com/docwho2/java-chime-voicesdk-sma) to deliver a [ChatGPT](https://openai.com/chatgpt) voice bot IVR application. The IVR application is integrated with the [Square API](https://developer.squareup.com/us/en) to allow callers to ask questions about products 
+and business hours, transfer to employee cell phones, etc.
 
 ## Use Case
 
-[Copper Fox Gifts](https://www.copperfoxgifts.com) is a retail store located in a small town in MN.  The goal is to field the majority of the calls without human intervention.
-- Over 50% of the calls are "Are you open now?".  This is a typical call in resort type towns where hours change seasonally and frequently.  Many people always call ahead and want to know if the store is open before they leave.
-- The follow on is always, OK so what are the hours then.
-- 45% are "Do you have XYZ product?" (mittens, hats, gummy bears, shorts, candles, etc.)
-- The remaining calls are from vendors working with someone at the store and want to talk with person XYZ. 
+[Copper Fox Gifts](https://www.copperfoxgifts.com) is a retail store located in a small town in MN. The goal is to handle the majority of calls without human intervention. Here's a breakdown of the types of calls they receive:
+
+- **Over 50% of the calls**: "Are you open now?" This is a typical question in resort-type towns where store hours change seasonally and frequently. Many visitors prefer to call ahead to ensure the store is open before they head out.
+  - A common follow-up to this is: "What are your hours today?"
+  
+- **45% of the calls**: "Do you have XYZ product?" Queries range from mittens, hats, and gummy bears to shorts, candles, and more.
+
+- **The remaining calls**: These are primarily from vendors who are coordinating with a specific individual at the store and wish to speak with them directly.
 
 
 ## Solution Summary
 
-The goal is to provide a "Store Virtual Assistant" based on [OpenAI ChatGPT](https://openai.com/chatgpt) that not only can answer store specific questions, but anything in general the caller asks.
-- Use of [ChatGPT Function Calls](https://platform.openai.com/docs/guides/gpt/function-calling) to enable Sqaure API calls to access inventory, employee, and store hours.
-  - Further use of function calls so the model can indicate when a call needs to be transferred or ended.
-- Strategic prompting to prime the model with store information and how to interact with the caller.
-- A solid and reliable solution deployed multi-region within AWS and completely cloud based.
+The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT](https://openai.com/chatgpt) that can not only answer store-specific queries but also address any general questions the caller might have.
+- Utilize [ChatGPT Function Calls](https://platform.openai.com/docs/guides/gpt/function-calling) to facilitate Square API calls, enabling access to inventory, employee details, and store hours.
+  - Further leverage function calls so that the model can determine when a call should be transferred or concluded.
+- Employ strategic prompting to prime the model with pertinent store information and to guide interactions with callers.
+- Ensure a robust and dependable solution that is deployed across multiple regions within AWS and is entirely cloud-based.
 
-Features:
-- Callers are always greeted and told whether the store is open or closed.
-- Store hours are based on real-time data from a Square API call.
-- Product category and item searches are based on Square API calls.
-  - Callers can ask what types or specific products are available.
-- Speaking with employees or main store line.
-  - Caller can ask to speak to specific employees and this information is based on a Square API call (Team Member list)
-  - If the caller just wants to speak with a person, the model is primed with a general number to transfer the call to.
-    - When tranferring to the main line, this transfer is optimized to use SIP direct to the store [Asterisk PBX](https://www.asterisk.org).
+**Features:**
+- Callers are consistently greeted and informed about the store's operational status (open or closed).
+- Store hours are ascertained in real-time via a Square API call.
+- Product category and individual item searches are also driven by Square API calls.
+  - Callers can inquire about product categories or specific items in stock.
+- Engaging with store employees or the primary store line.
+  - Callers can request to connect with specific employees, with the information sourced from a Square API call (Team Member list).
+  - If the caller simply wishes to speak to a representative, the model is preloaded with a default number to redirect the call.
+    - During transfers to the main line, this process is optimized to use SIP directly connecting to the store's [Asterisk PBX](https://www.asterisk.org).
+
 
 ## High Level Components
 
