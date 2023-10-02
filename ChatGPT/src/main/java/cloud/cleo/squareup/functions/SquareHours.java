@@ -22,7 +22,7 @@ public class SquareHours<Request> extends AbstractFunction {
 
     @Override
     public String getDescription() {
-        return "Return the open store hours by day of week, any day of week not returned means store is closed that day.";
+        return "Return the open store hours by day of week, any day of week not returned means the store is closed that day.";
     }
 
     @Override

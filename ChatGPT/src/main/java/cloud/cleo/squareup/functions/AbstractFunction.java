@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.squareup.functions;
 
 import cloud.cleo.squareup.LexInputMode;
@@ -34,6 +30,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
     private static final List<AbstractFunction> functions = new LinkedList<>();
     private static boolean inited = false;
 
+    /**
+     * Define here since used by most the of the functions
+     */
     protected final static SquareClient client = new SquareClient.Builder()
             .accessToken(System.getenv("SQUARE_API_KEY"))
             .environment(Environment.PRODUCTION)

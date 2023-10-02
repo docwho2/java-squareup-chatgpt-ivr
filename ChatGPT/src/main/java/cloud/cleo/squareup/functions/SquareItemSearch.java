@@ -6,10 +6,8 @@ package cloud.cleo.squareup.functions;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.squareup.square.models.CatalogItem;
 import com.squareup.square.models.SearchCatalogItemsRequest;
 import java.util.function.Function;
-import lombok.Data;
 
 /**
  * Search for items based on search query
@@ -26,7 +24,7 @@ public class SquareItemSearch<Request> extends AbstractFunction {
 
     @Override
     public String getDescription() {
-        return "return item details like name and description, response limited to 5 items, so there could be more if 5 returned";
+        return "return item names, response limited to 5 items, so there could be more if 5 returned";
     }
 
     @Override
@@ -43,7 +41,6 @@ public class SquareItemSearch<Request> extends AbstractFunction {
         return (var r) -> {
             try {
                 var items = client.getCatalogApi()
-                        // Only retrieve Category objects
                         .searchCatalogItems(new SearchCatalogItemsRequest.Builder().textFilter(r.search_text).limit(5).build())
                         .getItems();
 
@@ -51,7 +48,7 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                     return items
                             .stream()
                             .map(item -> item.getItemData())
-                            // Just return item names for now
+                            // Just return item names 
                             .map(l -> l.getName())
                             .toList();
                 } else {
@@ -61,22 +58,6 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                 return mapper.createObjectNode().put("error_message", ex.getLocalizedMessage());
             }
         };
-    }
-
-    @Data
-    private static class Response {
-
-        @JsonPropertyDescription("product name")
-        String name;
-        @JsonPropertyDescription("product description")
-        String description;
-        //@JsonPropertyDescription("product price in USD with last 2 digits as cents")
-        //String price;
-
-        public Response(CatalogItem ci) {
-            this.name = ci.getName();
-            this.description = ci.getDescriptionPlaintext();
-        }
     }
 
     private static class Request {

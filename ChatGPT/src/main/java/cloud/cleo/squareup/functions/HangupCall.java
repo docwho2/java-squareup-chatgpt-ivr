@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
@@ -38,7 +34,7 @@ public class HangupCall<Request> extends AbstractFunction {
     @Override
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
-            return mapper.createObjectNode().put("message", "The caller is now ready to hangup. session ended");
+            return mapper.createObjectNode().put("message", "The caller is now ready to hangup. session ended.");
         };
     }
 

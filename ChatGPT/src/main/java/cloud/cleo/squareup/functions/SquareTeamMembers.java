@@ -29,7 +29,7 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
 
     @Override
     public String getDescription() {
-        return "Return the Team members (employees) names and phone numbers for this store location, do not give the phone numbers to the callers or give out the whole list";
+        return "Return the Team members (employees) names and phone numbers for this store location, do not give the phone numbers to the callers or give out the whole list.";
     }
 
     @Override

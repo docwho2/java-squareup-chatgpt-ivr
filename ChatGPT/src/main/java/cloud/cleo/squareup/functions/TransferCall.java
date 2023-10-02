@@ -40,7 +40,7 @@ public class TransferCall<Request> extends AbstractFunction {
     @Override
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
-            return mapper.createObjectNode().put("message", "The caller is now ready to be transferred");
+            return mapper.createObjectNode().put("message", "The caller is now ready to be transferred.");
         };
     }
 
