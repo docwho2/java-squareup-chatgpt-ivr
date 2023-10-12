@@ -21,7 +21,7 @@ lint = true
 region = "us-east-1"
 parameter_overrides = "SMAID=\"d95bf7c0-6ae3-436f-9831-c5c362884b97\" VOICECONNECTORARN=\"arn:aws:chime:us-east-1:364253738352:vc/cze9epizslzqslzjpo58ff\""
 capabilities = "CAPABILITY_IAM"
-confirm_changeset = false
+confirm_changeset = true
 resolve_s3 = true
 profile = "CLEO"
 

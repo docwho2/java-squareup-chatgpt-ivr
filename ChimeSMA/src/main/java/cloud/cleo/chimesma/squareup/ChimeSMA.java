@@ -14,7 +14,8 @@ public class ChimeSMA extends AbstractFlow {
     private final static Action MAIN_MENU = getMainMenu();
 
     /**
-     * Simple Object that caches Square data about hours to determine whether store is open or closed
+     * Simple Object that caches Square data about hours to determine whether
+     * store is open or closed
      */
     private final static SquareHours squareHours = SquareHours.getInstance();
 
@@ -28,7 +29,8 @@ public class ChimeSMA extends AbstractFlow {
     private final static String VC_ARN = System.getenv("VC_ARN");
 
     /**
-     * Initial action is to play welcome message and whether store is open or closed
+     * Initial action is to play welcome message and whether store is open or
+     * closed
      *
      * @return
      */
@@ -53,8 +55,8 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * Main menu is just a LexBox, and the only outputs are Quit and Transfer. Quit - hang up the call Transfer. -
-     * transfer the call to another number.
+     * Main menu is just a LexBox, and the only outputs are Quit and Transfer.
+     * Quit - hang up the call Transfer. - transfer the call to another number.
      *
      * @return
      */
@@ -90,7 +92,7 @@ public class ChimeSMA extends AbstractFlow {
             return switch (a.getIntentName()) {
                 case "Transfer" -> {
                     final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
-                    final var botResponse = attrs.get("botResponse");
+                    // final var botResponse = attrs.get("botResponse");  # Ignore what GPT says, sometimes it says we cannot transfer even though we are
                     final var phone = attrs.get("transferNumber");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
@@ -102,15 +104,11 @@ public class ChimeSMA extends AbstractFlow {
                         transfer.setArn(VC_ARN);
                         transfer.setDescription("Send Call to Main Number via SIP");
                     }
-                    // If we have a GPT response for the transfer, play that before transferring
-                    if (botResponse != null) {
-                        yield SpeakAction.builder()
-                        .withText(botResponse)
-                        .withNextAction(transfer)
-                        .build();
-                    } else {
-                        yield transfer;
-                    }
+                    yield PlayAudioAction.builder()
+                    .withDescription("Indicate transfer in progress")
+                    .withKey("transfer.wav")
+                    .withNextAction(transfer)
+                    .build();
                 }
                 case "Quit" ->
                     goodbye;
@@ -130,7 +128,8 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * When an error occurs on a Action and the Action did not specify an Error Action
+     * When an error occurs on a Action and the Action did not specify an Error
+     * Action
      *
      * @return the default error Action
      */

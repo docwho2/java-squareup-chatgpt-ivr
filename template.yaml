@@ -167,6 +167,15 @@ Resources:
         PromptText: |
             Our store is currently closed.
         
+  TransferEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: transfer.wav
+        PromptText: |
+            Your call will now be transferred.  Please be patient until the remote party answers.      
+        
   GoodbyePromptEN:
     Type: Custom::PromptCreator
     Properties:
@@ -433,35 +442,24 @@ Resources:
           AttributeName: ttl
           Enabled: true
             
-            
-  
-      
+           
   ChimeCallLexGPT:
-    Type: 'AWS::Lex::ResourcePolicy'
+    Type: AWS::Lex::ResourcePolicy
     Properties:
       ResourceArn: !GetAtt BotAliasGPT.Arn
       Policy:
-       {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-           "Sid": "AllowChimePstnAudioUseBotGPT",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "voiceconnector.chime.amazonaws.com"
-            },
-            "Action": "lex:StartConversation",
-            "Resource": !Sub "${BotAliasGPT.Arn}",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
-                    },
-                    "ArnEquals": {
-                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
-                    }
-                }
-              }
-            ]
-      }
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AllowChimePstnAudioUseBotGPT
+          Effect: Allow
+          Principal:
+            Service: voiceconnector.chime.amazonaws.com
+          Action: lex:StartConversation
+          Resource: !Sub ${BotAliasGPT.Arn}
+          Condition:
+            StringEquals:
+              AWS:SourceAccount: !Sub ${AWS::AccountId}
+            ArnEquals:
+              AWS:SourceArn: !Sub arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}
       
       
