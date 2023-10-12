@@ -97,6 +97,7 @@ public class ChimeSMA extends AbstractFlow {
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
                             .withRingbackToneKey("ringing.wav")
+                            .withCallTimeoutSeconds(60)  // Store has 40 seconds before VM, and default is 30, so push to 60 to be safe
                             .withUri(phone)
                             .build();
                     if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
