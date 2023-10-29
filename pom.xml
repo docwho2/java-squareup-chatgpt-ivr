@@ -33,6 +33,8 @@
         <!-- These are part of gthe local project -->
         <module>ChatGPT</module>
         <module>ChimeSMA</module>
+        <!-- Chime Provisioning -->
+        <module>CDK</module>
     </modules>
 
     <dependencyManagement>
