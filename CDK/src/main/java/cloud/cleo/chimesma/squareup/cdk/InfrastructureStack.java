@@ -35,9 +35,16 @@ public class InfrastructureStack extends Stack {
 
         ChimeSipMediaApp sma = new ChimeSipMediaApp(this, lambda.getAtt("Arn"));
 
+        ChimeVoiceConnector vc = new ChimeVoiceConnector(this);
+        
         new CfnOutput(this, "sma-arn", CfnOutputProps.builder()
                 .description("The ARN for the Session Media App (SMA)")
                 .value(sma.getArn())
+                .build());
+        
+        new CfnOutput(this, "vc-hostname", CfnOutputProps.builder()
+                .description("The Hostname for the Voice Connector")
+                .value(vc.getOutboundName())
                 .build());
     }
 

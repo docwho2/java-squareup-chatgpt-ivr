@@ -5,9 +5,9 @@
 package cloud.cleo.chimesma.squareup.cdk;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import software.amazon.awscdk.Reference;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.customresources.AwsCustomResource;
@@ -17,6 +17,8 @@ import software.amazon.awscdk.customresources.AwsSdkCall;
 import software.amazon.awscdk.customresources.PhysicalResourceId;
 import software.amazon.awscdk.customresources.PhysicalResourceIdReference;
 import software.amazon.awscdk.services.iam.PolicyStatement;
+import software.amazon.awscdk.services.lambda.CfnPermission;
+import software.amazon.awscdk.services.lambda.CfnPermissionProps;
 
 /**
  *
@@ -24,8 +26,17 @@ import software.amazon.awscdk.services.iam.PolicyStatement;
  */
 public class ChimeSipMediaApp extends AwsCustomResource {
     
+    private final static String ID = "SMA-CR";
+    private final static String ID_PERM = ID + "-PERM";
+    
+    /**
+     * The SMA ID in the API response
+     */
+    private final static String SMA_ID = "SipMediaApplication.SipMediaApplicationId";
+    private final static String SMA_ARN = "SipMediaApplication.SipMediaApplicationArn";
+    
     public ChimeSipMediaApp(Stack scope, Reference lambdaArn) {
-        super(scope, "SMA-CR", AwsCustomResourceProps.builder()
+        super(scope, ID, AwsCustomResourceProps.builder()
                 .resourceType("Custom::SipMediaApplication")
                 .installLatestAwsSdk(Boolean.FALSE)
                 //.policy(AwsCustomResourcePolicy.fromSdkCalls(SdkCallsPolicyOptions.builder().resources(AwsCustomResourcePolicy.ANY_RESOURCE).build()))
@@ -34,7 +45,7 @@ public class ChimeSipMediaApp extends AwsCustomResource {
                 .onCreate(AwsSdkCall.builder()
                         .service("@aws-sdk/client-chime-sdk-voice")
                         .action("CreateSipMediaApplicationCommand")
-                        .physicalResourceId(PhysicalResourceId.fromResponse("SipMediaApplication.SipMediaApplicationId"))
+                        .physicalResourceId(PhysicalResourceId.fromResponse(SMA_ID))
                         .parameters(new SMAParameters(scope.getRegion(),scope.getStackName() + "-sma", List.of(new SipMediaApplicationEndpoint(lambdaArn.toString()))))
                         .build())
                 .onDelete(AwsSdkCall.builder()
@@ -43,6 +54,15 @@ public class ChimeSipMediaApp extends AwsCustomResource {
                         .parameters(Map.of("SipMediaApplicationId", new PhysicalResourceIdReference()))
                         .build())
                 .build());
+        
+        // Add permission for Chime to Call the Lambda
+        final var perm = new CfnPermission(scope, ID_PERM, CfnPermissionProps.builder()
+                .functionName(lambdaArn.toString())
+                .action("lambda:InvokeFunction")
+                .principal("voiceconnector.chime.amazonaws.com")
+                .sourceAccount(scope.getAccount())
+                .sourceArn(getResponseFieldReference(SMA_ARN).toString())
+                .build());
     }
     
     /**
@@ -50,36 +70,29 @@ public class ChimeSipMediaApp extends AwsCustomResource {
      * @return 
      */
     public String getArn() {
-        return getResponseField("SipMediaApplication.SipMediaApplicationArn");
+        return getResponseField(SMA_ARN);
     }
     
-    
-    private static class SMAParameters implements Serializable {
+    /**
+     * Required parameters for the CreateSipMediaApplicationCommand API call
+     */
+    @AllArgsConstructor
+    private static class SMAParameters {
 
         @JsonProperty(value = "AwsRegion")
-        String AwsRegion;
+        String awsRegion;
         
         @JsonProperty(value = "Name")
-        String Name;
+        String name;
         
         @JsonProperty(value = "Endpoints")
-        List<SipMediaApplicationEndpoint> Endpoints;
-
-        public SMAParameters(String AwsRegion, String Name, List<SipMediaApplicationEndpoint> Endpoints) {
-            this.AwsRegion = AwsRegion;
-            this.Name = Name;
-            this.Endpoints = Endpoints;
-        }
+        List<SipMediaApplicationEndpoint> endpoints;
 
     }
 
-    private static class SipMediaApplicationEndpoint implements Serializable {
+    @AllArgsConstructor
+    private static class SipMediaApplicationEndpoint {
         @JsonProperty(value = "LambdaArn")
-        String LambdaArn;
-
-        public SipMediaApplicationEndpoint(String LambdaArn) {
-            this.LambdaArn = LambdaArn;
-        }
-        
+        String lambdaArn;
     }
 }
