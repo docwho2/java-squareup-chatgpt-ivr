@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.squareup.cdk;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import software.amazon.awscdk.Stack;
@@ -15,6 +16,7 @@ import software.amazon.awscdk.customresources.AwsSdkCall;
 import software.amazon.awscdk.customresources.PhysicalResourceId;
 import software.amazon.awscdk.customresources.PhysicalResourceIdReference;
 import software.amazon.awscdk.customresources.SdkCallsPolicyOptions;
+import software.amazon.awscdk.services.iam.PolicyStatement;
 
 /**
  *
@@ -30,11 +32,15 @@ public class ChimeVoiceConnector extends AwsCustomResource {
     private final static String VC_ID = "VoiceConnector.VoiceConnectorId";
     private final static String VC_ARN = "VoiceConnector.VoiceConnectorArn";
 
+    private final AwsCustomResource logging;
+    private final AwsCustomResource termination;
+    private final AwsCustomResource origination;
+    
     public ChimeVoiceConnector(Stack scope) {
         super(scope, ID, AwsCustomResourceProps.builder()
                 .resourceType("Custom::VoiceConnector")
                 .installLatestAwsSdk(Boolean.FALSE)
-                .policy(AwsCustomResourcePolicy.fromSdkCalls(SdkCallsPolicyOptions.builder().resources(AwsCustomResourcePolicy.ANY_RESOURCE).build()))
+                .policy(AwsCustomResourcePolicy.fromStatements(List.of(PolicyStatement.Builder.create().actions(List.of("chime:*","logs:*")).resources(List.of("*")).build())))
                 .onCreate(AwsSdkCall.builder()
                         .service("@aws-sdk/client-chime-sdk-voice")
                         .action("CreateVoiceConnectorCommand")
@@ -48,6 +54,48 @@ public class ChimeVoiceConnector extends AwsCustomResource {
                         .build())
                 .build());
 
+        
+        // Enable SIP Logs
+        logging = new AwsCustomResource(scope, ID + "-LOG", AwsCustomResourceProps.builder()
+                .resourceType("Custom::VoiceConnectorLogging")
+                 .installLatestAwsSdk(Boolean.FALSE)
+                .policy(AwsCustomResourcePolicy.fromStatements(List.of(PolicyStatement.Builder.create().actions(List.of("chime:*","logs:*")).resources(List.of("*")).build())))
+                .onCreate(AwsSdkCall.builder()
+                        .service("@aws-sdk/client-chime-sdk-voice")
+                        .action("PutVoiceConnectorLoggingConfigurationCommand")
+                        .physicalResourceId(PhysicalResourceId.of("logging"))
+                        .parameters(Map.of("VoiceConnectorId", getResponseFieldReference(VC_ID),
+                                "LoggingConfiguration",Map.of("EnableSIPLogs", true,"EnableMediaMetricLogs",false)))
+                        .build())
+                .build());
+        
+        
+        termination = new AwsCustomResource(scope, ID + "-TERM", AwsCustomResourceProps.builder()
+                .resourceType("Custom::VoiceConnectorTerm")
+                 .installLatestAwsSdk(Boolean.FALSE)
+                .policy(AwsCustomResourcePolicy.fromSdkCalls(SdkCallsPolicyOptions.builder().resources(AwsCustomResourcePolicy.ANY_RESOURCE).build()))
+                .onCreate(AwsSdkCall.builder()
+                        .service("@aws-sdk/client-chime-sdk-voice")
+                        .action("PutVoiceConnectorTerminationCommand")
+                        .physicalResourceId(PhysicalResourceId.of("termination"))
+                        .parameters(Map.of("VoiceConnectorId", getResponseFieldReference(VC_ID),
+                                "Termination",Map.of("CallingRegions", List.of("US"),"CidrAllowedList",List.of("54.197.158.204/32","54.172.60.0/30","54.244.51.0/30"),"Disabled",false)))
+                        .build())
+                .build());
+        
+        origination = new AwsCustomResource(scope, ID + "-ORIG", AwsCustomResourceProps.builder()
+                .resourceType("Custom::VoiceConnectorOrig")
+                 .installLatestAwsSdk(Boolean.FALSE)
+                .policy(AwsCustomResourcePolicy.fromSdkCalls(SdkCallsPolicyOptions.builder().resources(AwsCustomResourcePolicy.ANY_RESOURCE).build()))
+                .onCreate(AwsSdkCall.builder()
+                        .service("@aws-sdk/client-chime-sdk-voice")
+                        .action("PutVoiceConnectorOriginationCommand")
+                        .physicalResourceId(PhysicalResourceId.of("origination"))
+                        .parameters(Map.of("VoiceConnectorId", getResponseFieldReference(VC_ID),
+                                "Origination",Map.of("Routes", List.of(Map.of("Host","54.197.158.204","Port",5060,"Protocol","UDP","Priority",1,"Weight",1)),"Disabled",false)))
+                        .build())
+                .build());
+        
     }
 
     /**

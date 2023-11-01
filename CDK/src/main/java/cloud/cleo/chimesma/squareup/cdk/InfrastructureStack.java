@@ -37,6 +37,8 @@ public class InfrastructureStack extends Stack {
 
         ChimeVoiceConnector vc = new ChimeVoiceConnector(this);
         
+        ChimeSipRule sr = new ChimeSipRule(this, vc, sma);
+        
         new CfnOutput(this, "sma-arn", CfnOutputProps.builder()
                 .description("The ARN for the Session Media App (SMA)")
                 .value(sma.getArn())

@@ -73,6 +73,10 @@ public class ChimeSipMediaApp extends AwsCustomResource {
         return getResponseField(SMA_ARN);
     }
     
+    public String getSMAId() {
+        return getResponseField(SMA_ID);
+    }
+    
     /**
      * Required parameters for the CreateSipMediaApplicationCommand API call
      */
