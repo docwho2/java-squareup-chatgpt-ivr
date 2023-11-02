@@ -1,24 +1,16 @@
 package cloud.cleo.chimesma.squareup.cdk;
 
-import java.util.List;
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.CfnOutput;
 import software.amazon.awscdk.CfnOutputProps;
-import software.amazon.awscdk.RemovalPolicy;
 import software.constructs.Construct;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.services.iam.Effect;
-import software.amazon.awscdk.services.iam.PolicyDocument;
-import software.amazon.awscdk.services.iam.PolicyStatement;
-import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.lambda.Runtime;
-import software.amazon.awscdk.services.s3.Bucket;
-import software.amazon.awscdk.services.s3.BucketProps;
-import software.amazon.awscdk.services.s3.CfnBucketPolicy;
-import software.amazon.awscdk.services.s3.CfnBucketPolicyProps;
 import software.amazon.awscdk.services.sam.CfnFunction;
 import software.amazon.awscdk.services.sam.CfnFunctionProps;
+import software.amazon.awscdk.services.ssm.StringParameter;
+import software.amazon.awscdk.services.ssm.StringParameterProps;
 
 /**
  * CDK Stack
@@ -46,7 +38,18 @@ public class InfrastructureStack extends Stack {
         ChimeVoiceConnector vc = new ChimeVoiceConnector(this);
 
         ChimeSipRule sr = new ChimeSipRule(this, vc, sma);
+        
+        new StringParameter(this, "SMA_ID_PARAM" , StringParameterProps.builder()
+                .parameterName("/" + getStackName() + "/SMA_ID")
+                .description("The ID for the Session Media App (SMA)")
+                .stringValue(sma.getSMAId())
+                .build());
 
+        new CfnOutput(this, "SMA_ID", CfnOutputProps.builder()
+                .description("The ID for the Session Media App (SMA)")
+                .value(sma.getSMAId())
+                .build());
+        
         new CfnOutput(this, "sma-arn", CfnOutputProps.builder()
                 .description("The ARN for the Session Media App (SMA)")
                 .value(sma.getArn())
