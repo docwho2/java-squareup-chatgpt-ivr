@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Java CI with Maven
+name: Build and Validate SAM Template
 
 on:
   push:
@@ -43,3 +43,6 @@ jobs:
         
     - name: SAM Build
       run: sam build
+      
+    - name: Validate SAM Template
+      run:  sam validate --lint
