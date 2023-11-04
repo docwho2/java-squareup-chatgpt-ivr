@@ -30,11 +30,9 @@
     <modules>
         <!-- These are needed for lex events (bots) and JSON processing from the Library Project -->
         <module>ChimeSMALibrary</module>
-        <!-- These are part of gthe local project -->
+        <!-- These are part of the local project -->
         <module>ChatGPT</module>
         <module>ChimeSMA</module>
-        <!-- Chime Provisioning -->
-        <module>CDK</module>
     </modules>
 
     <dependencyManagement>
