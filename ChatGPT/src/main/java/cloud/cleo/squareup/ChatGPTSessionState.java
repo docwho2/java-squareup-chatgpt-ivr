@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import lombok.Data;
@@ -46,6 +47,8 @@ public class ChatGPTSessionState {
         // General Prompting
         sb.append("Please be a helpfull assistant for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
         sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
+        // Ultimately this should be derived from TZ for a Square location API call
+        sb.append("The current date and time is  ").append(ZonedDateTime.now(ZoneId.of("America/Chicago")));
         sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
 
         // Mode specific prompting
