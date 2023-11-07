@@ -11,7 +11,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import lombok.Data;
@@ -47,32 +46,32 @@ public class ChatGPTSessionState {
         // General Prompting
         sb.append("Please be a helpfull assistant for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
         sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
-        // Ultimately this should be derived from TZ for a Square location API call
-        sb.append("The current date and time is  ").append(ZonedDateTime.now(ZoneId.of("America/Chicago")));
+        sb.append("The current date is  ").append(date).append(".  ");
         sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
 
+        // Local Stuff to recommend
+        sb.append("Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
+        sb.append("Wahkon Inn is another great resturant across the street that serves more home cooked type meals at a reasonable price frequented by locals.  ");
+        
         // Mode specific prompting
         switch (inputMode) {
             case TEXT -> {
                 sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
-                sb.append("To interact with an employee suggest the person call this number instead of texting and ask to speak to that person.  ");
+                sb.append("To interact with an employee suggest the person call ").append(System.getenv("MAIN_NUMBER")).append(" and ask to speak to that person.  ");
+                sb.append("Do not provide employee phone numbers.");
             }
             case SPEECH, DTMF -> {
                 sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");
-                
+
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
-                
+
                 // Transferring
                 sb.append("To transfer or speak with a employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 sb.append("If the caller wants to just speak to a person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
-                sb.append("Do not provide employee phone numbers, you can use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
-                
-                // Only recommend resturants for call ins, not SMS
-                sb.append("Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
+                sb.append("Do not provide callers employee phone numbers, you can use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
             }
         }
-
 
         this.messages.add(new ChatGPTMessage(ChatGPTMessage.MessageRole.system, sb.toString()));
 
