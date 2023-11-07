@@ -19,6 +19,13 @@ Parameters:
     Description: The Square Location ID to use
     Type: String
     Default: L5KK29RDQG17Q
+  SQUAREENVIRONMENT:
+    Description: The Square Environment to use
+    Type: String
+    Default: SANDBOX
+    AllowedValues:
+        - SANDBOX
+        - PRODUCTION
   OPENAIAPIKEY:
     Description: OpenAI Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
@@ -59,7 +66,7 @@ Parameters:
   TRANSFERNUMBER:
     Description: The E164 Number to be used when transferring to main number
     Type: String
-    Default: '+13204952424'
+    Default: '+18004444444' # MCI Test Number, change to a real number
   VOICECONNECTORARN:
     Description: The ARN of a Voice Connector (or VC Group) to be used to send calls via SIP (set to PSTN to not use SIP)
     Type: String
@@ -207,6 +214,7 @@ Resources:
           BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
           SQUARE_API_KEY: !Ref SQUAREAPIKEY
           SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
+          SQUARE_ENVIRONMENT: !Ref SQUAREENVIRONMENT
           MAIN_NUMBER: !Ref TRANSFERNUMBER
           VC_ARN: !Ref VOICECONNECTORARN
           LANGUAGE_VOICE_MAP:
@@ -396,6 +404,7 @@ Resources:
           OPENAI_API_KEY: !Ref OPENAIAPIKEY
           SQUARE_API_KEY: !Ref SQUAREAPIKEY
           SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
+          SQUARE_ENVIRONMENT: !Ref SQUAREENVIRONMENT
           SESSION_TABLE_NAME: !Ref SessionTable
           MAIN_NUMBER: !Ref TRANSFERNUMBER
       SnapStart:

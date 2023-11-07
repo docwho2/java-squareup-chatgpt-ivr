@@ -26,7 +26,7 @@ public class SquareHours {
 
     private final static SquareClient client = new SquareClient.Builder()
             .accessToken(System.getenv("SQUARE_API_KEY"))
-            .environment(Environment.PRODUCTION)
+            .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMEN")))
             .build();
 
     private final static LocationsApi locationsApi = client.getLocationsApi();

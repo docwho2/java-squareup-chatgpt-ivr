@@ -35,7 +35,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
      */
     protected final static SquareClient client = new SquareClient.Builder()
             .accessToken(System.getenv("SQUARE_API_KEY"))
-            .environment(Environment.PRODUCTION)
+            .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMEN")))
             .build();
 
     /**
