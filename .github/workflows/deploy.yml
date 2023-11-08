@@ -95,7 +95,7 @@ jobs:
     - name: Setup AWS Creds
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-region: $
+        aws-region: ${{ matrix.region }}
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
         
     - name: SAM Build
@@ -103,7 +103,7 @@ jobs:
       
     - name: SAM Deploy
       run:  >
-        sam deploy --no-fail-on-empty-changeset --no-confirm-changeset --region $
+        sam deploy --no-fail-on-empty-changeset --no-confirm-changeset --region ${{ matrix.region }}
         --stack-name $STACK_NAME
         --parameter-overrides
         SMAID=/$CDK_STACK_NAME/SMA_ID
