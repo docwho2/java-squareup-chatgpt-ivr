@@ -98,7 +98,15 @@ jobs:
       with:
         aws-region: ${{ matrix.region }}
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-        
+    
+    - name: Cache local Maven repository
+      uses: actions/cache@v3
+      with:
+        path: ~/.aws-sam
+        key: ${{ runner.os }}-sam-${{ hashFiles('**/build.toml') }}
+        restore-keys: |
+             ${{ runner.os }}-sam-
+       
     - name: SAM Build
       run: sam build
       
