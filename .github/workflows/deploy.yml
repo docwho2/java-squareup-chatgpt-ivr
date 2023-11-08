@@ -102,10 +102,8 @@ jobs:
     - name: Cache SAM Build files
       uses: actions/cache@v3
       with:
-        path: ~/.aws-sam
-        key: ${{ runner.os }}-sam-${{ hashFiles('**/build.toml') }}
-        restore-keys: |
-             ${{ runner.os }}-sam-
+        path: .aws-sam
+        key: ${{ runner.os }}-sam
        
     - name: SAM Build
       run: sam build
