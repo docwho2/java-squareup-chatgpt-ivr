@@ -20,6 +20,7 @@ permissions:
 env:
   CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chimesdk-cdk-provision' }}
   STACK_NAME: ${{ vars.STACK_NAME || 'squareup-chatgpt-ivr' }}
+  TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
 
 jobs:
   cdk-deploy:
@@ -107,9 +108,9 @@ jobs:
         --stack-name $STACK_NAME
         --parameter-overrides
         SMAID=/$CDK_STACK_NAME/SMA_ID
-        VOICECONNECTORARN=$CDK_STACK_NAME/VC_ARN
+        VOICECONNECTORARN=/$CDK_STACK_NAME/VC_ARN
         SQUAREENVIRONMENT=PRODUCTION
-        TRANSFERNUMBER=+13204952424
+        TRANSFERNUMBER=$TRANSFER_NUMBER
         OPENAIMODEL=gpt-3.5-turbo-1106
         
         
