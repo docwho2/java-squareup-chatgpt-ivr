@@ -1,3 +1,6 @@
 [submodule "ChimeSMALibrary"]
 	path = ChimeSMALibrary
 	url = https://github.com/docwho2/java-chime-voicesdk-sma.git
+[submodule "ChimeCDKProvision"]
+	path = ChimeCDKProvision
+	url = https://github.com/docwho2/java-chime-voice-sdk-cdk.git
