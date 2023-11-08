@@ -31,7 +31,7 @@ jobs:
         cache: maven
         
     - name: Build up all the libraries
-      run: mvn -B install -DskipTests --projects '!ChimeSMA,!ChatGPT!ChimeCDKProvision'
+      run: mvn -B install -DskipTests
 
 
     - name: Setup AWS SAM
