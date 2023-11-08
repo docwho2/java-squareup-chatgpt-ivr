@@ -115,13 +115,13 @@ jobs:
     
     - name: Update Endpoint
       run: |
-        ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
-        SMA_ID=`aws ssm get-parameter --name /$CDK_STACK_NAME/SMA_ID --query Parameter.Value`
-        CUR_ENDPOINT=`aws chime get-sip-media-application --sip-media-application-id $SMA_ID --query 'SipMediaApplication.Endpoints[0].LambdaArn'`
-        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:$ACCOUNT_ID:function:$STACK_NAME-ChimeSMA
-        if [[ $TARGET_ENDPOINT != CUR_ENDPOINT ]]; then
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        SMA_ID=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
+        CUR_ENDPOINT=$(aws chime get-sip-media-application --sip-media-application-id ${SMA_ID} --query 'SipMediaApplication.Endpoints[0].LambdaArn' --output text)
+        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
+        if [[ $TARGET_ENDPOINT != $CUR_ENDPOINT ]]; then
             echo "SMA Lambda Endpoint needs to be updated"
-            aws chime update-sip-media-application --sip-media-application-id $SMA_ID --endpoints LambdaArn=$TARGET_ENDPOINT
+            aws chime update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
         else
             echo "SMA Lambda Endpoint is already corectly set"
         fi
