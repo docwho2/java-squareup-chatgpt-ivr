@@ -8,19 +8,23 @@ Description: >
 
 Parameters:
   SMAID:
-    Description: Chime Voice Sip Media Application (SMA) ID
-    Type: String
-    Default: cf3e17cd-f4e5-44c3-ab04-XXXXXXXXXXXX
+    Description: Chime Voice Sip Media Application (SMA) ID (cf3e17cd-f4e5-44c3-ab04-XXXXXXXXXXXX) from parameter store
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SMA_ID
+  VOICECONNECTORARN:
+    Description: The ARN of a Voice Connector (or VC Group) to be used to send calls via SIP (set to PSTN to not use SIP for transfers)
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: VOICE_CONNECTOR_ARN
   SQUAREAPIKEY:
     Description: Square API Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
     Default: SQUARE_API_KEY
   SQUARELOCATIONID:
-    Description: The Square Location ID to use
+    Description: The Square Location ID to use (You must look this up via Square API or from deve console)
     Type: String
     Default: L5KK29RDQG17Q
   SQUAREENVIRONMENT:
-    Description: The Square Environment to use
+    Description: The Square Environment to use (SANDBOX for testing, set to PRODUCTION when you have a real Square business account)
     Type: String
     Default: SANDBOX
     AllowedValues:
@@ -67,10 +71,7 @@ Parameters:
     Description: The E164 Number to be used when transferring to main number
     Type: String
     Default: '+18004444444' # MCI Test Number, change to a real number
-  VOICECONNECTORARN:
-    Description: The ARN of a Voice Connector (or VC Group) to be used to send calls via SIP (set to PSTN to not use SIP)
-    Type: String
-    Default: PSTN
+  
 
 Globals:
   Function:

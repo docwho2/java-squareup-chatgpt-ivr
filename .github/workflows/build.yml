@@ -9,8 +9,6 @@
 name: Build and Validate SAM Template
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -33,7 +31,7 @@ jobs:
         cache: maven
         
     - name: Build up all the libraries
-      run: mvn -B install -DskipTests --projects '!ChimeSMA,!ChatGPT'
+      run: mvn -B install -DskipTests --projects '!ChimeSMA,!ChatGPT!ChimeCDKProvision'
 
 
     - name: Setup AWS SAM
