@@ -14,6 +14,8 @@ env:
   CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chimesdk-cdk-provision' }}
   STACK_NAME: ${{ vars.STACK_NAME || 'squareup-chatgpt-ivr' }}
   TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
+  SQUARE_ENVIRONMENT: ${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
+  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
 
 jobs:
   cdk-deploy:
@@ -52,7 +54,7 @@ jobs:
       run: |
         ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
         # Deploy to both regions in parallel
-        cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=$CDK_STACK_NAME --concurrency=2 --all --require-approval=never --ci=true
+        cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} --concurrency=2 --all --require-approval=never --ci=true
       env:
           # Set to the Main Asterisk Server at the Store
           PBX_HOSTNAME: 54.197.158.204
@@ -107,11 +109,11 @@ jobs:
         sam deploy --no-fail-on-empty-changeset --no-confirm-changeset --region ${{ matrix.region }}
         --stack-name $STACK_NAME
         --parameter-overrides
-        SMAID=/$CDK_STACK_NAME/SMA_ID
-        VOICECONNECTORARN=/$CDK_STACK_NAME/VC_ARN
-        SQUAREENVIRONMENT=PRODUCTION
-        TRANSFERNUMBER=$TRANSFER_NUMBER
-        OPENAIMODEL=gpt-3.5-turbo-1106
+        SMAID=/${CDK_STACK_NAME}/SMA_ID
+        VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
+        SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT}
+        TRANSFERNUMBER=${TRANSFER_NUMBER}
+        OPENAIMODEL=${OPENAI_MODEL}
     
     - name: Update Endpoint
       run: |
