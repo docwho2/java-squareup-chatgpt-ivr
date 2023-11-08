@@ -16,6 +16,8 @@ env:
   TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
   SQUARE_ENVIRONMENT: ${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
+  # Define in repo variables if you want want to route main number calls via SIP
+  PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
 
 jobs:
   cdk-deploy:
@@ -55,9 +57,6 @@ jobs:
         ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
         # Deploy to both regions in parallel
         cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} --concurrency=2 --all --require-approval=never --ci=true
-      env:
-          # Set to the Main Asterisk Server at the Store
-          PBX_HOSTNAME: 54.197.158.204
   
   sam-deploy:
     strategy:
