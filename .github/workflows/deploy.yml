@@ -79,7 +79,8 @@ jobs:
         cache: maven     
        
     - name: Build up all the libraries
-      run: mvn -B install -DskipTests --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision'
+      # Exclude modules that SAM builds so it can use SAM cache and speed deploys
+      run: mvn -B install -DskipTests --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision,!cloud.cleo.chimesma:generate-poly-prompt'
 
     - name: Setup AWS SAM
       uses: aws-actions/setup-sam@v2
