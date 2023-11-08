@@ -99,7 +99,7 @@ jobs:
         aws-region: ${{ matrix.region }}
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
     
-    - name: Cache local Maven repository
+    - name: Cache SAM Build files
       uses: actions/cache@v3
       with:
         path: ~/.aws-sam
