@@ -38,8 +38,8 @@ env:
   PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
   
   # Polly voices to use for English and Spanish
-  VOICE_ID_EN: ${{ vars.VOICE_ID_EN:  || 'Joanna' }}
-  VOICE_ID_ES: ${{ vars.VOICE_ID_ES:  || 'Lupe' }}
+  VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
+  VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
 
   # AWS Regions to deploy to https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html
   # In the US, us-east-1 and uswest-2 are the supported regions for Chime PSTN SDK
