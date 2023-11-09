@@ -44,8 +44,8 @@ env:
   # AWS Regions to deploy to https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html
   # In the US, us-east-1 and uswest-2 are the supported regions for Chime PSTN SDK
   # In EU for example you can use Frankfurt and London but they don't support PSTN numbers, but with SIP and BYOC you can implement in EU
-  AWS_REGION_1: us-east-1
-  AWS_REGION_2: us-west-2
+  AWS_REGION_1: 'us-east-1'
+  AWS_REGION_2: 'us-west-2'
 
 jobs:
   # First we must create all the Chime resources like Voice Connectors, SIP Media Application, SIP Rules, etc.
@@ -77,7 +77,7 @@ jobs:
     - name: Setup AWS Creds using OIDC Role Method
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-region: "${AWS_REGION_1}"
+        aws-region: ${{ AWS_REGION_1 }}
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
     
