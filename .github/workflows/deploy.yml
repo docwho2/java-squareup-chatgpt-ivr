@@ -134,7 +134,7 @@ jobs:
     - name: SAM Deploy
       run:  >
         sam deploy --no-fail-on-empty-changeset --no-confirm-changeset --region ${{ matrix.region }}
-        --stack-name $STACK_NAME
+        --stack-name ${STACK_NAME}
         --parameter-overrides
         SMAID=/${CDK_STACK_NAME}/SMA_ID
         VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
