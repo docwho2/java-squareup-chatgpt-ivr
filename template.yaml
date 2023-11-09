@@ -20,7 +20,7 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: SQUARE_API_KEY
   SQUARELOCATIONID:
-    Description: The Square Location ID to use (You must look this up via Square API or from deve console)
+    Description: The Square Location ID to use (You must look this up via Square API or from dev console)
     Type: String
     Default: L5KK29RDQG17Q
   SQUAREENVIRONMENT:

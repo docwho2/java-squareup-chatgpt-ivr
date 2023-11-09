@@ -11,22 +11,44 @@ permissions:
   contents: read  # This is required for actions/checkout
 
 env:
+  # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
+  # Create secrets in the repository and they will be pushed to Parameter store, these are required
+  SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
+    
+  
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
   # Create repository variables to override any/all of the below from the defaults
+  #
   CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chimesdk-cdk-provision' }}
   STACK_NAME: ${{ vars.STACK_NAME || 'squareup-chatgpt-ivr' }}
+  
+  # The E164 Number to be used when transferring to main number
   TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
+  
+  # Set to PRODUCTION if you have a real Sqaure Buisness or Leave it as SANDBOX if you just have a dev account
   SQUARE_ENVIRONMENT: ${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
+  # You can have many locations in Square, need to set to the location you want to query inventory or employees against (required for functions to work)
+  SQUARE_LOCATION_ID: ${{ vars.SQUARE_LOCATION_ID || 'LXXXXXXXXXXXX' }}
+  
+  # https://platform.openai.com/docs/models/overview (requres model with function calling)
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
-  # Define in repo variable if you want want to route main number calls via SIP
+  
+  # Define in repo variable if you want want to route main number calls via SIP via the Voice Connector
   PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
+  
+  # Polly voices to use for English and Spanish
+  VOICE_ID_EN: ${{ vars.VOICE_ID_EN:  || 'Joanna' }}
+  VOICE_ID_ES: ${{ vars.VOICE_ID_ES:  || 'Lupe' }}
 
-  # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
-  # Create secrets in the repository and they will be pushed to Parameter store
-  SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  # AWS Regions to deploy to https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html
+  # In the US, us-east-1 and uswest-2 are the supported regions for Chime PSTN SDK
+  # In EU for example you can use Frankfurt and London but they don't support PSTN numbers, but with SIP and BYOC you can implement in EU
+  AWS_REGION_1: us-east-1
+  AWS_REGION_2: us-west-2
 
 jobs:
+  # First we must create all the Chime resources like Voice Connectors, SIP Media Application, SIP Rules, etc.
   cdk-deploy:
     runs-on: ubuntu-latest
 
@@ -55,21 +77,22 @@ jobs:
     - name: Setup AWS Creds using OIDC Role Method
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-region: us-east-1
+        aws-region: ${AWS_REGION_1}
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
     
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
       run: |
-        ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
         # Deploy to both regions in parallel
-        cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} --concurrency=2 --all --require-approval=never --ci=true
+        cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=${AWS_REGION_1} -c regionWest=${AWS_REGION_2} --concurrency=2 --all --require-approval=never --ci=true
   
+  # Now deploy the app into 2 regions at the same time via SAM with matrix job
   sam-deploy:
     strategy:
       matrix:
-        region: [us-east-1,us-west-2]
+        region: [ "${AWS_REGION_1}" , "${AWS_REGION_2}" ]
     runs-on: ubuntu-latest
     needs: [cdk-deploy]
     
@@ -101,7 +124,8 @@ jobs:
         aws-region: ${{ matrix.region }}
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-        
+      
+      # You can manually go set this in SSM Parameter Store or use GitHub Secrets
     - name: Push Square API Key to Parameter store if set in Repository Secrets
       if: ${{ env.SQUARE_API_KEY != '' }}
       run: >
@@ -112,6 +136,7 @@ jobs:
         --value ${{ secrets.SQUARE_API_KEY }}
         --overwrite
     
+      # You can manually go set this in SSM Parameter Store or use GitHub Secrets
     - name: Push OpenAI API Key to Parameter store if set in Repository Secrets
       if: ${{ env.OPENAI_API_KEY != '' }}
       run: >
@@ -139,14 +164,20 @@ jobs:
         SMAID=/${CDK_STACK_NAME}/SMA_ID
         VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
         SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT}
+        SQUARELOCATIONID=${SQUARE_LOCATION_ID}
         TRANSFERNUMBER=${TRANSFER_NUMBER}
         OPENAIMODEL=${OPENAI_MODEL}
+        VOICEIDEN=${VOICE_ID_EN}
+        VOICEIDES=${VOICE_ID_ES}
     
     - name: Update SMA Endpoint if necessary
       run: |
         ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        # The SMA ID is was pushed to param store by the CDK stack
         SMA_ID=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
+        # The CDK stack creates a simple SMA Lambda with SMA because it is required at creation time
         CUR_ENDPOINT=$(aws chime get-sip-media-application --sip-media-application-id ${SMA_ID} --query 'SipMediaApplication.Endpoints[0].LambdaArn' --output text)
+        # The SMA should point to this lambda created by the SAM stack
         TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
         if [[ $TARGET_ENDPOINT != $CUR_ENDPOINT ]]; then
             echo "SMA Lambda Endpoint needs to be updated"
