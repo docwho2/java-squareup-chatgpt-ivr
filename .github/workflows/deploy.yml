@@ -77,7 +77,7 @@ jobs:
     - name: Setup AWS Creds using OIDC Role Method
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-region: ${AWS_REGION_1}
+        aws-region: "${AWS_REGION_1}"
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
     
