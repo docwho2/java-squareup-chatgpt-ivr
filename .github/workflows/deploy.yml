@@ -11,13 +11,20 @@ permissions:
   contents: read  # This is required for actions/checkout
 
 env:
+  # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
+  # Create repository variables to override any/all of the below from the defaults
   CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chimesdk-cdk-provision' }}
   STACK_NAME: ${{ vars.STACK_NAME || 'squareup-chatgpt-ivr' }}
   TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
   SQUARE_ENVIRONMENT: ${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
-  # Define in repo variables if you want want to route main number calls via SIP
+  # Define in repo variable if you want want to route main number calls via SIP
   PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
+
+  # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
+  # Create secrets in the repository and they will be pushed to Parameter store
+  SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
 jobs:
   cdk-deploy:
@@ -46,10 +53,7 @@ jobs:
       run: npm install -g aws-cdk
     
     - name: Setup AWS Creds
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: us-east-1
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+      uses: ./.github/actions/aws-credentials
     
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
@@ -89,10 +93,29 @@ jobs:
         use-installer: true
     
     - name: Setup AWS Creds
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: ./.github/actions/aws-credentials
       with:
         aws-region: ${{ matrix.region }}
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+    
+    - name: Push Square API Key to Parameter store if set in Repository Secrets
+      if: ${{ env.SQUARE_API_KEY != '' }}
+      run: >
+        aws ssm put-parameter
+        --name SQUARE_API_KEY
+        --description "Square API Key used for stack ${STACK_NAME}"
+        --type String
+        --value ${{ secrets.SQUARE_API_KEY }}
+        --overwrite
+    
+    - name: Push OpenAI API Key to Parameter store if set in Repository Secrets
+      if: ${{ env.OPENAI_API_KEY != '' }}
+      run: >
+        aws ssm put-parameter
+        --name OPENAI_API_KEY
+        --description "OpenAI API Key used for stack ${STACK_NAME}"
+        --type String
+        --value ${{ secrets.OPENAI_API_KEY }}
+        --overwrite
     
     - name: Cache SAM Build files
       uses: actions/cache@v3
