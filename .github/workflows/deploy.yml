@@ -68,14 +68,19 @@ jobs:
     - name: Install  CDK
       run: npm install -g aws-cdk
       
-      
     - name: Setup AWS Creds using OIDC Role Method
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: us-east-1
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-    
+   
+    - name: Ensure CDK is bootstraped
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        cdk bootstrap --ci=true aws://${ACCOUNT_ID}/us-east-1
+        cdk bootstrap --ci=true aws://${ACCOUNT_ID}/us-west-2
+        
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
       run: |
