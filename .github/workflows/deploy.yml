@@ -160,9 +160,12 @@ jobs:
       
     - name: SAM Deploy
       run:  >
-        sam deploy --no-fail-on-empty-changeset --no-confirm-changeset --region ${{ matrix.region }}
+        sam deploy --no-fail-on-empty-changeset --no-confirm-changeset
+        --region ${{ matrix.region }}
         --stack-name ${STACK_NAME}
         --parameter-overrides
+        SQUAREAPIKEY=SQUARE_API_KEY
+        OPENAIAPIKEY=OPENAI_API_KEY
         SMAID=/${CDK_STACK_NAME}/SMA_ID
         VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
         SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT}
