@@ -92,7 +92,7 @@ jobs:
   sam-deploy:
     strategy:
       matrix:
-        region: [ ${{ env.AWS_REGION_1 }} , ${{ env.AWS_REGION_2 }} ]
+        region: [ '${{ env.AWS_REGION_1 }}' , '${{ env.AWS_REGION_2 }}' ]
     runs-on: ubuntu-latest
     needs: [cdk-deploy]
     
