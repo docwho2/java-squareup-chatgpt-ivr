@@ -74,6 +74,7 @@ jobs:
         aws-region: us-east-1
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
    
     - name: Ensure CDK is bootstraped
       run: |
@@ -124,6 +125,7 @@ jobs:
         aws-region: ${{ matrix.region }}
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
       
       # You can manually go set this in SSM Parameter Store or use GitHub Secrets
     - name: Push Square API Key to Parameter store if set in Repository Secrets
