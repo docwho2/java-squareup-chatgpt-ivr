@@ -13,8 +13,8 @@ permissions:
 env:
   # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
-  SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'DISABLED' }}  
+  SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
     
   
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
