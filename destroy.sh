@@ -18,7 +18,6 @@ done
 
 pushd "ChimeCDKProvision"
 cdk destroy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=${regions[0]} -c regionWest=${regions[1]} --all --force
-popd
 
 wait
 
