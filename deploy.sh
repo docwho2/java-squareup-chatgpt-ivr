@@ -64,7 +64,10 @@ echo
 
 if [ "$AWS_EXECUTION_ENV" = "CloudShell" ]; then
     echo "CloudShell Detected, installing maven dependency"
+    # gives you maven, corretto 17
     sudo yum -y install maven
+    # Ensure we are on latest CDK
+    sudo npm install -g aws-cdk
 else
     echo
     echo "CloudShell not detected, assuming you have Java/Maven/SAM/CDK all installed, if not script will error"
