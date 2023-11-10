@@ -10,6 +10,8 @@ permissions:
   id-token: write # This is required for requesting the JWT
   contents: read  # This is required for actions/checkout
 
+concurrency: deploy
+
 env:
   # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
@@ -20,8 +22,8 @@ env:
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
   # Create repository variables to override any/all of the below from the defaults
   #
-  CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chimesdk-cdk-provision' }}
-  STACK_NAME: ${{ vars.STACK_NAME || 'squareup-chatgpt-ivr' }}
+  CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chatgpt-square-ivr-cdk' }}
+  STACK_NAME: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
   
   # The E164 Number to be used when transferring to main number
   TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
@@ -132,7 +134,7 @@ jobs:
       if: ${{ env.SQUARE_API_KEY != '' }}
       run: >
         aws ssm put-parameter
-        --name SQUARE_API_KEY
+        --name /${STACK_NAME}/SQUARE_API_KEY
         --description "Square API Key used for stack ${STACK_NAME}"
         --type String
         --value ${{ secrets.SQUARE_API_KEY }}
@@ -143,7 +145,7 @@ jobs:
       if: ${{ env.OPENAI_API_KEY != '' }}
       run: >
         aws ssm put-parameter
-        --name OPENAI_API_KEY
+        --name /${STACK_NAME}/OPENAI_API_KEY
         --description "OpenAI API Key used for stack ${STACK_NAME}"
         --type String
         --value ${{ secrets.OPENAI_API_KEY }}
@@ -164,8 +166,8 @@ jobs:
         --region ${{ matrix.region }}
         --stack-name ${STACK_NAME}
         --parameter-overrides
-        SQUAREAPIKEY=SQUARE_API_KEY
-        OPENAIAPIKEY=OPENAI_API_KEY
+        SQUAREAPIKEY=/${STACK_NAME}/SQUARE_API_KEY
+        OPENAIAPIKEY=/${STACK_NAME}/OPENAI_API_KEY
         SMAID=/${CDK_STACK_NAME}/SMA_ID
         VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
         SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT}
