@@ -44,7 +44,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
         final var key = System.getenv("SQUARE_API_KEY");
         final var loc = System.getenv("SQUARE_LOCATION_ID");
         
-        squareEnabled =  !((loc == null || loc.isBlank()) || (key == null || key.isBlank()));
+        squareEnabled =  !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || loc.equalsIgnoreCase("DISABLED")));
     }
     
     /**
