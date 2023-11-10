@@ -151,4 +151,9 @@ public class SquareHours<Request> extends AbstractFunction {
         }
     }
 
+    
+    @Override
+    protected boolean isEnabled() {
+        return squareEnabled;
+    }
 }

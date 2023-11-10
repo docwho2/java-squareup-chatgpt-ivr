@@ -72,5 +72,11 @@ public class SquareCategories<Request> extends AbstractFunction {
         @JsonProperty(required = true)
         public String search_text;
     }
+    
+      
+    @Override
+    protected boolean isEnabled() {
+        return squareEnabled;
+    }
 
 }

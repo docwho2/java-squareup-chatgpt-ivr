@@ -79,4 +79,8 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
     private static class Request {
     }
    
+    @Override
+    protected boolean isEnabled() {
+        return squareEnabled;
+    }
 }

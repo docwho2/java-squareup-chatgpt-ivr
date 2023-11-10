@@ -38,9 +38,9 @@ OPENAI_MODEL=${OPENAI_MODEL:-$default_value}
 
 # Square API Key
 echo
-echo "If you don't have a Square API Key, just hit enter for the next 3 prompts"
+echo "If you don't have a Square API Key, just hit enter for the next 3 prompts (will disable square functions)"
 echo
-default_value="XXXXXXXXXX"
+default_value=""
 read -p "Enter your Square API Key [${default_value}]: " SQUARE_API_KEY
 SQUARE_API_KEY=${SQUARE_API_KEY:-$default_value}
 
@@ -48,7 +48,7 @@ default_value="SANDBOX"
 read -p "Enter Square Environment (SANDBOX|PRODUCTION) [${default_value}]: " SQUARE_ENVIRONMENT
 SQUARE_ENVIRONMENT=${SQUARE_ENVIRONMENT:-$default_value}
 
-default_value="UNKNOWN"
+default_value=""
 read -p "Enter Square Location ID  [${default_value}]: " SQUARE_LOCATION_ID
 SQUARE_LOCATION_ID=${SQUARE_LOCATION_ID:-$default_value}
 

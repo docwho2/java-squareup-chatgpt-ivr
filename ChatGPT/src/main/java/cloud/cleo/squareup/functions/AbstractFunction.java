@@ -38,6 +38,15 @@ public abstract class AbstractFunction<T> implements Cloneable {
             .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
             .build();
 
+    public final static boolean squareEnabled;
+    
+    static {
+        final var key = System.getenv("SQUARE_API_KEY");
+        final var loc = System.getenv("SQUARE_LOCATION_ID");
+        
+        squareEnabled =  !((loc == null || loc.isBlank()) || (key == null || key.isBlank()));
+    }
+    
     /**
      * Register all the functions in this package. This should be called by a top level object that is being initialized
      * like a lambda, so during SNAPSTART init, all the functions will be inited as well.
