@@ -177,21 +177,17 @@ jobs:
         VOICEIDEN=${VOICE_ID_EN}
         VOICEIDES=${VOICE_ID_ES}
     
-    - name: Update SMA Endpoint if necessary
+    - name: Update SMA Endpoint 
       run: |
         ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
         # The SMA ID is was pushed to param store by the CDK stack
         SMA_ID=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
-        # The CDK stack creates a simple SMA Lambda with SMA because it is required at creation time
-        CUR_ENDPOINT=$(aws chime-sdk-voice get-sip-media-application --sip-media-application-id ${SMA_ID} --query 'SipMediaApplication.Endpoints[0].LambdaArn' --output text)
-        # The SMA should point to this lambda created by the SAM stack
+        # Chime for some reason loses reference to lambda, so always set to dummay and then back to what it should be
         TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
-        if [[ $TARGET_ENDPOINT != $CUR_ENDPOINT ]]; then
-            echo "SMA Lambda Endpoint needs to be updated"
-            aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
-        else
-            echo "SMA Lambda Endpoint is already corectly set"
-        fi
+        DUMMY_ENDPOINT=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/LAMBDA_ARN --query Parameter.Value --output text)
+        aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT}
+        aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
+       
         
             
       
