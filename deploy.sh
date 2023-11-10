@@ -7,6 +7,8 @@ source config.sh
 VOICE_ID_EN=Joanna
 VOICE_ID_ES=Lupe
 
+# If you have SIP PBX and want to send and receive calls via Voice Connector, uncomment below and set to IP Address
+# export PBX_HOSTNAME=54.54.54.54
 
 # Check if AWS CLI is installed
 if ! command -v aws >/dev/null 2>&1; then
@@ -40,7 +42,7 @@ OPENAI_MODEL=${OPENAI_MODEL:-$default_value}
 echo
 echo "If you don't have a Square API Key, just hit enter for the next 3 prompts (will disable square functions)"
 echo
-default_value=""
+default_value="DISABLED"
 read -p "Enter your Square API Key [${default_value}]: " SQUARE_API_KEY
 SQUARE_API_KEY=${SQUARE_API_KEY:-$default_value}
 
@@ -48,7 +50,7 @@ default_value="SANDBOX"
 read -p "Enter Square Environment (SANDBOX|PRODUCTION) [${default_value}]: " SQUARE_ENVIRONMENT
 SQUARE_ENVIRONMENT=${SQUARE_ENVIRONMENT:-$default_value}
 
-default_value=""
+default_value="DISABLED"
 read -p "Enter Square Location ID  [${default_value}]: " SQUARE_LOCATION_ID
 SQUARE_LOCATION_ID=${SQUARE_LOCATION_ID:-$default_value}
 
@@ -143,7 +145,7 @@ echo "You can now go to the AWS Admin Console and provision a phone number and c
 echo "  https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html"
 echo "  https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html"
 echo
-echo "Point Your SIP Rule to:"
+echo "Point Your Phone Number SIP Rule to:"
 for region in "${regions[@]}"; do
     SMA_ID=$(aws ssm get-parameter --region ${region} --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
     echo "  SMA ID ${SMA_ID} in region ${region}"
