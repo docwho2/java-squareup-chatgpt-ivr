@@ -14,7 +14,7 @@ env:
   # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
   SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'DISABLED' }}  
     
   
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
@@ -29,7 +29,7 @@ env:
   # Set to PRODUCTION if you have a real Sqaure Buisness or Leave it as SANDBOX if you just have a dev account
   SQUARE_ENVIRONMENT: ${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
   # You can have many locations in Square, need to set to the location you want to query inventory or employees against (required for functions to work)
-  SQUARE_LOCATION_ID: ${{ vars.SQUARE_LOCATION_ID || 'LXXXXXXXXXXXX' }}
+  SQUARE_LOCATION_ID: ${{ vars.SQUARE_LOCATION_ID || 'DISABLED' }}
   
   # https://platform.openai.com/docs/models/overview (requres model with function calling)
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
