@@ -13,6 +13,7 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 for region in "${regions[@]}"; do
 
 sam delete --region ${region} --stack-name ${STACK_NAME} --no-prompts &
+aws ssm --region ${region} delete-parameters --names "/${STACK_NAME}/OPENAI_API_KEY" "/${STACK_NAME}/SQUARE_API_KEY" > /dev/null
 
 done
 
