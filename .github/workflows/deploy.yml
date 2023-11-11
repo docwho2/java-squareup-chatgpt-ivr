@@ -17,7 +17,7 @@ env:
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
   # If you don't set an API key for square, you can still use ChatGPT by itself
   SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'NEED_TO_SET_THIS' }}  
     
   
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
@@ -56,6 +56,14 @@ jobs:
       with:
         submodules: recursive
     
+    - name: Setup AWS Creds using OIDC Role Method
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-east-1
+        # https://github.com/aws-actions/configure-aws-credentials#oidc
+        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
+   
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
@@ -71,14 +79,6 @@ jobs:
     - name: Install  CDK
       run: npm install -g aws-cdk
       
-    - name: Setup AWS Creds using OIDC Role Method
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: us-east-1
-        # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-        mask-aws-account-id: true
-   
     - name: Ensure CDK is bootstraped
       run: |
         ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -106,6 +106,14 @@ jobs:
       with:
         submodules: recursive
     
+    - name: Setup AWS Creds using OIDC Role Method
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: ${{ matrix.region }}
+        # https://github.com/aws-actions/configure-aws-credentials#oidc
+        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
+        
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
@@ -121,35 +129,23 @@ jobs:
       uses: aws-actions/setup-sam@v2
       with:
         use-installer: true
-    
-    - name: Setup AWS Creds using OIDC Role Method
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: ${{ matrix.region }}
-        # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-        mask-aws-account-id: true
-      
-      # You can manually go set this in SSM Parameter Store or use GitHub Secrets
-    - name: Push Square API Key to Parameter store if set in Repository Secrets
-      if: ${{ env.SQUARE_API_KEY != '' }}
+        
+    - name: Push Square API Key to Parameter store
       run: >
         aws ssm put-parameter
         --name /${STACK_NAME}/SQUARE_API_KEY
         --description "Square API Key used for stack ${STACK_NAME}"
         --type String
-        --value ${{ secrets.SQUARE_API_KEY }}
+        --value ${SQUARE_API_KEY}
         --overwrite
     
-      # You can manually go set this in SSM Parameter Store or use GitHub Secrets
-    - name: Push OpenAI API Key to Parameter store if set in Repository Secrets
-      if: ${{ env.OPENAI_API_KEY != '' }}
+    - name: Push OpenAI API Key to Parameter store
       run: >
         aws ssm put-parameter
         --name /${STACK_NAME}/OPENAI_API_KEY
         --description "OpenAI API Key used for stack ${STACK_NAME}"
         --type String
-        --value ${{ secrets.OPENAI_API_KEY }}
+        --value ${OPENAI_API_KEY}
         --overwrite
     
     - name: Cache SAM Build files
