@@ -35,7 +35,7 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
   - Callers can request to connect with specific employees, with the information sourced from a Square API call (Team Member list).
   - If the caller simply wishes to speak to a representative, the model is preloaded with a default number to redirect the call.
     - During transfers to the main line, this process is optimized to use SIP directly connecting to the store's [Asterisk PBX](https://www.asterisk.org).
-
+- You can call +1 (320) 425-0645 to try it, please don't ask to speak with someone as this is a real store with real people working in it.  This is deployed in production via the [workflow](.github/workflows/deploy.yml) and answers all calls for the store.
 
 ## High Level Components
 
@@ -208,60 +208,132 @@ Depending on how the caller asks about hours, the model uses the data to answer 
 
 ## Deploy the Project
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications.  
-Before proceeding, it is assumed you have valid AWS credentials setup with the AWS CLI and permissions to perform CloudFormation stack operations.
+This project uses both AWS SAM and AWS CDK to deploy resources.  Because Chime Voice SDK resources are not included in CloudFormation, they must be provisioned using AWS API calls.  Custom resources must be created to solve this problem.  This project includes and makes use of [Chime Voice SDK Provisioning Project](https://github.com/docwho2/java-chime-voice-sdk-cdk).
 
-To use the SAM CLI, you need the following tools.
+* CDK code deploys Chime resources like the SIP media application (SMA), Voice Connector, and SIP rules to enable SIP connectivity.
+* SAM deploys the actual Lambda's (ChatGPT and SMA), Lex Bot, S3 Prompt Bucket, Prompts, etc.
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Java17 - [Install the Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
+Some of the prerequisites to fully utilize the project are API keys for both OpenAI and Square.  If you don't care about testing the Square retail features and only want to interfact with ChatGPT, then you can skip any of the Square values and the project will still work.
+
+* [Obtain OpenAI API key](https://platform.openai.com/docs/quickstart?context=curl)
+* [Obtain Square API Key](https://developer.squareup.com/docs/build-basics/access-tokens)
+  * [Obtain Square location ID](https://developer.squareup.com/blog/see-your-location-id-without-the-api-call/)
+
+### Forking repository and utlizing the GitHub Workflow
+
+The [GitHub Workflow](.github/workflows/deploy.yml) included in the repository can be used to a create a full CI/CD pipeline as changes are comitted to the main branch.
+
+To allow the workflow to operate on your AWS environment, you can use several methods, but in this case we are using the recommended [OIDC method](https://github.com/aws-actions/configure-aws-credentials#OIDC) that requires some setup inside your account.  Example:
+
+```yaml
+- name: Setup AWS Creds using OIDC Role Method
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: ${{ matrix.region }}
+        # https://github.com/aws-actions/configure-aws-credentials#oidc
+        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
+```
+
+If you wanted to use Access Keys, then you would replace the instances of above with the below in the [workflow](.github/workflows/deploy.yml).  Of course you would need to [create secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+
+```yaml
+- name: Setup AWS Creds using Access Keys
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: ${{ matrix.region }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        mask-aws-account-id: true
+```
+
+The workflow has sensible defaults (see below), but you will need to set up variables and secrets:
+
+```yaml
+env:
+  # Create secrets in the repository and they will be pushed to Parameter store, these are required
+  # If you don't set an API key for square, you can still use ChatGPT by itself
+  SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
+    
+  
+  # Create repository variables to override any/all of the below from the defaults
+  #
+  CDK_STACK_NAME: ${{ vars.CDK_STACK_NAME || 'chatgpt-square-ivr-cdk' }}
+  STACK_NAME: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
+  
+  # The E164 Number to be used when transferring to main number
+  TRANSFER_NUMBER: ${{ vars.TRANSFER_NUMBER || '+18004444444' }}
+  
+  # Set to PRODUCTION if you have a real Sqaure Buisness or Leave it as SANDBOX if you just have a dev account
+  SQUARE_ENVIRONMENT: ${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
+  # You can have many locations in Square, need to set to the location you want to query inventory or employees against (required for functions to work)
+  SQUARE_LOCATION_ID: ${{ vars.SQUARE_LOCATION_ID || 'DISABLED' }}
+  
+  # https://platform.openai.com/docs/models/overview (requres model with function calling)
+  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
+  
+  # Define in repo variable if you want want to route main number calls via SIP via the Voice Connector
+  PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
+  
+  # Polly voices to use for English and Spanish
+  VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
+  VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
+```
+
+Example [Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for the production deployment:
+
+![Repository Secrets](assets/secrets.png)
+
+Example [Variable](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) for the production deployment:
+
+![Repository Variables](assets/variables.png)
+
+The general steps are:
+* [Fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+* [Setup required Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) like API Keys and/or AWS Access Keys if you go that route in your forked repo.
+* Optionaly [set any variables](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) from the defaults like OPENAI_MODEL for exmple.
+
+Then start committing changes and watch the magic happen.  CDK deploys regions in parallel and then a matrix job deploys each region in parallel for faster deployments:
+
+![Example Deploy](assets/deploy.png)
+
+### Using the deploy.sh bash script
+
+To deploy this project via CLI, you need the following tools.
+
+* AWS CLI - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+* AWS SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+* AWS CDK - [Instal CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
+* Java 17 - [Install Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
 * Maven - [Install Maven](https://maven.apache.org/install.html)
 
-If you have brew installed then
+If you have [brew](https://brew.sh) installed (highly recommended) then:
 ```bash
+brew install awscli
 brew install aws-sam-cli
+brew install aws-cdk
 brew install corretto17
 brew install maven
+
 ```
 
-To build and deploy, run the following in your shell.  Note: you must edit the [samconfig.toml](samconfig.toml) and change the parameteres to 
-taste before running the build like the SMA ID to ones that exist within that region.
+To build and deploy, run the following in your shell (or CloudShell) assuming AWS CLI is setup and verified to work.
 
 ```bash
 git clone https://github.com/docwho2/java-squareup-chatgpt-ivr.git
 cd java-squareup-chatgpt-ivr
-./init.bash
-sam build
-sam deploy --config-env east
-sam deploy --config-env west
+./deploy.sh
+
 ```
 
-You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell and install maven which also installs Java 17 by default, then proceed like above:
+You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell,then proceed like above.  The deploy script will install maven/Java if it detects you are in a CloudShell.  Note: Due limited storage when using a CloudShell if you have other artifacts and have otherwise used much of the storage, the deploy will fail with space issues (run "df" and check if you experience a failed deployment).
 
-```bash
-sudo yum -y install maven
-git clone https://github.com/docwho2/java-squareup-chatgpt-ivr.git
-cd java-squareup-chatgpt-ivr
-./init.bash
-sam build
-sam deploy --config-env east
-sam deploy --config-env west
-```
+You will see the progress as the stacks deploy.  If you want change any of the values the script asked for you can simply run it again or as many times as you need.
 
-The commands perform the follwoing operations:
-- Clones the repository into your local directory
-- Change directory into the cloned repository
-- Set up some required components like the V4 Java Events library that is not published yet (this is a sub-module) and install the parent POM used by Lambda functions.
-- Build the components that will be deployed by SAM
-- Package and deploy the project to us-east-1
-- Package and deploy the project to us-west-2
+## Chime SDK Phone Number
 
-You will see the progress as the stack deploys.  As metntioned earlier, you will need to put your OpenAI and Square API Key into parameter store or the deploy will error, but it will give you an error message 
-that tells you there is no value for "OPENAI_API_KEY" or "SQUARE_API_KEY" in the [Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html).
-
-### Chime SDK Phone Number
-
-After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call +1-320-425-0645, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
+After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you will need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call the phone number, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
 
 
 ![Chime Phone Targets](assets/chimephonenumber.png)
@@ -269,203 +341,619 @@ After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-s
 
 ## Cleanup
 
-To delete the application, use the SAM CLI.
+To delete the application and all resources created, use the destroy script.
 
 You can run the following:
 
 ```bash
-sam delete --config-env east
-sam delete --config-env west
+./destroy.sh
+
 ```
 
 ## Sample Deploy Output
+
 ```
-java-squareup-chatgpt-ivr % sam deploy
+java-squareup-chatgpt-ivr % ./deploy.sh
+
+ChatGPT won't work if you don't provide a valid API Key, however you can still deploy
+Enter your OpenAI API Key [XXXXXXXXXX]: 
+Enter OpenAI Model [gpt-3.5-turbo-1106]: 
+
+If you don't have a Square API Key, just hit enter for the next 3 prompts (will disable square functions)
+
+Enter your Square API Key [DISABLED]: 
+Enter Square Environment (SANDBOX|PRODUCTION) [SANDBOX]: 
+Enter Square Location ID  [DISABLED]: 
+
+Enter transfer # when caller wants to speak to a person [+18004444444]: 
+
+
+CloudShell not detected, assuming you have Java/Maven/SAM/CDK all installed, if not script will error
+
+Will now ensure CDK is bootstrapped in us-east-1 us-west-2
+ ⏳  Bootstrapping environment aws://***/us-east-1...
+Trusted accounts for deployment: (none)
+Trusted accounts for lookup: (none)
+Using default execution policy of 'arn:aws:iam::aws:policy/AdministratorAccess'. Pass '--cloudformation-execution-policies' to customize.
+
+ ✨ hotswap deployment skipped - no changes were detected (use --force to override)
+
+ ✅  Environment aws://***/us-east-1 bootstrapped (no changes).
+
+ ⏳  Bootstrapping environment aws://***/us-west-2...
+Trusted accounts for deployment: (none)
+Trusted accounts for lookup: (none)
+Using default execution policy of 'arn:aws:iam::aws:policy/AdministratorAccess'. Pass '--cloudformation-execution-policies' to customize.
+
+ ✨ hotswap deployment skipped - no changes were detected (use --force to override)
+
+ ✅  Environment aws://***/us-west-2 bootstrapped (no changes).
+
+
+Deploying CDK stack to us-east-1 us-west-2
+
+
+✨  Synthesis time: 2.86s
+
+chatgpt-square-ivr-cdk:  start: Building 878abf4f8a52ee049c6a885f81aff403cae67b16991c29d582799c0ac1a22669:***-us-east-1
+chatgpt-square-ivr-cdk:  success: Built 878abf4f8a52ee049c6a885f81aff403cae67b16991c29d582799c0ac1a22669:***-us-east-1
+chatgpt-square-ivr-cdk:  start: Publishing 878abf4f8a52ee049c6a885f81aff403cae67b16991c29d582799c0ac1a22669:***-us-east-1
+chatgpt-square-ivr-cdk:  start: Building c0460130f5069dbb2c5e5c6f98a0100dd798e1c7961ec42393e643ceca3490be:***-us-west-2
+chatgpt-square-ivr-cdk:  success: Built c0460130f5069dbb2c5e5c6f98a0100dd798e1c7961ec42393e643ceca3490be:***-us-west-2
+chatgpt-square-ivr-cdk:  start: Publishing c0460130f5069dbb2c5e5c6f98a0100dd798e1c7961ec42393e643ceca3490be:***-us-west-2
+chatgpt-square-ivr-cdk:  success: Published 878abf4f8a52ee049c6a885f81aff403cae67b16991c29d582799c0ac1a22669:***-us-east-1
+east (chatgpt-square-ivr-cdk)
+east (chatgpt-square-ivr-cdk): deploying... [1/2]
+chatgpt-square-ivr-cdk: creating CloudFormation changeset...
+chatgpt-square-ivr-cdk:  success: Published c0460130f5069dbb2c5e5c6f98a0100dd798e1c7961ec42393e643ceca3490be:***-us-west-2
+west (chatgpt-square-ivr-cdk)
+west (chatgpt-square-ivr-cdk): deploying... [2/2]
+chatgpt-square-ivr-cdk: creating CloudFormation changeset...
+chatgpt-square-ivr-cdk |  0/19 | 1:40:01 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | smalambdaRole 
+chatgpt-square-ivr-cdk |  0/19 | 1:40:01 PM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata          | west/CDKMetadata/Default (CDKMetadata) 
+chatgpt-square-ivr-cdk |  0/19 | 1:40:01 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/VC_ARN_PARAM (VCARNPARAMA1F8171A) 
+chatgpt-square-ivr-cdk |  0/19 | 1:40:02 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | west/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole (AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2) 
+chatgpt-square-ivr-cdk |  0/19 | 1:39:49 PM | REVIEW_IN_PROGRESS   | AWS::CloudFormation::Stack  | chatgpt-square-ivr-cdk User Initiated
+chatgpt-square-ivr-cdk |  0/19 | 1:39:56 PM | CREATE_IN_PROGRESS   | AWS::CloudFormation::Stack  | chatgpt-square-ivr-cdk User Initiated
+chatgpt-square-ivr-cdk |  0/19 | 1:40:04 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | east/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole (AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2) Resource creation Initiated
+chatgpt-square-ivr-cdk |  0/19 | 1:40:05 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/VC_ARN_PARAM (VCARNPARAMA1F8171A) Resource creation Initiated
+chatgpt-square-ivr-cdk |  0/19 | 1:40:05 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | smalambdaRole Resource creation Initiated
+chatgpt-square-ivr-cdk |  0/19 | 1:40:05 PM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata          | east/CDKMetadata/Default (CDKMetadata) Resource creation Initiated
+chatgpt-square-ivr-cdk |  1/19 | 1:40:05 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | east/VC_ARN_PARAM (VCARNPARAMA1F8171A) 
+chatgpt-square-ivr-cdk |  2/19 | 1:40:05 PM | CREATE_COMPLETE      | AWS::CDK::Metadata          | east/CDKMetadata/Default (CDKMetadata) 
+chatgpt-square-ivr-cdk |  2/19 | 1:39:48 PM | REVIEW_IN_PROGRESS   | AWS::CloudFormation::Stack  | chatgpt-square-ivr-cdk User Initiated
+chatgpt-square-ivr-cdk |  2/19 | 1:39:59 PM | CREATE_IN_PROGRESS   | AWS::CloudFormation::Stack  | chatgpt-square-ivr-cdk User Initiated
+chatgpt-square-ivr-cdk |  2/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | east/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole (AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2) 
+chatgpt-square-ivr-cdk |  2/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/VC_ARN_PARAM (VCARNPARAMA1F8171A) 
+chatgpt-square-ivr-cdk |  2/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata          | east/CDKMetadata/Default (CDKMetadata) 
+chatgpt-square-ivr-cdk |  2/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | smalambdaRole 
+chatgpt-square-ivr-cdk |  0/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/VC_ARN_PARAM (VCARNPARAMA1F8171A) Resource creation Initiated
+chatgpt-square-ivr-cdk |  0/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata          | west/CDKMetadata/Default (CDKMetadata) Resource creation Initiated
+chatgpt-square-ivr-cdk |  1/19 | 1:40:03 PM | CREATE_COMPLETE      | AWS::CDK::Metadata          | west/CDKMetadata/Default (CDKMetadata) 
+chatgpt-square-ivr-cdk |  1/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | west/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole (AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2) Resource creation Initiated
+chatgpt-square-ivr-cdk |  2/19 | 1:40:03 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | west/VC_ARN_PARAM (VCARNPARAMA1F8171A) 
+chatgpt-square-ivr-cdk |  2/19 | 1:40:03 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role              | smalambdaRole Resource creation Initiated
+chatgpt-square-ivr-cdk |  3/19 | 1:40:21 PM | CREATE_COMPLETE      | AWS::IAM::Role              | east/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole (AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_COMPLETE      | AWS::IAM::Role              | smalambdaRole 
+chatgpt-square-ivr-cdk |  3/19 | 1:40:19 PM | CREATE_COMPLETE      | AWS::IAM::Role              | west/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole (AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:19 PM | CREATE_COMPLETE      | AWS::IAM::Role              | smalambdaRole 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:19 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/SMA-CR/CustomResourcePolicy (SMACRCustomResourcePolicy277D2013) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:20 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/VC-CR-TERM/CustomResourcePolicy (VCCRTERMCustomResourcePolicy3D87E733) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:20 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/SR-CR2/CustomResourcePolicy (SRCR2CustomResourcePolicy6283867E) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:20 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/VC-CR/CustomResourcePolicy (VCCRCustomResourcePolicy9739604D) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:20 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | west/AWS679f53fac002430cb0da5b7982bd2287 (AWS679f53fac002430cb0da5b7982bd22872D164C4C) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:20 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | west/sma-lambda (smalambda) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/SMA-CR/CustomResourcePolicy (SMACRCustomResourcePolicy277D2013) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/VC-CR-TERM/CustomResourcePolicy (VCCRTERMCustomResourcePolicy3D87E733) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/SR-CR2/CustomResourcePolicy (SRCR2CustomResourcePolicy6283867E) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | west/VC-CR/CustomResourcePolicy (VCCRCustomResourcePolicy9739604D) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | west/sma-lambda (smalambda) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | west/AWS679f53fac002430cb0da5b7982bd2287 (AWS679f53fac002430cb0da5b7982bd22872D164C4C) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/SMA-CR/CustomResourcePolicy (SMACRCustomResourcePolicy277D2013) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/SR-CR1/CustomResourcePolicy (SRCR1CustomResourcePolicy9714D179) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/VC-CR/CustomResourcePolicy (VCCRCustomResourcePolicy9739604D) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:21 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/VC-CR-TERM/CustomResourcePolicy (VCCRTERMCustomResourcePolicy3D87E733) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | east/AWS679f53fac002430cb0da5b7982bd2287 (AWS679f53fac002430cb0da5b7982bd22872D164C4C) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | east/sma-lambda (smalambda) 
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/SMA-CR/CustomResourcePolicy (SMACRCustomResourcePolicy277D2013) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/VC-CR-TERM/CustomResourcePolicy (VCCRTERMCustomResourcePolicy3D87E733) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/VC-CR/CustomResourcePolicy (VCCRCustomResourcePolicy9739604D) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:22 PM | CREATE_IN_PROGRESS   | AWS::IAM::Policy            | east/SR-CR1/CustomResourcePolicy (SRCR1CustomResourcePolicy9714D179) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:23 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | east/sma-lambda (smalambda) Resource creation Initiated
+chatgpt-square-ivr-cdk |  4/19 | 1:40:23 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Function       | east/AWS679f53fac002430cb0da5b7982bd2287 (AWS679f53fac002430cb0da5b7982bd22872D164C4C) Resource creation Initiated
+chatgpt-square-ivr-cdk |  5/19 | 1:40:27 PM | CREATE_COMPLETE      | AWS::Lambda::Function       | west/sma-lambda (smalambda) 
+chatgpt-square-ivr-cdk |  6/19 | 1:40:28 PM | CREATE_COMPLETE      | AWS::Lambda::Function       | west/AWS679f53fac002430cb0da5b7982bd2287 (AWS679f53fac002430cb0da5b7982bd22872D164C4C) 
+chatgpt-square-ivr-cdk |  6/19 | 1:40:28 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/LAMBDAARN (LAMBDAARN5D66CCB0) 
+chatgpt-square-ivr-cdk |  6/19 | 1:40:29 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/LAMBDAARN (LAMBDAARN5D66CCB0) Resource creation Initiated
+chatgpt-square-ivr-cdk |  5/19 | 1:40:29 PM | CREATE_COMPLETE      | AWS::Lambda::Function       | east/sma-lambda (smalambda) 
+chatgpt-square-ivr-cdk |  6/19 | 1:40:29 PM | CREATE_COMPLETE      | AWS::Lambda::Function       | east/AWS679f53fac002430cb0da5b7982bd2287 (AWS679f53fac002430cb0da5b7982bd22872D164C4C) 
+chatgpt-square-ivr-cdk |  6/19 | 1:40:29 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/LAMBDAARN (LAMBDAARN5D66CCB0) 
+chatgpt-square-ivr-cdk |  6/19 | 1:40:30 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/LAMBDAARN (LAMBDAARN5D66CCB0) Resource creation Initiated
+chatgpt-square-ivr-cdk |  7/19 | 1:40:31 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | east/LAMBDAARN (LAMBDAARN5D66CCB0) 
+chatgpt-square-ivr-cdk |  7/19 | 1:40:29 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | west/LAMBDAARN (LAMBDAARN5D66CCB0) 
+chatgpt-square-ivr-cdk |  8/19 | 1:40:36 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | west/SMA-CR/CustomResourcePolicy (SMACRCustomResourcePolicy277D2013) 
+chatgpt-square-ivr-cdk |  9/19 | 1:40:36 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | west/VC-CR-TERM/CustomResourcePolicy (VCCRTERMCustomResourcePolicy3D87E733) 
+chatgpt-square-ivr-cdk | 10/19 | 1:40:37 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | west/SR-CR2/CustomResourcePolicy (SRCR2CustomResourcePolicy6283867E) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:37 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | west/VC-CR/CustomResourcePolicy (VCCRCustomResourcePolicy9739604D) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:37 PM | CREATE_IN_PROGRESS   | Custom::SipMediaApplication | west/SMA-CR/Resource/Default (SMACR6E385B4A) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:37 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnector      | west/VC-CR/Resource/Default (VCCRE7EE978A) 
+chatgpt-square-ivr-cdk |  8/19 | 1:40:38 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | east/VC-CR-TERM/CustomResourcePolicy (VCCRTERMCustomResourcePolicy3D87E733) 
+chatgpt-square-ivr-cdk |  9/19 | 1:40:38 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | east/SMA-CR/CustomResourcePolicy (SMACRCustomResourcePolicy277D2013) 
+chatgpt-square-ivr-cdk | 10/19 | 1:40:38 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | east/SR-CR1/CustomResourcePolicy (SRCR1CustomResourcePolicy9714D179) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:38 PM | CREATE_COMPLETE      | AWS::IAM::Policy            | east/VC-CR/CustomResourcePolicy (VCCRCustomResourcePolicy9739604D) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:39 PM | CREATE_IN_PROGRESS   | Custom::SipMediaApplication | east/SMA-CR/Resource/Default (SMACR6E385B4A) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:39 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnector      | east/VC-CR/Resource/Default (VCCRE7EE978A) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:49 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnector      | west/VC-CR/Resource/Default (VCCRE7EE978A) Resource creation Initiated
+chatgpt-square-ivr-cdk | 12/19 | 1:40:49 PM | CREATE_COMPLETE      | Custom::VoiceConnector      | west/VC-CR/Resource/Default (VCCRE7EE978A) 
+chatgpt-square-ivr-cdk | 12/19 | 1:40:49 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/VC_HOSTNAME_PARAM (VCHOSTNAMEPARAM2165CF79) 
+chatgpt-square-ivr-cdk | 12/19 | 1:40:49 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnectorTerm  | west/VC-CR-TERM/Resource/Default (VCCRTERM11C63EB8) 
+chatgpt-square-ivr-cdk | 12/19 | 1:40:50 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/VC_HOSTNAME_PARAM (VCHOSTNAMEPARAM2165CF79) Resource creation Initiated
+chatgpt-square-ivr-cdk | 12/19 | 1:40:50 PM | CREATE_IN_PROGRESS   | Custom::SipMediaApplication | west/SMA-CR/Resource/Default (SMACR6E385B4A) Resource creation Initiated
+chatgpt-square-ivr-cdk | 13/19 | 1:40:51 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | west/VC_HOSTNAME_PARAM (VCHOSTNAMEPARAM2165CF79) 
+chatgpt-square-ivr-cdk | 14/19 | 1:40:51 PM | CREATE_COMPLETE      | Custom::SipMediaApplication | west/SMA-CR/Resource/Default (SMACR6E385B4A) 
+chatgpt-square-ivr-cdk | 11/19 | 1:40:51 PM | CREATE_IN_PROGRESS   | Custom::SipMediaApplication | east/SMA-CR/Resource/Default (SMACR6E385B4A) Resource creation Initiated
+chatgpt-square-ivr-cdk | 11/19 | 1:40:51 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnector      | east/VC-CR/Resource/Default (VCCRE7EE978A) Resource creation Initiated
+chatgpt-square-ivr-cdk | 12/19 | 1:40:51 PM | CREATE_COMPLETE      | Custom::SipMediaApplication | east/SMA-CR/Resource/Default (SMACR6E385B4A) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:51 PM | CREATE_COMPLETE      | Custom::VoiceConnector      | east/VC-CR/Resource/Default (VCCRE7EE978A) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/SMA_ID_PARAM (SMAIDPARAM0A524744) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission     | east/SMA-CR-PERM (SMACRPERM) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnectorTerm  | east/VC-CR-TERM/Resource/Default (VCCRTERM11C63EB8) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/VC_HOSTNAME_PARAM (VCHOSTNAMEPARAM2165CF79) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | Custom::SipRule             | east/SR-CR1/Resource/Default (SRCR17A38CCA2) 
+chatgpt-square-ivr-cdk | 13/19 | 1:40:53 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/SMA_ID_PARAM (SMAIDPARAM0A524744) Resource creation Initiated
+chatgpt-square-ivr-cdk | 13/19 | 1:40:53 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission     | east/SMA-CR-PERM (SMACRPERM) Resource creation Initiated
+chatgpt-square-ivr-cdk | 14/19 | 1:40:53 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | east/SMA_ID_PARAM (SMAIDPARAM0A524744) 
+chatgpt-square-ivr-cdk | 14/19 | 1:40:53 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | east/VC_HOSTNAME_PARAM (VCHOSTNAMEPARAM2165CF79) Resource creation Initiated
+chatgpt-square-ivr-cdk | 15/19 | 1:40:53 PM | CREATE_COMPLETE      | AWS::Lambda::Permission     | east/SMA-CR-PERM (SMACRPERM) 
+chatgpt-square-ivr-cdk | 16/19 | 1:40:53 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | east/VC_HOSTNAME_PARAM (VCHOSTNAMEPARAM2165CF79) 
+chatgpt-square-ivr-cdk | 14/19 | 1:40:51 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/SMA_ID_PARAM (SMAIDPARAM0A524744) 
+chatgpt-square-ivr-cdk | 14/19 | 1:40:51 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission     | west/SMA-CR-PERM (SMACRPERM) 
+chatgpt-square-ivr-cdk | 14/19 | 1:40:51 PM | CREATE_IN_PROGRESS   | Custom::SipRule             | west/SR-CR2/Resource/Default (SRCR2E1269187) 
+chatgpt-square-ivr-cdk | 14/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnectorTerm  | west/VC-CR-TERM/Resource/Default (VCCRTERM11C63EB8) Resource creation Initiated
+chatgpt-square-ivr-cdk | 15/19 | 1:40:52 PM | CREATE_COMPLETE      | Custom::VoiceConnectorTerm  | west/VC-CR-TERM/Resource/Default (VCCRTERM11C63EB8) 
+chatgpt-square-ivr-cdk | 15/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | AWS::SSM::Parameter         | west/SMA_ID_PARAM (SMAIDPARAM0A524744) Resource creation Initiated
+chatgpt-square-ivr-cdk | 15/19 | 1:40:52 PM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission     | west/SMA-CR-PERM (SMACRPERM) Resource creation Initiated
+chatgpt-square-ivr-cdk | 16/19 | 1:40:52 PM | CREATE_COMPLETE      | AWS::SSM::Parameter         | west/SMA_ID_PARAM (SMAIDPARAM0A524744) 
+chatgpt-square-ivr-cdk | 17/19 | 1:40:53 PM | CREATE_COMPLETE      | AWS::Lambda::Permission     | west/SMA-CR-PERM (SMACRPERM) 
+chatgpt-square-ivr-cdk | 17/19 | 1:40:53 PM | CREATE_IN_PROGRESS   | Custom::SipRule             | west/SR-CR2/Resource/Default (SRCR2E1269187) Resource creation Initiated
+chatgpt-square-ivr-cdk | 18/19 | 1:40:54 PM | CREATE_COMPLETE      | Custom::SipRule             | west/SR-CR2/Resource/Default (SRCR2E1269187) 
+chatgpt-square-ivr-cdk | 19/19 | 1:40:55 PM | CREATE_COMPLETE      | AWS::CloudFormation::Stack  | chatgpt-square-ivr-cdk 
+
+ ✅  west (chatgpt-square-ivr-cdk)
+
+✨  Deployment time: 67.89s
+
+Outputs:
+west.SMAID = 361b1f39-cf7b-4f35-b04f-0a39e2876b38
+west.VCHOSTNAME = b7myixompli7rcb5hdwwrm.voiceconnector.chime.aws
+Stack ARN:
+arn:aws:cloudformation:us-west-2:***:stack/chatgpt-square-ivr-cdk/1380a090-80ca-11ee-a788-0ac549880e8d
+
+✨  Total time: 70.75s
+
+chatgpt-square-ivr-cdk | 16/19 | 1:40:54 PM | CREATE_IN_PROGRESS   | Custom::VoiceConnectorTerm  | east/VC-CR-TERM/Resource/Default (VCCRTERM11C63EB8) Resource creation Initiated
+chatgpt-square-ivr-cdk | 17/19 | 1:40:54 PM | CREATE_COMPLETE      | Custom::VoiceConnectorTerm  | east/VC-CR-TERM/Resource/Default (VCCRTERM11C63EB8) 
+chatgpt-square-ivr-cdk | 17/19 | 1:40:54 PM | CREATE_IN_PROGRESS   | Custom::SipRule             | east/SR-CR1/Resource/Default (SRCR17A38CCA2) Resource creation Initiated
+chatgpt-square-ivr-cdk | 18/19 | 1:40:54 PM | CREATE_COMPLETE      | Custom::SipRule             | east/SR-CR1/Resource/Default (SRCR17A38CCA2) 
+chatgpt-square-ivr-cdk | 19/19 | 1:40:56 PM | CREATE_COMPLETE      | AWS::CloudFormation::Stack  | chatgpt-square-ivr-cdk 
+
+ ✅  east (chatgpt-square-ivr-cdk)
+
+✨  Deployment time: 71.36s
+
+Outputs:
+east.SMAID = bc08cbfe-e007-46f6-bd08-0e71707d9da8
+east.VCHOSTNAME = elb3optyef4vu5djzcti20.voiceconnector.chime.aws
+Stack ARN:
+arn:aws:cloudformation:us-east-1:***:stack/chatgpt-square-ivr-cdk/12c2f5e0-80ca-11ee-b7c2-0a9923416cf1
+
+✨  Total time: 74.21s
+
+
+
+Building Libraries
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] 
+[INFO] AWS Lambda Java Runtime Serialization 2.0.0 ........ SUCCESS [  0.400 s]
+[INFO] AWS Lambda Java Events Library 4.0.0 ............... SUCCESS [  0.147 s]
+[INFO] Chime SMA Parent POM 1.0 ........................... SUCCESS [  0.001 s]
+[INFO] Chime SDK SMA Event Library 1.0 .................... SUCCESS [  0.018 s]
+[INFO] Chime SDK SMA Flow Library 1.0 ..................... SUCCESS [  0.028 s]
+[INFO] Chime Polly Prompt Generator 1.0 ................... SUCCESS [  1.524 s]
+[INFO] Chime Lex ChatGPT Lambda 1.0 ....................... SUCCESS [  1.834 s]
+[INFO] Chime SDK SMA Examples 1.0 ......................... SUCCESS [  1.071 s]
+[INFO] Chime Voice CDK Provision 1.0 ...................... SUCCESS [  0.345 s]
+[INFO] Square Chime SMA Parent POM 1.0 .................... SUCCESS [  0.002 s]
+[INFO] Square Chime Lex ChatGPT Lambda 1.0 ................ SUCCESS [  2.429 s]
+[INFO] Square Chime SMA Lambda 1.0 ........................ SUCCESS [  0.807 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.681 s
+[INFO] Finished at: 2023-11-11T13:41:08-06:00
+[INFO] ------------------------------------------------------------------------
+                                                                                                                     
+Building codeuri: /Users/sjensen/dude/java-squareup-chatgpt-ivr/ChatGPT runtime: java17 metadata: {} architecture: x86_64 functions: ChatGPT                                                                     
+ Running JavaMavenWorkflow:CopySource                                                                                                                                                                            
+ Running JavaMavenWorkflow:MavenBuild                                                                                                                                                                            
+ Running JavaMavenWorkflow:MavenCopyDependency                                                                                                                                                                   
+ Running JavaMavenWorkflow:MavenCopyArtifacts                                                                                                                                                                    
+ Running JavaMavenWorkflow:CleanUp                                                                                                                                                                               
+ Running JavaMavenWorkflow:JavaCopyDependencies                                                                                                                                                                  
+
+Build Succeeded
+
+Built Artifacts  : .aws-sam/build
+Built Template   : .aws-sam/build/template.yaml
+
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate
+[*] Invoke Function: sam local invoke
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
 
 		Managed S3 bucket: aws-sam-cli-managed-default-samclisourcebucket-13mtysy565mpu
 		A different default S3 bucket can be set in samconfig.toml
 		Or by specifying --s3-bucket explicitly.
-File with same data already exists at 143a599dc3dfe966f4d7000bbbf52426, skipping upload                                                                
-File with same data already exists at 143a599dc3dfe966f4d7000bbbf52426, skipping upload                                                                
-	Uploading to f9861fdd63f48e2f37a2795ccccd3845  12064677 / 12064677  (100.00%)
-	Uploading to 5b484e02e0ce3b91170904670812da1a  32883956 / 32883956  (100.00%)
+	Uploading to edbb4caca275e3789a7e7b323715310e  18709716 / 18709716  (100.00%)
+File with same data already exists at edbb4caca275e3789a7e7b323715310e, skipping upload                                                                                                                          
+	Uploading to 8e59dd1bc032ccd9e5d603662d4af6aa  12156120 / 12156120  (100.00%)
+	Uploading to 03a1e0f143a451b90f9f90e595685355  33735650 / 33735650  (100.00%)
 
 	Deploying with following values
 	===============================
-	Stack name                   : squareup-chatgpt-ivr
+	Stack name                   : chatgpt-square-ivr
 	Region                       : us-east-1
 	Confirm changeset            : False
 	Disable rollback             : False
 	Deployment s3 bucket         : aws-sam-cli-managed-default-samclisourcebucket-13mtysy565mpu
 	Capabilities                 : ["CAPABILITY_IAM"]
-	Parameter overrides          : {"SMAID": "d95bf7c0-6ae3-436f-9831-c5c362884b97", "VOICECONNECTORARN": "arn:aws:chime:us-east-1:XXXX:vc/cze9epizslzqslzjpo58ff"}
+	Parameter overrides          : {"OPENAIAPIKEY": "/chatgpt-square-ivr/OPENAI_API_KEY", "SMAID": "/chatgpt-square-ivr-cdk/SMA_ID", "VOICECONNECTORARN": "/chatgpt-square-ivr-cdk/VC_ARN", "SQUAREENVIRONMENT": "SANDBOX", "SQUARELOCATIONID": "DISABLED", "TRANSFERNUMBER": "+18004444444", "OPENAIMODEL": "gpt-3.5-turbo-1106", "VOICEIDEN": "Joanna", "VOICEIDES": "Lupe"}
 	Signing Profiles             : {}
 
 Initiating deployment
 =====================
 
-	Uploading to a95de5ef12980f94de8c020135bed48c.template  16756 / 16756  (100.00%)
+	Uploading to 57f7012144864dea8bceb3c43ccd2e92.template  16416 / 16416  (100.00%)
 
 
 Waiting for changeset to be created..
 
 CloudFormation stack changeset
--------------------------------------------------------------------------------------------------------------------------------------------------
-Operation                            LogicalResourceId                    ResourceType                         Replacement                        
--------------------------------------------------------------------------------------------------------------------------------------------------
-+ Add                                BotAliasGPT                          AWS::Lex::BotAlias                   N/A                                
-+ Add                                BotRuntimeRole                       AWS::IAM::Role                       N/A                                
-+ Add                                BotVersionGPT                        AWS::Lex::BotVersion                 N/A                                
-+ Add                                ChatGPTAliasSNAPSTART                AWS::Lambda::Alias                   N/A                                
-+ Add                                ChatGPTRole                          AWS::IAM::Role                       N/A                                
-+ Add                                ChatGPTVersionb67cb38375             AWS::Lambda::Version                 N/A                                
-+ Add                                ChatGPT                              AWS::Lambda::Function                N/A                                
-+ Add                                ChimeCallLexGPT                      AWS::Lex::ResourcePolicy             N/A                                
-+ Add                                ChimeSMAAliasSNAPSTART               AWS::Lambda::Alias                   N/A                                
-+ Add                                ChimeSMAPerm                         AWS::Lambda::Permission              N/A                                
-+ Add                                ChimeSMARole                         AWS::IAM::Role                       N/A                                
-+ Add                                ChimeSMASnapPerm                     AWS::Lambda::Permission              N/A                                
-+ Add                                ChimeSMAVersion4561b5ece2            AWS::Lambda::Version                 N/A                                
-+ Add                                ChimeSMA                             AWS::Lambda::Function                N/A                                
-+ Add                                ClosedEN                             Custom::PromptCreator                N/A                                
-+ Add                                GoodbyePromptEN                      Custom::PromptCreator                N/A                                
-+ Add                                GoodbyePromptES                      Custom::PromptCreator                N/A                                
-+ Add                                LexBotGPT                            AWS::Lex::Bot                        N/A                                
-+ Add                                LexToChatGPTPerm                     AWS::Lambda::Permission              N/A                                
-+ Add                                LexToChatGPTSnapPerm                 AWS::Lambda::Permission              N/A                                
-+ Add                                MainPromptEast                       Custom::PromptCreator                N/A                                
-+ Add                                OpenEN                               Custom::PromptCreator                N/A                                
-+ Add                                PromptBucketPolicy                   AWS::S3::BucketPolicy                N/A                                
-+ Add                                PromptBucket                         AWS::S3::Bucket                      N/A                                
-+ Add                                PromptCopierRole                     AWS::IAM::Role                       N/A                                
-+ Add                                PromptCopier                         AWS::Lambda::Function                N/A                                
-+ Add                                PromptCreatorRole                    AWS::IAM::Role                       N/A                                
-+ Add                                PromptCreator                        AWS::Lambda::Function                N/A                                
-+ Add                                SessionTable                         AWS::DynamoDB::Table                 N/A                                
-+ Add                                StaticPrompts                        Custom::PromptCopier                 N/A                                
-+ Add                                TansferPromptEN                      Custom::PromptCreator                N/A                                
-+ Add                                TansferPromptES                      Custom::PromptCreator                N/A                                
-+ Add                                TryAgainEN                           Custom::PromptCreator                N/A                                
-+ Add                                TryAgainES                           Custom::PromptCreator                N/A                                
--------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Operation                                           LogicalResourceId                                   ResourceType                                        Replacement                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
++ Add                                               BotAliasGPT                                         AWS::Lex::BotAlias                                  N/A                                               
++ Add                                               BotRuntimeRole                                      AWS::IAM::Role                                      N/A                                               
++ Add                                               BotVersionGPT                                       AWS::Lex::BotVersion                                N/A                                               
++ Add                                               ChatGPTAliasSNAPSTART                               AWS::Lambda::Alias                                  N/A                                               
++ Add                                               ChatGPTRole                                         AWS::IAM::Role                                      N/A                                               
++ Add                                               ChatGPTVersiona09db0da17                            AWS::Lambda::Version                                N/A                                               
++ Add                                               ChatGPT                                             AWS::Lambda::Function                               N/A                                               
++ Add                                               ChimeCallLexGPT                                     AWS::Lex::ResourcePolicy                            N/A                                               
++ Add                                               ChimeSMAAliasSNAPSTART                              AWS::Lambda::Alias                                  N/A                                               
++ Add                                               ChimeSMAPerm                                        AWS::Lambda::Permission                             N/A                                               
++ Add                                               ChimeSMARole                                        AWS::IAM::Role                                      N/A                                               
++ Add                                               ChimeSMASnapPerm                                    AWS::Lambda::Permission                             N/A                                               
++ Add                                               ChimeSMAVersiondb12bc9449                           AWS::Lambda::Version                                N/A                                               
++ Add                                               ChimeSMA                                            AWS::Lambda::Function                               N/A                                               
++ Add                                               ClosedEN                                            Custom::PromptCreator                               N/A                                               
++ Add                                               GoodbyePromptEN                                     Custom::PromptCreator                               N/A                                               
++ Add                                               GoodbyePromptES                                     Custom::PromptCreator                               N/A                                               
++ Add                                               LexBotGPT                                           AWS::Lex::Bot                                       N/A                                               
++ Add                                               LexToChatGPTPerm                                    AWS::Lambda::Permission                             N/A                                               
++ Add                                               LexToChatGPTSnapPerm                                AWS::Lambda::Permission                             N/A                                               
++ Add                                               MainPromptEast                                      Custom::PromptCreator                               N/A                                               
++ Add                                               OpenEN                                              Custom::PromptCreator                               N/A                                               
++ Add                                               PromptBucketPolicy                                  AWS::S3::BucketPolicy                               N/A                                               
++ Add                                               PromptBucket                                        AWS::S3::Bucket                                     N/A                                               
++ Add                                               PromptCopierRole                                    AWS::IAM::Role                                      N/A                                               
++ Add                                               PromptCopier                                        AWS::Lambda::Function                               N/A                                               
++ Add                                               PromptCreatorRole                                   AWS::IAM::Role                                      N/A                                               
++ Add                                               PromptCreator                                       AWS::Lambda::Function                               N/A                                               
++ Add                                               SessionTable                                        AWS::DynamoDB::Table                                N/A                                               
++ Add                                               StaticPrompts                                       Custom::PromptCopier                                N/A                                               
++ Add                                               TransferEN                                          Custom::PromptCreator                               N/A                                               
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-Changeset created successfully. arn:aws:cloudformation:us-east-1:XXX:changeSet/samcli-deploy1695987094/cb1954ba-4c28-41de-b72d-8c9eec7ccba8
+Changeset created successfully. arn:aws:cloudformation:us-east-1:***:changeSet/samcli-deploy1699731736/0c063172-8389-4763-b45a-f8ee80e49c72
 
 
-2023-09-29 06:31:51 - Waiting for stack create/update to complete
+2023-11-11 13:42:33 - Waiting for stack create/update to complete
 
 CloudFormation events from stack operations (refresh every 5.0 seconds)
--------------------------------------------------------------------------------------------------------------------------------------------------
-ResourceStatus                       ResourceType                         LogicalResourceId                    ResourceStatusReason               
--------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE_IN_PROGRESS                   AWS::DynamoDB::Table                 SessionTable                         -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       ChimeSMARole                         -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       BotRuntimeRole                       -                                  
-CREATE_IN_PROGRESS                   AWS::S3::Bucket                      PromptBucket                         -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       BotRuntimeRole                       Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       ChimeSMARole                         Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::S3::Bucket                      PromptBucket                         Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::DynamoDB::Table                 SessionTable                         Resource creation Initiated        
-CREATE_COMPLETE                      AWS::DynamoDB::Table                 SessionTable                         -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       ChatGPTRole                          -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       ChatGPTRole                          Resource creation Initiated        
-CREATE_COMPLETE                      AWS::IAM::Role                       ChimeSMARole                         -                                  
-CREATE_COMPLETE                      AWS::S3::Bucket                      PromptBucket                         -                                  
-CREATE_COMPLETE                      AWS::IAM::Role                       BotRuntimeRole                       -                                  
-CREATE_IN_PROGRESS                   AWS::S3::BucketPolicy                PromptBucketPolicy                   -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       PromptCreatorRole                    -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       PromptCopierRole                     -                                  
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       PromptCreatorRole                    Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::IAM::Role                       PromptCopierRole                     Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::Lex::Bot                        LexBotGPT                            -                                  
-CREATE_IN_PROGRESS                   AWS::S3::BucketPolicy                PromptBucketPolicy                   Resource creation Initiated        
-CREATE_COMPLETE                      AWS::S3::BucketPolicy                PromptBucketPolicy                   -                                  
-CREATE_IN_PROGRESS                   AWS::Lex::Bot                        LexBotGPT                            Resource creation Initiated        
-CREATE_COMPLETE                      AWS::IAM::Role                       ChatGPTRole                          -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                ChatGPT                              -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                ChatGPT                              Resource creation Initiated        
-CREATE_COMPLETE                      AWS::IAM::Role                       PromptCopierRole                     -                                  
-CREATE_COMPLETE                      AWS::IAM::Role                       PromptCreatorRole                    -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                PromptCopier                         -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                PromptCreator                        -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                PromptCopier                         Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                PromptCreator                        Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Function                ChatGPT                              -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              LexToChatGPTPerm                     -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Version                 ChatGPTVersionb67cb38375             -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              LexToChatGPTPerm                     Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Permission              LexToChatGPTPerm                     -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Version                 ChatGPTVersionb67cb38375             Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Function                PromptCopier                         -                                  
-CREATE_COMPLETE                      AWS::Lambda::Function                PromptCreator                        -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCopier                 StaticPrompts                        -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                GoodbyePromptEN                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                MainPromptEast                       -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TansferPromptES                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TansferPromptEN                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TryAgainEN                           -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                GoodbyePromptES                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                ClosedEN                             -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                OpenEN                               -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TryAgainES                           -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TansferPromptES                      Resource creation Initiated        
-CREATE_IN_PROGRESS                   Custom::PromptCreator                GoodbyePromptEN                      Resource creation Initiated        
-CREATE_IN_PROGRESS                   Custom::PromptCreator                MainPromptEast                       Resource creation Initiated        
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TryAgainEN                           Resource creation Initiated        
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TansferPromptEN                      Resource creation Initiated        
-CREATE_IN_PROGRESS                   Custom::PromptCreator                ClosedEN                             Resource creation Initiated        
-CREATE_COMPLETE                      Custom::PromptCreator                TansferPromptES                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                OpenEN                               Resource creation Initiated        
-CREATE_COMPLETE                      Custom::PromptCreator                MainPromptEast                       -                                  
-CREATE_COMPLETE                      Custom::PromptCreator                TryAgainEN                           -                                  
-CREATE_COMPLETE                      Custom::PromptCreator                GoodbyePromptEN                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCreator                GoodbyePromptES                      Resource creation Initiated        
-CREATE_COMPLETE                      Custom::PromptCreator                TansferPromptEN                      -                                  
-CREATE_COMPLETE                      Custom::PromptCreator                ClosedEN                             -                                  
-CREATE_COMPLETE                      Custom::PromptCreator                OpenEN                               -                                  
-CREATE_COMPLETE                      Custom::PromptCreator                GoodbyePromptES                      -                                  
-CREATE_IN_PROGRESS                   Custom::PromptCopier                 StaticPrompts                        Resource creation Initiated        
-CREATE_IN_PROGRESS                   Custom::PromptCreator                TryAgainES                           Resource creation Initiated        
-CREATE_COMPLETE                      Custom::PromptCopier                 StaticPrompts                        -                                  
-CREATE_COMPLETE                      Custom::PromptCreator                TryAgainES                           -                                  
-CREATE_COMPLETE                      AWS::Lex::Bot                        LexBotGPT                            -                                  
-CREATE_IN_PROGRESS                   AWS::Lex::BotVersion                 BotVersionGPT                        -                                  
-CREATE_IN_PROGRESS                   AWS::Lex::BotVersion                 BotVersionGPT                        Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lex::BotVersion                 BotVersionGPT                        -                                  
-CREATE_COMPLETE                      AWS::Lambda::Version                 ChatGPTVersionb67cb38375             -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Alias                   ChatGPTAliasSNAPSTART                -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Alias                   ChatGPTAliasSNAPSTART                Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Alias                   ChatGPTAliasSNAPSTART                -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              LexToChatGPTSnapPerm                 -                                  
-CREATE_IN_PROGRESS                   AWS::Lex::BotAlias                   BotAliasGPT                          -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              LexToChatGPTSnapPerm                 Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Permission              LexToChatGPTSnapPerm                 -                                  
-CREATE_IN_PROGRESS                   AWS::Lex::BotAlias                   BotAliasGPT                          Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lex::BotAlias                   BotAliasGPT                          -                                  
-CREATE_IN_PROGRESS                   AWS::Lex::ResourcePolicy             ChimeCallLexGPT                      -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                ChimeSMA                             -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Function                ChimeSMA                             Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::Lex::ResourcePolicy             ChimeCallLexGPT                      Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lex::ResourcePolicy             ChimeCallLexGPT                      -                                  
-CREATE_COMPLETE                      AWS::Lambda::Function                ChimeSMA                             -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Version                 ChimeSMAVersion4561b5ece2            -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              ChimeSMAPerm                         -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Version                 ChimeSMAVersion4561b5ece2            Resource creation Initiated        
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              ChimeSMAPerm                         Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Permission              ChimeSMAPerm                         -                                  
-CREATE_COMPLETE                      AWS::Lambda::Version                 ChimeSMAVersion4561b5ece2            -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Alias                   ChimeSMAAliasSNAPSTART               -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Alias                   ChimeSMAAliasSNAPSTART               Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Alias                   ChimeSMAAliasSNAPSTART               -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              ChimeSMASnapPerm                     -                                  
-CREATE_IN_PROGRESS                   AWS::Lambda::Permission              ChimeSMASnapPerm                     Resource creation Initiated        
-CREATE_COMPLETE                      AWS::Lambda::Permission              ChimeSMASnapPerm                     -                                  
-CREATE_COMPLETE                      AWS::CloudFormation::Stack           squareup-chatgpt-ivr                 -                                  
--------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ResourceStatus                                      ResourceType                                        LogicalResourceId                                   ResourceStatusReason                              
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE_IN_PROGRESS                                  AWS::CloudFormation::Stack                          chatgpt-square-ivr                                  User Initiated                                    
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChimeSMARole                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::S3::Bucket                                     PromptBucket                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::DynamoDB::Table                                SessionTable                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      BotRuntimeRole                                      -                                                 
+CREATE_IN_PROGRESS                                  AWS::S3::Bucket                                     PromptBucket                                        Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      BotRuntimeRole                                      Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::DynamoDB::Table                                SessionTable                                        Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChimeSMARole                                        Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::DynamoDB::Table                                SessionTable                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChatGPTRole                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChatGPTRole                                         Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::IAM::Role                                      ChimeSMARole                                        -                                                 
+CREATE_COMPLETE                                     AWS::IAM::Role                                      BotRuntimeRole                                      -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::Bot                                       LexBotGPT                                           -                                                 
+CREATE_COMPLETE                                     AWS::S3::Bucket                                     PromptBucket                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCreatorRole                                   -                                                 
+CREATE_IN_PROGRESS                                  AWS::S3::BucketPolicy                               PromptBucketPolicy                                  -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCopierRole                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::Bot                                       LexBotGPT                                           Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCreatorRole                                   Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCopierRole                                    Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::S3::BucketPolicy                               PromptBucketPolicy                                  Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::S3::BucketPolicy                               PromptBucketPolicy                                  -                                                 
+CREATE_COMPLETE                                     AWS::IAM::Role                                      ChatGPTRole                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChatGPT                                             -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChatGPT                                             Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::IAM::Role                                      PromptCreatorRole                                   -                                                 
+CREATE_COMPLETE                                     AWS::IAM::Role                                      PromptCopierRole                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCreator                                       -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCopier                                        -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               ChatGPT                                             -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTPerm                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChatGPTVersiona09db0da17                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCreator                                       Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCopier                                        Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTPerm                                    Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             LexToChatGPTPerm                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChatGPTVersiona09db0da17                            Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Function                               PromptCopier                                        -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               PromptCreator                                       -                                                 
+CREATE_COMPLETE                                     AWS::Lex::Bot                                       LexBotGPT                                           -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCopier                                StaticPrompts                                       -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptES                                     -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               TransferEN                                          -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               OpenEN                                              -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               MainPromptEast                                      -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               ClosedEN                                            -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptEN                                     -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotVersion                                BotVersionGPT                                       -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotVersion                                BotVersionGPT                                       Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptES                                     Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCopier                                StaticPrompts                                       Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptEN                                     Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               MainPromptEast                                      Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               OpenEN                                              Resource creation Initiated                       
+CREATE_COMPLETE                                     Custom::PromptCreator                               GoodbyePromptES                                     -                                                 
+CREATE_COMPLETE                                     Custom::PromptCopier                                StaticPrompts                                       -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               TransferEN                                          Resource creation Initiated                       
+CREATE_COMPLETE                                     Custom::PromptCreator                               GoodbyePromptEN                                     -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               MainPromptEast                                      -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               OpenEN                                              -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               TransferEN                                          -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               ClosedEN                                            Resource creation Initiated                       
+CREATE_COMPLETE                                     Custom::PromptCreator                               ClosedEN                                            -                                                 
+CREATE_COMPLETE                                     AWS::Lex::BotVersion                                BotVersionGPT                                       -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Version                                ChatGPTVersiona09db0da17                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChatGPTAliasSNAPSTART                               -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChatGPTAliasSNAPSTART                               Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Alias                                  ChatGPTAliasSNAPSTART                               -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTSnapPerm                                -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotAlias                                  BotAliasGPT                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTSnapPerm                                Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             LexToChatGPTSnapPerm                                -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotAlias                                  BotAliasGPT                                         Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lex::BotAlias                                  BotAliasGPT                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::ResourcePolicy                            ChimeCallLexGPT                                     -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChimeSMA                                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChimeSMA                                            Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lex::ResourcePolicy                            ChimeCallLexGPT                                     Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lex::ResourcePolicy                            ChimeCallLexGPT                                     -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               ChimeSMA                                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChimeSMAVersiondb12bc9449                           -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMAPerm                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMAPerm                                        Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             ChimeSMAPerm                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChimeSMAVersiondb12bc9449                           Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Version                                ChimeSMAVersiondb12bc9449                           -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChimeSMAAliasSNAPSTART                              -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChimeSMAAliasSNAPSTART                              Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Alias                                  ChimeSMAAliasSNAPSTART                              -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMASnapPerm                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMASnapPerm                                    Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             ChimeSMASnapPerm                                    -                                                 
+CREATE_COMPLETE                                     AWS::CloudFormation::Stack                          chatgpt-square-ivr                                  -                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-Successfully created/updated stack - squareup-chatgpt-ivr in us-east-1
+Successfully created/updated stack - chatgpt-square-ivr in us-east-1
 
 
+		Managed S3 bucket: aws-sam-cli-managed-default-samclisourcebucket-m21j5av2movi
+		A different default S3 bucket can be set in samconfig.toml
+		Or by specifying --s3-bucket explicitly.
+	Uploading to edbb4caca275e3789a7e7b323715310e  18709716 / 18709716  (100.00%)
+File with same data already exists at edbb4caca275e3789a7e7b323715310e, skipping upload                                                                                                                          
+	Uploading to 8e59dd1bc032ccd9e5d603662d4af6aa  12156120 / 12156120  (100.00%)
+	Uploading to 03a1e0f143a451b90f9f90e595685355  33735650 / 33735650  (100.00%)
+
+	Deploying with following values
+	===============================
+	Stack name                   : chatgpt-square-ivr
+	Region                       : us-west-2
+	Confirm changeset            : False
+	Disable rollback             : False
+	Deployment s3 bucket         : aws-sam-cli-managed-default-samclisourcebucket-m21j5av2movi
+	Capabilities                 : ["CAPABILITY_IAM"]
+	Parameter overrides          : {"OPENAIAPIKEY": "/chatgpt-square-ivr/OPENAI_API_KEY", "SMAID": "/chatgpt-square-ivr-cdk/SMA_ID", "VOICECONNECTORARN": "/chatgpt-square-ivr-cdk/VC_ARN", "SQUAREENVIRONMENT": "SANDBOX", "SQUARELOCATIONID": "DISABLED", "TRANSFERNUMBER": "+18004444444", "OPENAIMODEL": "gpt-3.5-turbo-1106", "VOICEIDEN": "Joanna", "VOICEIDES": "Lupe"}
+	Signing Profiles             : {}
+
+Initiating deployment
+=====================
+
+	Uploading to c00f16ae3c0dda98779c01bf739809bb.template  16412 / 16412  (100.00%)
+
+
+Waiting for changeset to be created..
+
+CloudFormation stack changeset
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Operation                                           LogicalResourceId                                   ResourceType                                        Replacement                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
++ Add                                               BotAliasGPT                                         AWS::Lex::BotAlias                                  N/A                                               
++ Add                                               BotRuntimeRole                                      AWS::IAM::Role                                      N/A                                               
++ Add                                               BotVersionGPT                                       AWS::Lex::BotVersion                                N/A                                               
++ Add                                               ChatGPTAliasSNAPSTART                               AWS::Lambda::Alias                                  N/A                                               
++ Add                                               ChatGPTRole                                         AWS::IAM::Role                                      N/A                                               
++ Add                                               ChatGPTVersion0f137f08d8                            AWS::Lambda::Version                                N/A                                               
++ Add                                               ChatGPT                                             AWS::Lambda::Function                               N/A                                               
++ Add                                               ChimeCallLexGPT                                     AWS::Lex::ResourcePolicy                            N/A                                               
++ Add                                               ChimeSMAAliasSNAPSTART                              AWS::Lambda::Alias                                  N/A                                               
++ Add                                               ChimeSMAPerm                                        AWS::Lambda::Permission                             N/A                                               
++ Add                                               ChimeSMARole                                        AWS::IAM::Role                                      N/A                                               
++ Add                                               ChimeSMASnapPerm                                    AWS::Lambda::Permission                             N/A                                               
++ Add                                               ChimeSMAVersion3bae246093                           AWS::Lambda::Version                                N/A                                               
++ Add                                               ChimeSMA                                            AWS::Lambda::Function                               N/A                                               
++ Add                                               ClosedEN                                            Custom::PromptCreator                               N/A                                               
++ Add                                               GoodbyePromptEN                                     Custom::PromptCreator                               N/A                                               
++ Add                                               GoodbyePromptES                                     Custom::PromptCreator                               N/A                                               
++ Add                                               LexBotGPT                                           AWS::Lex::Bot                                       N/A                                               
++ Add                                               LexToChatGPTPerm                                    AWS::Lambda::Permission                             N/A                                               
++ Add                                               LexToChatGPTSnapPerm                                AWS::Lambda::Permission                             N/A                                               
++ Add                                               MainPromptEast                                      Custom::PromptCreator                               N/A                                               
++ Add                                               OpenEN                                              Custom::PromptCreator                               N/A                                               
++ Add                                               PromptBucketPolicy                                  AWS::S3::BucketPolicy                               N/A                                               
++ Add                                               PromptBucket                                        AWS::S3::Bucket                                     N/A                                               
++ Add                                               PromptCopierRole                                    AWS::IAM::Role                                      N/A                                               
++ Add                                               PromptCopier                                        AWS::Lambda::Function                               N/A                                               
++ Add                                               PromptCreatorRole                                   AWS::IAM::Role                                      N/A                                               
++ Add                                               PromptCreator                                       AWS::Lambda::Function                               N/A                                               
++ Add                                               SessionTable                                        AWS::DynamoDB::Table                                N/A                                               
++ Add                                               StaticPrompts                                       Custom::PromptCopier                                N/A                                               
++ Add                                               TransferEN                                          Custom::PromptCreator                               N/A                                               
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Changeset created successfully. arn:aws:cloudformation:us-west-2:***:changeSet/samcli-deploy1699732145/bec8de1f-78d5-4e54-8853-aba4164c6b4a
+
+
+2023-11-11 13:49:18 - Waiting for stack create/update to complete
+
+CloudFormation events from stack operations (refresh every 5.0 seconds)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ResourceStatus                                      ResourceType                                        LogicalResourceId                                   ResourceStatusReason                              
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE_IN_PROGRESS                                  AWS::CloudFormation::Stack                          chatgpt-square-ivr                                  User Initiated                                    
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChimeSMARole                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::DynamoDB::Table                                SessionTable                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      BotRuntimeRole                                      -                                                 
+CREATE_IN_PROGRESS                                  AWS::S3::Bucket                                     PromptBucket                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::S3::Bucket                                     PromptBucket                                        Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::DynamoDB::Table                                SessionTable                                        Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      BotRuntimeRole                                      Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChimeSMARole                                        Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::DynamoDB::Table                                SessionTable                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChatGPTRole                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      ChatGPTRole                                         Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::IAM::Role                                      ChimeSMARole                                        -                                                 
+CREATE_COMPLETE                                     AWS::IAM::Role                                      BotRuntimeRole                                      -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::Bot                                       LexBotGPT                                           -                                                 
+CREATE_COMPLETE                                     AWS::S3::Bucket                                     PromptBucket                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCopierRole                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCreatorRole                                   -                                                 
+CREATE_IN_PROGRESS                                  AWS::S3::BucketPolicy                               PromptBucketPolicy                                  -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::Bot                                       LexBotGPT                                           Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCopierRole                                    Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::S3::BucketPolicy                               PromptBucketPolicy                                  Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::IAM::Role                                      PromptCreatorRole                                   Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::S3::BucketPolicy                               PromptBucketPolicy                                  -                                                 
+CREATE_COMPLETE                                     AWS::IAM::Role                                      ChatGPTRole                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChatGPT                                             -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChatGPT                                             Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::IAM::Role                                      PromptCopierRole                                    -                                                 
+CREATE_COMPLETE                                     AWS::IAM::Role                                      PromptCreatorRole                                   -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               ChatGPT                                             -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCopier                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCreator                                       -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChatGPTVersion0f137f08d8                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTPerm                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCopier                                        Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               PromptCreator                                       Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTPerm                                    Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             LexToChatGPTPerm                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChatGPTVersion0f137f08d8                            Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lex::Bot                                       LexBotGPT                                           -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               PromptCopier                                        -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               PromptCreator                                       -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCopier                                StaticPrompts                                       -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptES                                     -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               MainPromptEast                                      -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptEN                                     -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               ClosedEN                                            -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               OpenEN                                              -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               TransferEN                                          -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotVersion                                BotVersionGPT                                       -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotVersion                                BotVersionGPT                                       Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCopier                                StaticPrompts                                       Resource creation Initiated                       
+CREATE_COMPLETE                                     Custom::PromptCopier                                StaticPrompts                                       -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptES                                     Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               TransferEN                                          Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               GoodbyePromptEN                                     Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               OpenEN                                              Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               ClosedEN                                            Resource creation Initiated                       
+CREATE_COMPLETE                                     Custom::PromptCreator                               GoodbyePromptES                                     -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               TransferEN                                          -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               GoodbyePromptEN                                     -                                                 
+CREATE_IN_PROGRESS                                  Custom::PromptCreator                               MainPromptEast                                      Resource creation Initiated                       
+CREATE_COMPLETE                                     Custom::PromptCreator                               OpenEN                                              -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               ClosedEN                                            -                                                 
+CREATE_COMPLETE                                     Custom::PromptCreator                               MainPromptEast                                      -                                                 
+CREATE_COMPLETE                                     AWS::Lex::BotVersion                                BotVersionGPT                                       -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Version                                ChatGPTVersion0f137f08d8                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChatGPTAliasSNAPSTART                               -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChatGPTAliasSNAPSTART                               Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Alias                                  ChatGPTAliasSNAPSTART                               -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTSnapPerm                                -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::BotAlias                                  BotAliasGPT                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             LexToChatGPTSnapPerm                                Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lex::BotAlias                                  BotAliasGPT                                         Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             LexToChatGPTSnapPerm                                -                                                 
+CREATE_COMPLETE                                     AWS::Lex::BotAlias                                  BotAliasGPT                                         -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lex::ResourcePolicy                            ChimeCallLexGPT                                     -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChimeSMA                                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Function                               ChimeSMA                                            Resource creation Initiated                       
+CREATE_IN_PROGRESS                                  AWS::Lex::ResourcePolicy                            ChimeCallLexGPT                                     Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lex::ResourcePolicy                            ChimeCallLexGPT                                     -                                                 
+CREATE_COMPLETE                                     AWS::Lambda::Function                               ChimeSMA                                            -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMAPerm                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChimeSMAVersion3bae246093                           -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMAPerm                                        Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             ChimeSMAPerm                                        -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Version                                ChimeSMAVersion3bae246093                           Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Version                                ChimeSMAVersion3bae246093                           -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChimeSMAAliasSNAPSTART                              -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Alias                                  ChimeSMAAliasSNAPSTART                              Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Alias                                  ChimeSMAAliasSNAPSTART                              -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMASnapPerm                                    -                                                 
+CREATE_IN_PROGRESS                                  AWS::Lambda::Permission                             ChimeSMASnapPerm                                    Resource creation Initiated                       
+CREATE_COMPLETE                                     AWS::Lambda::Permission                             ChimeSMASnapPerm                                    -                                                 
+CREATE_COMPLETE                                     AWS::CloudFormation::Stack                          chatgpt-square-ivr                                  -                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Successfully created/updated stack - chatgpt-square-ivr in us-west-2
+
+
+Congrats!  You have deployed the ChatGPT IVR for Square Retail
+
+
+You can now go to the AWS Admin Console and provision a phone number and create a SIP Rule pointing it to SIP Media App's
+  https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html
+  https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html
+
+Point Your Phone Number SIP Rule to:
+  SMA ID bc08cbfe-e007-46f6-bd08-0e71707d9da8 in region us-east-1
+  SMA ID 361b1f39-cf7b-4f35-b04f-0a39e2876b38 in region us-west-2
 ```

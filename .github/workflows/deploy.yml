@@ -15,6 +15,7 @@ concurrency: deploy
 env:
   # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
+  # If you don't set an API key for square, you can still use ChatGPT by itself
   SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
     
