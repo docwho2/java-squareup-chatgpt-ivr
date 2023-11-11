@@ -25,6 +25,7 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
   - Further leverage function calls so that the model can determine when a call should be transferred or concluded.
 - Employ strategic prompting to prime the model with pertinent store information and to guide interactions with callers.
 - Ensure a robust and dependable solution that is deployed across multiple regions within AWS and is entirely cloud-based.
+- 
 
 **Features:**
 - Callers are consistently greeted and informed about the store's operational status (open or closed).
@@ -285,7 +286,7 @@ Example [Secrets](https://docs.github.com/en/actions/security-guides/using-secre
 
 ![Repository Secrets](assets/secrets.png)
 
-Example [Variable](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) for the production deployment:
+Example [Variables](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) for the production deployment:
 
 ![Repository Variables](assets/variables.png)
 
@@ -329,9 +330,11 @@ cd java-squareup-chatgpt-ivr
 
 You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell,then proceed like above.  The deploy script will install maven/Java if it detects you are in a CloudShell.  Note: Due limited storage when using a CloudShell if you have other artifacts and have otherwise used much of the storage, the deploy will fail with space issues (run "df" and check if you experience a failed deployment).
 
-You will see the progress as the stacks deploy.  If you want change any of the values the script asked for you can simply run it again or as many times as you need.
+You will see the progress as the stacks deploy.  If you want to change any of the values the script asked for you can simply run it again or as many times as you need.
 
 ## Chime SDK Phone Number
+
+Once you have deployed the project either via CLI or Workflow, everything is all SIP.  At this stage you could integrate a PBX (like Asterisk) and call into the application via the Voice Connector that was providioned, however the easiest way to test is to provision a phone number in the AWS Console, then create a SIP Rule to point the phone number to the SMA's created in each region.
 
 After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you will need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call the phone number, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
 
