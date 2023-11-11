@@ -25,7 +25,7 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
   - Further leverage function calls so that the model can determine when a call should be transferred or concluded.
 - Employ strategic prompting to prime the model with pertinent store information and to guide interactions with callers.
 - Ensure a robust and dependable solution that is deployed across multiple regions within AWS and is entirely cloud-based.
-- 
+- CI/CD [GitHub Workflow](https://docs.github.com/en/actions/using-workflows/about-workflows) that deploys/updates two regions in parallel.
 
 **Features:**
 - Callers are consistently greeted and informed about the store's operational status (open or closed).
