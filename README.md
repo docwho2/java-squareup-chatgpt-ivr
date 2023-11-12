@@ -360,7 +360,7 @@ After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-s
 
 ## Cleanup
 
-To delete the application and all resources created, use the destroy script.
+To delete the application and all resources created, use the destroy script.  If you provisioned a phone number, you will need to manually delete that as well or **you will continue to incur charges** for that.
 
 You can run the following:
 
