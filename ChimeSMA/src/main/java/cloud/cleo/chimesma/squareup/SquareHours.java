@@ -45,6 +45,7 @@ public class SquareHours {
     private SquareHours() {
         // Enabled if we have what looks like key and location set
         squareEnabled = ! ((SQUARE_LOCATION_ID == null || SQUARE_LOCATION_ID.isBlank() || SQUARE_LOCATION_ID.equalsIgnoreCase("DISABLED")) || (SQUARE_API_KEY == null || SQUARE_API_KEY.isBlank() || SQUARE_API_KEY.equalsIgnoreCase("DISABLED")));
+        System.out.println("Square Enabled check = " + squareEnabled);
         if (squareEnabled ) {
             getLocation();
         }
