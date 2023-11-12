@@ -57,13 +57,17 @@ jobs:
         submodules: recursive
     
     - name: Setup AWS Creds using OIDC Role Method
+      id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: us-east-1
         # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         mask-aws-account-id: true
-   
+    
+    - name: Add AWS_ACCOUNT_ID to Environment
+      run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
+      
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
@@ -81,16 +85,14 @@ jobs:
       
     - name: Ensure CDK is bootstraped
       run: |
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        cdk bootstrap --ci=true aws://${ACCOUNT_ID}/us-east-1
-        cdk bootstrap --ci=true aws://${ACCOUNT_ID}/us-west-2
+        cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-east-1
+        cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-west-2
         
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
       run: |
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
         # Deploy to both regions in parallel
-        cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=us-east-1 -c regionWest=us-west-2 --concurrency=2 --all --require-approval=never --ci=true
+        cdk deploy -c accountId=${AWS_ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=us-east-1 -c regionWest=us-west-2 --concurrency=2 --all --require-approval=never --ci=true
   
   # Now deploy the app into 2 regions at the same time via SAM with matrix job
   sam-deploy:
@@ -107,13 +109,17 @@ jobs:
         submodules: recursive
     
     - name: Setup AWS Creds using OIDC Role Method
+      id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: ${{ matrix.region }}
         # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         mask-aws-account-id: true
-        
+    
+    - name: Add AWS_ACCOUNT_ID to Environment
+      run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
+      
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
@@ -176,11 +182,10 @@ jobs:
     
     - name: Update SMA Endpoint 
       run: |
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
         # The SMA ID is was pushed to param store by the CDK stack
         SMA_ID=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
         # Chime for some reason loses reference to lambda, so always set to dummay and then back to what it should be
-        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
+        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${AWS_ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
         DUMMY_ENDPOINT=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/LAMBDA_ARN --query Parameter.Value --output text)
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT}
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
