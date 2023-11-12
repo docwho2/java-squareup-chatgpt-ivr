@@ -40,7 +40,7 @@ env:
   # Define in repo variable if you want want to route main number calls via SIP via the Voice Connector
   PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
   
-  # Polly voices to use for English and Spanish
+  # Polly voices to use for English and Spanish https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
   VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
   VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
 
@@ -56,13 +56,17 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Setup AWS Creds using OIDC Role Method
+    - name: Setup AWS Credentials
       id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: us-east-1
+        # The full role ARN if you are using OIDC
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         mask-aws-account-id: true
     
     - name: Add AWS_ACCOUNT_ID to Environment
@@ -75,13 +79,12 @@ jobs:
         distribution: 'corretto'
         cache: maven
     
-    - name: Set up Node we can install CDK
-      uses: actions/setup-node@v4
-      with:
-        node-version: "18"
-    
-    - name: Install  CDK
-      run: npm install -g aws-cdk
+    - name: Install AWS CDK
+      run: |
+        # Install latest version of AWS CDK
+        npm install -g aws-cdk
+        echo "Node Version: $(node -v)"
+        echo "CDK Version: $(cdk version)"
       
     - name: Ensure CDK is bootstraped
       run: |
@@ -108,13 +111,17 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Setup AWS Creds using OIDC Role Method
+    - name: Setup AWS Credentials
       id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: ${{ matrix.region }}
+        # The full role ARN if you are using OIDC
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         mask-aws-account-id: true
     
     - name: Add AWS_ACCOUNT_ID to Environment
