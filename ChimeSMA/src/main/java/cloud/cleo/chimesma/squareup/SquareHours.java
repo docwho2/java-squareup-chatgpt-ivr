@@ -17,22 +17,25 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * Determine whether open or closed based on Square Hours from API call.  Cache and
- * hold last result, so if API is down, we always have a value to return.
- * 
+ * Determine whether open or closed based on Square Hours from API call. Cache and hold last result, so if API is down,
+ * we always have a value to return.
+ *
  * @author sjensen
  */
 public class SquareHours {
 
+    private final static String SQUARE_LOCATION_ID = System.getenv("SQUARE_LOCATION_ID");
+    private final static String SQUARE_API_KEY = System.getenv("SQUARE_LOCATION_ID");
+
     private final static SquareClient client = new SquareClient.Builder()
-            .accessToken(System.getenv("SQUARE_API_KEY"))
+            .accessToken(SQUARE_API_KEY)
             .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
             .build();
 
     private final static LocationsApi locationsApi = client.getLocationsApi();
 
-    private final static String LOCATION_ID = System.getenv("SQUARE_LOCATION_ID");
-    
+    private final boolean squareEnabled;
+
     // Cached location result
     private Location loc;
     private ZonedDateTime loc_last;
@@ -40,7 +43,11 @@ public class SquareHours {
     private final static SquareHours me = new SquareHours();
 
     private SquareHours() {
-        getLocation();
+        // Enabled if we have what looks like key and location set
+        squareEnabled = ! ((SQUARE_LOCATION_ID == null || SQUARE_LOCATION_ID.isBlank() || SQUARE_LOCATION_ID.equalsIgnoreCase("DISABLED")) || (SQUARE_API_KEY == null || SQUARE_API_KEY.isBlank() || SQUARE_API_KEY.equalsIgnoreCase("DISABLED")));
+        if (squareEnabled ) {
+            getLocation();
+        }
     }
 
     public static SquareHours getInstance() {
@@ -67,7 +74,7 @@ public class SquareHours {
 
     private void loadLocation() {
         try {
-            final var res = locationsApi.retrieveLocation(LOCATION_ID);
+            final var res = locationsApi.retrieveLocation(SQUARE_LOCATION_ID);
             if (res.getLocation() != null) {
                 loc = res.getLocation();
                 loc_last = ZonedDateTime.now();
@@ -77,8 +84,13 @@ public class SquareHours {
         }
     }
 
+    /**
+     * IS the store currently open
+     * If we don't have valid key and location set, then always just say closed
+     * @return 
+     */
     public boolean isOpen() {
-        if ( getLocation() != null ) {
+        if (squareEnabled && getLocation() != null) {
             return new BusinessHours(loc.getBusinessHours().getPeriods()).isOpen();
         }
         return false;
@@ -89,19 +101,19 @@ public class SquareHours {
         public BusinessHours(List<BusinessHoursPeriod> periods) {
             periods.forEach(p -> add(new OpenPeriod(p)));
         }
-        
+
         public boolean isOpen() {
             final var tz = ZoneId.of(loc.getTimezone());
             // The current time in the TZ
             final var now = ZonedDateTime.now(tz);
             final var today = LocalDate.now(tz);
-            
+
             // The Day of Week
             final var dow = now.getDayOfWeek();
-            
-            final var matched = stream().filter(p -> p.getDow().equals(dow) ).toList();
-            
-            if ( ! matched.isEmpty() ) {
+
+            final var matched = stream().filter(p -> p.getDow().equals(dow)).toList();
+
+            if (!matched.isEmpty()) {
                 // There is something matched for this dow of week
                 return matched.stream().anyMatch(p -> {
                     final var start = LocalDateTime.of(today, p.getStart()).atZone(tz);
@@ -140,7 +152,7 @@ public class SquareHours {
                 default ->
                     throw new RuntimeException("Day of Week Cannot be matched " + bhp.getDayOfWeek());
             };
-            
+
             start = LocalTime.parse(bhp.getStartLocalTime());
             end = LocalTime.parse(bhp.getEndLocalTime());
         }
