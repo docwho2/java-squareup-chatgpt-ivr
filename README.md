@@ -224,38 +224,41 @@ Some of the prerequisites to fully utilize the project are API keys for both Ope
 
 The [GitHub Workflow](.github/workflows/deploy.yml) included in the repository can be used to a create a full CI/CD pipeline as changes are comitted to the main branch.
 
-To allow the workflow to operate on your AWS environment, you can use several methods, but in this case we are using the recommended [OIDC method](https://github.com/aws-actions/configure-aws-credentials#OIDC) that requires some setup inside your account.  Example:
+To allow the workflow to operate on your AWS environment, you can use several methods, but in this case we are using the recommended [OIDC method](https://github.com/aws-actions/configure-aws-credentials#OIDC) that requires some setup inside your account.  The workflow uses this to setup Credentials:
 
 ```yaml
-- name: Setup AWS Creds using OIDC Role Method
+- name: Setup AWS Credentials
+      id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: ${{ matrix.region }}
+        # The full role ARN if you are using OIDC
         # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-        mask-aws-account-id: true
-```
-
-If you wanted to use Access Keys, then you would replace the instances of above with the below in the [workflow](.github/workflows/deploy.yml).  Of course you would need to [create secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
-
-```yaml
-- name: Setup AWS Creds using Access Keys
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: ${{ matrix.region }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         mask-aws-account-id: true
 ```
 
-The workflow has sensible defaults (see below), but you will need to set up variables and secrets:
+You will need to [create secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) to use OIDC or Keys.  Set the role or Keys, but not both:
+
+If you are using the [OIDC method](https://github.com/aws-actions/configure-aws-credentials#OIDC)
+- Create a Secret named **AWS_ROLE_TO_ASSUME** and set it to the full ARN of the role
+  - It should look something like "arn:aws:iam::123456789:role/github-oidc-provider-Role-nqvduv7P15BZ"
+
+If you are going to use [Access Key and Secret](https://repost.aws/knowledge-center/create-access-key)
+- Create a Secret named **AWS_ACCESS_KEY_ID** and set to the Access Key ID
+- Create a Secret named **AWS_SECRET_ACCESS_KEY** and set to the Secret Access Key
+
+The workflow has sensible defaults (see below snippet from the workflow), but you will need to set up variables and secrets:
 
 ```yaml
 env:
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
   # If you don't set an API key for square, you can still use ChatGPT by itself
   SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'NEED_TO_SET_THIS' }}  
     
   
   # Create repository variables to override any/all of the below from the defaults
@@ -277,23 +280,36 @@ env:
   # Define in repo variable if you want want to route main number calls via SIP via the Voice Connector
   PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
   
-  # Polly voices to use for English and Spanish
+  # Polly voices to use for English and Spanish https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
   VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
   VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
 ```
 
-Example [Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for the production deployment:
+Example [Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) :
 
-![Repository Secrets](assets/secrets.png)
+OIDC Method:
 
-Example [Variables](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) for the production deployment:
+![Repository Secrets OIDC](assets/secrets-oidc.png)
+
+Access Keys:
+
+![Repository Secrets Keys](assets/secrets-keys.png)
+
+
+Example [Variables](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) :
 
 ![Repository Variables](assets/variables.png)
 
 The general steps are:
 * [Fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
-* [Setup required Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) like API Keys and/or AWS Access Keys if you go that route in your forked repo.
-* Optionaly [set any variables](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) from the defaults like OPENAI_MODEL for exmple.
+* [Setup required Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository).
+  - Setup either OIDC or Access Keys as described above.
+  - Create a Secret named **OPENAI_API_KEY** and set to your API key otherwise ChatGPT will not function.
+  - Create a Secret named **SQUARE_API_KEY** if are going to be using Square functionaliy, if don't set this, then square functionality will be disabled.
+* Optionaly [set any variables](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) from the defaults like **OPENAI_MODEL** for example.
+  - If you are using square then you must also create a variable named **SQUARE_LOCATION_ID** and set to the Location ID you want the API to query.
+  - If you are using a production Square API Key, then also create a variable named **SQUARE_ENVIRONMENT** and set it to **PRODUCTION** as the default is **SANDBOX**.
+  - Create variables for anything else you want to tweak like stack names, ChatGPT model, etc.
 
 Then start committing changes and watch the magic happen.  CDK deploys regions in parallel and then a matrix job deploys each region in parallel for faster deployments:
 
