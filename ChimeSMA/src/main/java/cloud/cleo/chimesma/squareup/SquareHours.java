@@ -25,7 +25,7 @@ import lombok.Data;
 public class SquareHours {
 
     private final static String SQUARE_LOCATION_ID = System.getenv("SQUARE_LOCATION_ID");
-    private final static String SQUARE_API_KEY = System.getenv("SQUARE_LOCATION_ID");
+    private final static String SQUARE_API_KEY = System.getenv("SQUARE_API_KEY");
 
     private final static SquareClient client = new SquareClient.Builder()
             .accessToken(SQUARE_API_KEY)
