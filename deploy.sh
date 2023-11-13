@@ -119,8 +119,8 @@ aws ssm put-parameter \
 sam deploy --no-fail-on-empty-changeset --no-confirm-changeset \
 --region ${region} \
 --stack-name ${STACK_NAME} \
---parameter-overrides "\ 
-SQUAREAPIKEY=/${STACK_NAME}/SQUARE_API_KEY \
+--parameter-overrides "\
+ SQUAREAPIKEY=/${STACK_NAME}/SQUARE_API_KEY \
 OPENAIAPIKEY=/${STACK_NAME}/OPENAI_API_KEY \
 SMAID=/${CDK_STACK_NAME}/SMA_ID \
 VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN \
