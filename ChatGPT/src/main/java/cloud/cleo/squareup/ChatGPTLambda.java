@@ -67,6 +67,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
 
+    // Eveverything here will be done at SnapStart init
     static {
         // Build up the mapper 
         mapper = new ObjectMapper();
@@ -99,6 +100,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             final var intentName = lexRequest.getSessionState().getIntent().getName();
             log.debug("Intent: " + intentName);
 
+            // For this use case, we only ever get the FallBack Intent, so the intent name means nothing here
+            // We will process everythiung coming in as text to pass to GPT
+            // IE, we are only using lex here to process speech and send it to us
             return switch (intentName) {
                 default ->
                     processGPT(lexRequest);
@@ -140,10 +144,12 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             attrs.put("blankCounter", "0");
         }
 
-        final var user_id = lexRequest.getSessionId();
+        // We could use phone Number coming in from Chime so that you could call back and keep session going between calls,
+        // But using lex sessionId as the key makes each phone call unique and more applicable to this use case
+        final var session_id = lexRequest.getSessionId();
 
         // Key to record in Dynamo
-        final var key = Key.builder().partitionValue(user_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
+        final var key = Key.builder().partitionValue(session_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
 
         //  load session state if it exists
         log.debug("Start Retreiving Session State");
@@ -151,7 +157,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         log.debug("End Retreiving Session State");
 
         if (session == null) {
-            session = new ChatGPTSessionState(user_id, inputMode);
+            session = new ChatGPTSessionState(session_id, inputMode);
         }
 
         // Since we can call and change language during session, always specifiy how we want responses
@@ -296,7 +302,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
                 // Send back Quit Intent
                 .withIntent(Intent.builder().withName("Quit").withState(state).build())
-                // Indicate the state
+                // Indicate the Action
                 .withDialogAction(DialogAction.builder().withType(action).build())
                 .build();
 
@@ -318,7 +324,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     private LexV2Response buildTransferResponse(LexV2Event lexRequest, String transferNumber, String botResponse) {
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        
+        // The controller (Chime SAM Lambda) will grab this from the session since we are delegating, then transfer the call for us
         attrs.put("transferNumber", transferNumber);
+        
         if (botResponse != null) {
             // Check to make sure transfer is not in the response
             if (botResponse.contains(transferNumber)) {
@@ -342,9 +351,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var ss = SessionState.builder()
                 // Retain the current session attributes
                 .withSessionAttributes(attrs)
-                // Send back Quit Intent
+                // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
                 .withIntent(Intent.builder().withName("Transfer").withState("ReadyForFulfillment").build())
-                // Indicate the state
+                // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
                 .withDialogAction(DialogAction.builder().withType("Delegate").build())
                 .build();
 
@@ -356,7 +365,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at LEX
+     * General Response used to send back a message and Elicit Intent again at LEX.
+     * IE, we are sending back GPT response, and then waiting for Lex to collect speech
+     * and once again call us so we can send to GPT, effectively looping until we call
+     * a terminating event like Quit or Transfer.
      *
      * @param lexRequest
      * @param response
