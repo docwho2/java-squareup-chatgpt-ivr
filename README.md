@@ -310,6 +310,10 @@ The general steps are:
   - If you are using square then you must also create a variable named **SQUARE_LOCATION_ID** and set to the Location ID you want the API to query.
   - If you are using a production Square API Key, then also create a variable named **SQUARE_ENVIRONMENT** and set it to **PRODUCTION** as the default is **SANDBOX**.
   - Create variables for anything else you want to tweak like stack names, ChatGPT model, etc.
+* [Create Environments](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#creating-an-environment)
+  - Create an environment named "us-east-1"
+  - Create an environment named "us-west-2"
+  - You don't need to do anything other than create the environments, this is just to be able to show deployments on the main page, they are not used for anything other than to show status.
 
 Then start committing changes and watch the magic happen.  CDK deploys regions in parallel and then a matrix job deploys each region in parallel for faster deployments:
 
