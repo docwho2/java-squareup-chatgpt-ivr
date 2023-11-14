@@ -37,9 +37,6 @@ env:
   # https://platform.openai.com/docs/models/overview (requres model with function calling)
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
   
-  # Define in repo variable if you want want to route main number calls via SIP via the Voice Connector
-  PBX_HOSTNAME:  ${{ vars.PBX_HOSTNAME || '' }}
-  
   # Polly voices to use for English and Spanish https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
   VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
   VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
@@ -90,7 +87,11 @@ jobs:
       run: |
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-east-1
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-west-2
-        
+    
+    - name: Add PBX_HOSTNAME to Environment if var is set
+      if: ${{ vars.PBX_HOSTNAME }}
+      run: echo "PBX_HOSTNAME=${{ vars.PBX_HOSTNAME }}" >> $GITHUB_ENV 
+      
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
       run: |
