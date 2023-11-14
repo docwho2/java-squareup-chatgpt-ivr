@@ -103,6 +103,7 @@ jobs:
       matrix:
         region: [ us-east-1, us-west-2 ]
     runs-on: ubuntu-latest
+    environment: ${{ matrix.region }}
     needs: [cdk-deploy]
     
     steps:     
