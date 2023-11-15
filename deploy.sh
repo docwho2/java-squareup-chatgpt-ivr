@@ -92,7 +92,7 @@ cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEa
 popd
 
 echo "Building Libraries"
-mvn -B install -DskipTests
+mvn -B install -DskipTests --no-transfer-progress
 
 # Build App Once
 sam build
