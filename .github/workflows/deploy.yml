@@ -140,13 +140,9 @@ jobs:
       # Exclude modules that SAM builds so it can use SAM cache and speed deploys
       run: > 
         mvn -B install -DskipTests
-        # Don't fill the logs with transfer Info
         --no-transfer-progress
-        # Exclude these because we want SAM to build them and cache (if we compile here, SAM always think they are new and deploys)
         --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision'
-        # Same for Polly Prompt generation which is part of the downline ChimeSMA library, SAM will build
         --projects '!cloud.cleo.chimesma:generate-poly-prompt'
-        # Also exclude the downline examples and demo lambdas
         --projects '!cloud.cleo.chimesma:lex-chatgpt-fullfill,!cloud.cleo.chimesma:sma-examples'
 
     - name: Setup AWS SAM
