@@ -27,7 +27,7 @@ jobs:
     environment: ${{ matrix.region }}
     steps:
       - name: Execute Tests
-        uses: ./github/actions.test
+        uses: ./github/actions/test
         with:
           region: ${{ matrix.region }}
           stack-name: ${STACK_NAME}
