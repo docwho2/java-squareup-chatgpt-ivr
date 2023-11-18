@@ -2,6 +2,7 @@
 name: Run Tests
 
 on:
+  workflow_dispatch:
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron:  '30 17 * * *'
@@ -12,6 +13,9 @@ permissions:
   contents: read  # This is required for actions/checkout
 
 
+env:
+  STACK_NAME: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
+  
 
 jobs:
    # Run a couple tests to make sure ChatGPT is responding and able to make Square calls
