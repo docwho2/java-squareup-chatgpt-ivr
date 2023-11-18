@@ -344,7 +344,7 @@ cd java-squareup-chatgpt-ivr
 
 ```
 
-You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell,then proceed like above.  The deploy script will install maven/Java if it detects you are in a CloudShell.  Note: Due limited storage when using a CloudShell if you have other artifacts and have otherwise used much of the storage, the deploy will fail with space issues (run "df" and check if you experience a failed deployment).
+You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell, then proceed like above.  The deploy script will install maven/Java if it detects you are in a CloudShell.  Note: Due limited storage when using a CloudShell if you have other artifacts and have otherwise used much of the storage, the deploy will fail with space issues (run "df" and check if you experience a failed deployment).
 
 You will see the progress as the stacks deploy.  If you want to change any of the values the script asked for you can simply run it again or as many times as you need.
 
@@ -968,7 +968,7 @@ Successfully created/updated stack - chatgpt-square-ivr in us-west-2
 Congrats!  You have deployed the ChatGPT IVR for Square Retail
 
 
-You can now go to the AWS Admin Console and provision a phone number and create a SIP Rule pointing it to SIP Media App's
+You can now go to the AWS Admin Console and provision a phone number and create a SIP Rule pointing to the SIP Media App's
   https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html
   https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html
 
