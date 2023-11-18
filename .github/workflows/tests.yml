@@ -34,5 +34,6 @@ jobs:
         with:
           region: ${{ matrix.region }}
           stack-name: ${STACK_NAME}
+          aws-role: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     
       

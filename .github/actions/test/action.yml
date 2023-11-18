@@ -10,6 +10,9 @@ inputs:
     description: 'The stack name to pull params from'
     required: true
     default: 'chatgpt-square-ivr'
+  aws-role:
+    description: 'The AWS Role to assume'
+    required: true
 outputs:
   result:
     description: "All Good"
@@ -22,12 +25,7 @@ runs:
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: ${{ inputs.region }}
-        # The full role ARN if you are using OIDC
-        # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: ${{ inputs.aws-role }}
         mask-aws-account-id: true
     
     - name: Set Bot ID and Alias ID and Lex session ID in Env
