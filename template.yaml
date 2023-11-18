@@ -104,7 +104,7 @@ Resources:
               - s3:GetObject
             Resource:
               - !GetAtt PromptBucket.Arn
-              - !Join [ "", [ !GetAtt PromptBucket.Arn , '/*' ] ]
+              - !Sub "${PromptBucket.Arn}/*"
             Condition:
               StringEquals:
                 "aws:SourceAccount": !Sub "${AWS::AccountId}"
@@ -116,6 +116,8 @@ Resources:
       Description: Creates Static prompts to be used in Chime Voice SDK
       Handler: cloud.cleo.chimesma.PollyPromptGenerator
       CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      SnapStart:
+           ApplyOn: None
       Environment: 
         Variables:
             PROMPT_BUCKET: !Ref PromptBucket
@@ -129,6 +131,14 @@ Resources:
                 - polly:SynthesizeSpeech
               Resource: '*'
   
+  PromptCreatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${PromptCreator}'
+      RetentionInDays: 180
+
   PromptCopier:
     Type: AWS::Serverless::Function
     Properties:
@@ -136,6 +146,8 @@ Resources:
       Description: Copy Static prompts in repo to S3 to be used in Chime SMA
       Handler: cloud.cleo.chimesma.PromptCopier
       CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      SnapStart:
+           ApplyOn: None
       Environment: 
         Variables:
             PROMPT_BUCKET: !Ref PromptBucket
@@ -143,6 +155,14 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref PromptBucket
   
+  PromptCopierLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${PromptCopier}'
+      RetentionInDays: 180
+
   StaticPrompts:
     Type: Custom::PromptCopier
     Properties:
@@ -229,6 +249,13 @@ Resources:
       SnapStart:
         ApplyOn: PublishedVersions
   
+  ChimeSMALogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ChimeSMA}'
+      RetentionInDays: 90
         
   ChimeSMAPerm:
       Type: AWS::Lambda::Permission
@@ -412,6 +439,13 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref SessionTable
   
+  ChatGPTLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ChatGPT}'
+      RetentionInDays: 90
         
   LexToChatGPTPerm:
       Type: AWS::Lambda::Permission
@@ -431,6 +465,7 @@ Resources:
   
   SessionTable:
     Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
       TableName: !Sub ${AWS::StackName}-session
