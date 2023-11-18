@@ -216,7 +216,7 @@ jobs:
       matrix:
         region: [ us-east-1, us-west-2 ]
     runs-on: ubuntu-latest
-    environment: ${{ matrix.region }}
+    environment: "${{ matrix.region }}-tests"
     needs: [sam-deploy]
     steps:
       - name: Checkout Code
