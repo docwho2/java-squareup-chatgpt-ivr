@@ -12,7 +12,6 @@ permissions:
   id-token: write # This is required for requesting the JWT
   contents: read  # This is required for actions/checkout
 
-
 env:
   STACK_NAME: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
   
@@ -27,53 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ matrix.region }}
     steps:
-        
-    - name: Setup AWS Credentials
-      id: aws-creds
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: ${{ matrix.region }}
-        # The full role ARN if you are using OIDC
-        # https://github.com/aws-actions/configure-aws-credentials#oidc
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        mask-aws-account-id: true
+      - Excute Tests: foo
+        uses: ./github/actions.test
+        with:
+          region: ${{ matrix.region }}
+          stack-name: ${STACK_NAME}
     
-    - name: Set Bot ID and Alias ID and Lex session ID in Env
-      run: |
-        echo "BOT_ID=$(aws ssm get-parameter --name /${STACK_NAME}/BOT_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
-        echo "BOT_ALIAS_ID=$(aws ssm get-parameter --name /${STACK_NAME}/BOT_ALIAS_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
-        echo "UNIQUE_ID="${{ github.run_id }}-${{ github.run_attempt }}"" >> $GITHUB_ENV
-        
-    - name: Gummy Bear Test
-      run: |
-        RESULT=$(aws lexv2-runtime recognize-text --text 'If you have gummy bears, respond with exactly "AFFIRMATIVE"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
-        echo "Result is [${RESULT}]"
-        if [[ $RESULT != *"AFFIRMATIVE"* ]]; then
-          echo "Did not pass gummy bear test"
-          exit 1
-        fi
-        echo "Gummy Bear Test Passed"
-        
-    - name: Muggs Restaurant Test
-      run: |    
-        RESULT=$(aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
-        echo "Result is [${RESULT}]"
-        if [[ $RESULT != *"Mugg"* ]]; then
-          echo "Did not pass Mugg's restaurant test"
-          exit 1
-        fi
-        echo "Restaurant Test Passed"
-    
-    - name: Address Test
-      run: |  
-        RESULT=$(aws lexv2-runtime recognize-text --text 'What is your address?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
-        echo "Result is [${RESULT}]"
-        if [[ $RESULT != *"160 Main"* ]]; then
-          echo "Did not pass Address Test"
-          exit 1
-        fi
-        echo "Address Test Passed"
       
