@@ -4,6 +4,10 @@ name: CDK and SAM Deployment
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.png'
+      - '**.md'
+      - '**.sh'
 
 
 permissions:
