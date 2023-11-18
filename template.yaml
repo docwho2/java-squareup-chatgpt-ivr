@@ -413,6 +413,26 @@ Resources:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
                 LambdaArn: !Ref ChatGPT.Alias
+  
+  BotIdParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      DataType: text
+      Type: String
+      Description: !Sub ${AWS::StackName} Lex Bot ID
+      Name: !Sub /${AWS::StackName}/BOT_ID
+      Value: !Ref LexBotGPT
+  
+  
+  BotAliasIdParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      DataType: text
+      Type: String
+      Description: !Sub ${AWS::StackName} Lex Bot Alias ID
+      Name: !Sub /${AWS::StackName}/BOT_ALIAS_ID
+      Value: !GetAtt BotAliasGPT.BotAliasId
+      
                 
   ChatGPT:
     Type: AWS::Serverless::Function
