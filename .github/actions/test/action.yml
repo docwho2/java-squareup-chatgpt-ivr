@@ -29,12 +29,14 @@ runs:
         mask-aws-account-id: true
     
     - name: Set Bot ID and Alias ID and Lex session ID in Env
+      shell: bash
       run: |
         echo "BOT_ID=$(aws ssm get-parameter --name /${{ inputs.stack-same }}/BOT_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
         echo "BOT_ALIAS_ID=$(aws ssm get-parameter --name /${{ inputs.stack-same }}/BOT_ALIAS_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
         echo "UNIQUE_ID="${{ github.run_id }}-${{ github.run_attempt }}"" >> $GITHUB_ENV
         
     - name: Gummy Bear Test
+      shell: bash
       run: |
         RESULT=$(aws lexv2-runtime recognize-text --text 'If you have gummy bears, respond with exactly "AFFIRMATIVE"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
         echo "Result is [${RESULT}]"
@@ -45,6 +47,7 @@ runs:
         echo "Gummy Bear Test Passed"
         
     - name: Muggs Restaurant Test
+      shell: bash
       run: |    
         RESULT=$(aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
         echo "Result is [${RESULT}]"
@@ -55,6 +58,7 @@ runs:
         echo "Restaurant Test Passed"
     
     - name: Address Test
+      shell: bash
       run: |  
         RESULT=$(aws lexv2-runtime recognize-text --text 'What is your address?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
         echo "Result is [${RESULT}]"
