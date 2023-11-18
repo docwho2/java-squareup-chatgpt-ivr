@@ -12,8 +12,6 @@ permissions:
   id-token: write # This is required for requesting the JWT
   contents: read  # This is required for actions/checkout
 
-env:
-  STACK_NAME: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
   
 
 jobs:
@@ -33,7 +31,7 @@ jobs:
         uses: ./.github/actions/test
         with:
           region: ${{ matrix.region }}
-          stack-name: "${STACK_NAME}"
+          stack-name: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
           aws-role: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     
       
