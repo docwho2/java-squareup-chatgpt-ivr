@@ -220,21 +220,21 @@ jobs:
         if [[ $RESULT != *"AFFIRMATIVE"* ]]; then
           echo "Did not pass gummy bear test"
           exit 1
-        end
+        fi
         echo "Gummy Bear Test Passed"
         # Test 2
-        RESULT=$(aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
+        RESULT=$(aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
         if [[ $RESULT != *"Mugg"* ]]; then
-          echo "Did not pass Mugg's restaurant test'"
+          echo "Did not pass Mugg's restaurant test"
           exit 1
-        end
+        fi
         echo "Restaurant Test Passed"
         # Test 3
-        RESULT=$(aws lexv2-runtime recognize-text --text 'What is your address?"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
+        RESULT=$(aws lexv2-runtime recognize-text --text 'What is your address?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
         if [[ $RESULT != *"160 Main"* ]]; then
-          echo "Did not pass Address Test'"
+          echo "Did not pass Address Test"
           exit 1
-        end
+        fi
         echo "Address Test Passed"
         
             
