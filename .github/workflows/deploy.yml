@@ -219,6 +219,9 @@ jobs:
     environment: ${{ matrix.region }}
     needs: [sam-deploy]
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
       - name: Execute Tests
         uses: ./.github/actions/test
         with:
