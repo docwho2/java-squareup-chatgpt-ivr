@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ matrix.region }}
     steps:
-      - Excute Tests: foo
+      - name: Execute Tests
         uses: ./github/actions.test
         with:
           region: ${{ matrix.region }}
