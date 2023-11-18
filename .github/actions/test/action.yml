@@ -36,6 +36,7 @@ runs:
       run: |
         echo "BOT_ID=$(aws ssm get-parameter --name /${{ inputs.stack-name }}/BOT_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
         echo "BOT_ALIAS_ID=$(aws ssm get-parameter --name /${{ inputs.stack-name }}/BOT_ALIAS_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
+    
     - name: Gummy Bear Test
       shell: bash
       run: |
@@ -46,6 +47,10 @@ runs:
           exit 1
         fi
         echo "Gummy Bear Test Passed"
+    
+    - name: Sleeping for 5 seconds to keep rate limit down
+      shell: bash
+      run: sleep 5
         
     - name: Muggs Restaurant Test
       shell: bash
@@ -57,6 +62,10 @@ runs:
           exit 1
         fi
         echo "Restaurant Test Passed"
+    
+    - name: Sleeping for 5 seconds to keep rate limit down
+      shell: bash
+      run: sleep 5
     
     - name: Address Test
       shell: bash
