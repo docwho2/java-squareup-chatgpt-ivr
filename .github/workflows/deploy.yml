@@ -207,7 +207,35 @@ jobs:
         DUMMY_ENDPOINT=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/LAMBDA_ARN --query Parameter.Value --output text)
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT}
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
-       
+        
+    - name: Run Tests on GPT via Lex
+      if: ${{ vars.RUN_TESTS }}
+      run: |
+        BOT_ID=$(aws ssm get-parameter --name /${STACK_NAME}/BOT_ID --query Parameter.Value --output text)
+        BOT_ALIAS_ID=$(aws ssm get-parameter --name /${STACK_NAME}/BOT_ALIAS_ID --query Parameter.Value --output text)
+        UNIQUE_ID="${{ github.run_id }}-${{ github.run_attempt }}"
+        shopt -s nocasematch  # Enable case-insensitive matching
+        # Test 1
+        RESULT=aws lexv2-runtime recognize-text --text 'If you have gummy bears, respond with exactly "AFFIRMATIVE"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID}
+        if [[ $RESULT != *"AFFIRMATIVE"* ]]; then
+          echo "Did not pass gummy bear test"
+          exit 1
+        end
+        echo "Gummy Bear Test Passed"
+        # Test 2
+        RESULT=aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID}
+        if [[ $RESULT != *"Mugg"* ]]; then
+          echo "Did not pass Mugg's restaurant test'"
+          exit 1
+        end
+        echo "Restaurant Test Passed"
+        # Test 3
+        RESULT=aws lexv2-runtime recognize-text --text 'What is your address?"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID}
+        if [[ $RESULT != *"160 Main"* ]]; then
+          echo "Did not pass Address Test'"
+          exit 1
+        end
+        echo "Address Test Passed"
         
             
       
