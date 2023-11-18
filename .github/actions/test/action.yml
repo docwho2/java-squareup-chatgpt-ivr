@@ -13,6 +13,9 @@ inputs:
   aws-role:
     description: 'The AWS Role to assume'
     required: true
+  session-id:
+    description: 'Lex Session ID'
+    required: true
 outputs:
   result:
     description: "All Good"
@@ -33,12 +36,10 @@ runs:
       run: |
         echo "BOT_ID=$(aws ssm get-parameter --name /${{ inputs.stack-name }}/BOT_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
         echo "BOT_ALIAS_ID=$(aws ssm get-parameter --name /${{ inputs.stack-name }}/BOT_ALIAS_ID --query Parameter.Value --output text)" >> $GITHUB_ENV
-        echo "UNIQUE_ID="${{ github.run_id }}-${{ github.run_attempt }}"" >> $GITHUB_ENV
-        echo "Unique ID is [${UNIQUE_ID}]"
     - name: Gummy Bear Test
       shell: bash
       run: |
-        RESULT=$(aws lexv2-runtime recognize-text --text 'If you have gummy bears, respond with exactly "AFFIRMATIVE"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
+        RESULT=$(aws lexv2-runtime recognize-text --text 'If you have gummy bears, respond with exactly "AFFIRMATIVE"' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${{ inputs.session-id }})
         echo "Result is [${RESULT}]"
         if [[ $RESULT != *"AFFIRMATIVE"* ]]; then
           echo "Did not pass gummy bear test"
@@ -49,7 +50,7 @@ runs:
     - name: Muggs Restaurant Test
       shell: bash
       run: |    
-        RESULT=$(aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
+        RESULT=$(aws lexv2-runtime recognize-text --text 'Please recommend a restaurant in the area?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${{ inputs.session-id }})
         echo "Result is [${RESULT}]"
         if [[ $RESULT != *"Mugg"* ]]; then
           echo "Did not pass Mugg's restaurant test"
@@ -60,7 +61,7 @@ runs:
     - name: Address Test
       shell: bash
       run: |  
-        RESULT=$(aws lexv2-runtime recognize-text --text 'What is your address?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${UNIQUE_ID})
+        RESULT=$(aws lexv2-runtime recognize-text --text 'What is your address?' --output text --query 'messages[-1:].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${{ inputs.session-id }})
         echo "Result is [${RESULT}]"
         if [[ $RESULT != *"160 Main"* ]]; then
           echo "Did not pass Address Test"

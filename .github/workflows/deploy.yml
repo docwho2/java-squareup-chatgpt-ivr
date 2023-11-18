@@ -223,5 +223,7 @@ jobs:
         uses: ./.github/actions/test
         with:
           region: ${{ matrix.region }}
-          stack-name: ${STACK_NAME}
+          stack-name: ${{ vars.STACK_NAME || 'chatgpt-square-ivr' }}
+          aws-role: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          session-id: ${{ github.run_id }}-${{ github.run_attempt }}
       
