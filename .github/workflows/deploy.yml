@@ -184,8 +184,13 @@ jobs:
     - name: SAM Build
       run: sam build
     
-    - name:  Delete any Custoom resource Logs
-      if: ! test $(aws cloudformation describe-stacks --stack-name ${STACK_NAME} > /dev/null)
+    - name: Does Stack exist
+      id: stack-exists
+      continue-on-error: true
+      run: aws cloudformation describe-stacks --stack-name ${STACK_NAME}
+      
+    - name:  Delete any Custom resource Logs if stack doesn't exist
+      if: steps.stack-exists.outcome == 'failure'
       run: |
         aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCopier"
         aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCreator"
