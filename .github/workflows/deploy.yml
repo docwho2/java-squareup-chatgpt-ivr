@@ -147,7 +147,6 @@ jobs:
         --no-transfer-progress
         --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision'
         --projects '!cloud.cleo.chimesma:generate-poly-prompt'
-        --projects '!cloud.cleo.chimesma:lex-chatgpt-fullfill,!cloud.cleo.chimesma:sma-examples'
 
     - name: Setup AWS SAM
       uses: aws-actions/setup-sam@v2
