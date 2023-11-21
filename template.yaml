@@ -142,6 +142,7 @@ Resources:
 
   PromptCopier:
     Type: AWS::Serverless::Function
+    DependsOn: PromptCopierLogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-PromptCopier
       Description: Copy Static prompts in repo to S3 to be used in Chime SMA
@@ -159,9 +160,9 @@ Resources:
   PromptCopierLogGroup:
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
-    DeletionPolicy: RetainExceptOnCreate
+    DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${PromptCopier}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCopier'
       RetentionInDays: 30
 
   StaticPrompts:
