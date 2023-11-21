@@ -184,10 +184,10 @@ jobs:
     - name: SAM Build
       run: sam build
     
-    - name: Does Stack exist
+    - name: Does Stack Exist
       id: stack-exists
       continue-on-error: true
-      run: aws cloudformation describe-stacks --stack-name ${STACK_NAME}
+      run: aws cloudformation describe-stacks --stack-name ${STACK_NAME} > /dev/null
       
     - name:  Delete any Custom resource Logs if stack doesn't exist
       if: steps.stack-exists.outcome == 'failure'
