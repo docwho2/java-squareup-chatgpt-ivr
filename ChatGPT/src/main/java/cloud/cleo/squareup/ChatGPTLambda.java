@@ -50,7 +50,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> {
 
     // Initialize the Log4j logger.
-    Logger log = LogManager.getLogger();
+    Logger log = LogManager.getLogger(ChatGPTLambda.class);
 
     final static ObjectMapper mapper;
 

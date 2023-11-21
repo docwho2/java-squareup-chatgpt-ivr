@@ -23,7 +23,7 @@ import org.reflections.Reflections;
 public abstract class AbstractFunction<T> implements Cloneable {
 
     // Initialize the Log4j logger.
-    protected Logger log = LogManager.getLogger();
+    protected Logger log = LogManager.getLogger(AbstractFunction.class);
     
     protected final static ObjectMapper mapper = new ObjectMapper();
 
