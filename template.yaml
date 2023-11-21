@@ -111,6 +111,7 @@ Resources:
  
   PromptCreator:
     Type: AWS::Serverless::Function
+    DependsOn: PromptCreatorLogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-PromptCreator
       Description: Creates Static prompts to be used in Chime Voice SDK
@@ -136,7 +137,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: RetainExceptOnCreate
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${PromptCreator}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCreator'
       RetentionInDays: 30
 
   PromptCopier:
@@ -225,6 +226,7 @@ Resources:
                 
   ChimeSMA:
     Type: AWS::Serverless::Function
+    DependsOn: ChimeSMALogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ChimeSMA
       Description: Square Chime SMA Call FLow Director
@@ -254,7 +256,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ChimeSMA}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChimeSMA'
       RetentionInDays: 90
         
   ChimeSMAPerm:
@@ -436,6 +438,7 @@ Resources:
                 
   ChatGPT:
     Type: AWS::Serverless::Function
+    DependsOn: ChatGPTLogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ChatGPT
       Description: Lex fullfilment that talks to ChatGPT service
@@ -464,7 +467,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ChatGPT}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChatGPT'
       RetentionInDays: 90
         
   LexToChatGPTPerm:
