@@ -96,6 +96,10 @@ jobs:
       if: ${{ vars.PBX_HOSTNAME }}
       run: echo "PBX_HOSTNAME=${{ vars.PBX_HOSTNAME }}" >> $GITHUB_ENV 
       
+    - name: Add CHIME_AREA_CODE to Environment if var is set
+      if: ${{ vars.CHIME_AREA_CODE }}
+      run: echo "CHIME_AREA_CODE=${{ vars.CHIME_AREA_CODE }}" >> $GITHUB_ENV 
+      
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
       run: |
