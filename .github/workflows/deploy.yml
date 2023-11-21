@@ -183,7 +183,13 @@ jobs:
        
     - name: SAM Build
       run: sam build
-      
+    
+    - name:  Delete any Custoom resource Logs
+      if: ! test $(aws cloudformation describe-stacks --stack-name ${STACK_NAME} > /dev/null)
+      run: |
+        aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCopier"
+        aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCreator"
+     
     - name: SAM Deploy
       run:  >
         sam deploy --no-fail-on-empty-changeset --no-confirm-changeset
