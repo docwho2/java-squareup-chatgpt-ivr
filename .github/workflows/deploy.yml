@@ -143,14 +143,17 @@ jobs:
         java-version: '17'
         distribution: 'corretto'
         cache: maven     
-       
+    
+    - name: Install ChimeSMALibrary Parent POM
+      working-directory: ./ChimeSMALibrary
+      run: mvn -N install --no-transfer-progress
+      
     - name: Build/Install Needed Libraries
       # Exclude modules that SAM builds so it can use SAM cache and speed deploys
       run: > 
         mvn -B install -DskipTests
         --no-transfer-progress
-        --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision'
-        --projects '!cloud.cleo.chimesma:generate-poly-prompt'
+        --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision,!ChimeSMALibrary/PollyPromptCreation'
 
     - name: Setup AWS SAM
       uses: aws-actions/setup-sam@v2

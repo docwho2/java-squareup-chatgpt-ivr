@@ -92,7 +92,12 @@ cdk deploy -c accountId=${ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEa
 popd
 
 echo "Building Libraries"
-mvn -B install -DskipTests --no-transfer-progress
+
+pushd "ChimeSMALibrary"
+mvn -N install
+popd
+
+mvn -B install -DskipTests --no-transfer-progress --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision,!ChimeSMALibrary/PollyPromptCreation'
 
 # Build App Once
 sam build
