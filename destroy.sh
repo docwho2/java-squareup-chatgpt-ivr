@@ -6,6 +6,17 @@
 # Stack names and regions
 source config.sh
 
+if [ "$AWS_EXECUTION_ENV" = "CloudShell" ]; then
+    echo "CloudShell Detected, installing Java and CDK"
+    # If you come back later, Java could be removed
+    sudo yum -y install java-17-amazon-corretto
+    # Ensure we are on latest CDK
+    sudo npm install -g aws-cdk
+
+    echo "Adding maven to path which should have been installed for CDK"
+    export PATH="/home/cloudshell-user/apache-maven-3.9.5/bin:${PATH}"
+fi
+
 # Exit immediately if a command exits with a non-zero status.
 set -e
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -50,5 +61,8 @@ aws logs delete-log-group --region ${region} --log-group-name "${logGroup}" > /d
 done
 
 done
+
+echo
+echo "All resources should be destroyed and all logs cleaned out"
 
 
