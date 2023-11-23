@@ -358,6 +358,47 @@ After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-s
 ![Chime Phone Targets](assets/chimephonenumber.png)
 
 
+## Testing
+
+After deploying you can use the [test script](testGPT.sh) to send commands to ChatGPT just to make sure everything is working as planned.  The script collects your input and uses the aws cli to send requests to both regions.
+
+Asking a question like the below example validates several things:
+- The Lex Bot is functioning and calling the [ChatGPT Lambda](ChatGPT/src/main/java/cloud/cleo/squareup/ChatGPTLambda.java)
+- ChatGPT is functioning properly
+  - Your API key is valid and OpenAI service is alive
+  - GPT is performing function calling correctly for defined functions
+- Square is functioning properly
+  - Your Square API Key and location ID are correct
+  - Square API's are responding and service is alive
+  - Valid data was returned from Square and properly interpreted by GPT
+
+```bash
+./testGPT.sh
+
+Enter text to send to ChatGPT Bot [How are you doing today?]: Tell me about your store hours
+
+[Tell me about your store hours] - us-east-1
+Response is: 
+[We are currently closed. Our regular hours are:
+- Friday: 10:00 AM - 5:00 PM
+- Saturday: 10:00 AM - 5:00 PM
+- Sunday: 11:00 AM - 3:00 PM]
+
+
+[Tell me about your store hours] - us-west-2
+Response is: 
+[We are currently closed. Our regular hours are:
+- Friday: 10:00 AM - 5:00 PM
+- Saturday: 10:00 AM - 5:00 PM
+- Sunday: 11:00 AM - 3:00 PM]
+
+```
+
+Testing is also done at deploy time and a couple times a day via Work Flows.
+- The [Test Workflow](.github/workflows/tests.yml) can be run at any time manually and also runs daily via cron settings.
+- The [Test Action](.github/actions/test/action.yml) is meant to be shared and used in various jobs.  After deploy, tests are run for example, but they can also be run manually with the above mentioned WorkFlow.
+
+
 ## Cleanup
 
 To delete the application and all resources created, use the destroy script.  If you provisioned a phone number, you will need to manually delete that as well or **you will continue to incur charges** for that.
