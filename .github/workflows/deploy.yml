@@ -191,11 +191,17 @@ jobs:
       continue-on-error: true
       run: aws cloudformation describe-stacks --stack-name ${STACK_NAME} > /dev/null
       
-    - name:  Delete any Custom resource Logs if stack doesn't exist
+    - name:  Delete PromptCreator Custom resource Logs if stack doesn't exist
       if: steps.stack-exists.outcome == 'failure'
+      continue-on-error: true
+      run: |
+        aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCreator"
+    
+    - name:  Delete PromptCopier Custom resource Logs if stack doesn't exist
+      if: steps.stack-exists.outcome == 'failure'
+      continue-on-error: true
       run: |
         aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCopier"
-        aws logs delete-log-group --log-group-name "/aws/lambda/${STACK_NAME}-PromptCreator"
      
     - name: SAM Deploy
       run:  >
