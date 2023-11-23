@@ -107,6 +107,7 @@ jobs:
         # Twilio Create SIP trunk pointing to Voice Connector
         TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
         TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+        TWILIO_PHONE_NUMBER_SID: ${{ secrets.TWILIO_PHONE_NUMBER_SID }}
           
   # Now deploy the app into 2 regions at the same time via SAM with matrix job
   sam-deploy:
