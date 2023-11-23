@@ -104,6 +104,9 @@ jobs:
         CHIME_PHONE_NUMBER: ${{ vars.CHIME_PHONE_NUMBER }}
         # Configure a VC, this is implied if either of the above is set, however it show be set to TRUE if you want a VC and are not setting Phone or PBX
         VOICE_CONNECTOR: ${{ vars.VOICE_CONNECTOR }}
+        # Twilio Create SIP trunk pointing to Voice Connector
+        TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+        TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           
   # Now deploy the app into 2 regions at the same time via SAM with matrix job
   sam-deploy:
