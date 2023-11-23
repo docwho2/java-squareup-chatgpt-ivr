@@ -91,21 +91,20 @@ jobs:
       run: |
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-east-1
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-west-2
-    
-    - name: Add PBX_HOSTNAME to Environment if var is set
-      if: ${{ vars.PBX_HOSTNAME }}
-      run: echo "PBX_HOSTNAME=${{ vars.PBX_HOSTNAME }}" >> $GITHUB_ENV 
-      
-    - name: Add CHIME_AREA_CODE to Environment if var is set
-      if: ${{ vars.CHIME_AREA_CODE }}
-      run: echo "CHIME_AREA_CODE=${{ vars.CHIME_AREA_CODE }}" >> $GITHUB_ENV 
       
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
       run: |
         # Deploy to both regions in parallel
-        cdk deploy -c accountId=${AWS_ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=us-east-1 -c regionWest=us-west-2 --concurrency=2 --all --require-approval=never --ci=true
-  
+        cdk deploy -c accountId=${AWS_ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=us-east-1 -c regionWest=us-west-2 --concurrency=4 --all --require-approval=never --ci=true
+      env:
+        # SIP PBX like Asterisk with public static IP, this will configure VC to allow calls from this and send calls to it (use IP, not a hostname actually)
+        PBX_HOSTNAME: ${{ vars.PBX_HOSTNAME }}
+        # If you have an existing Phone number provisioned and want to point it to the SMA's that are created
+        CHIME_PHONE_NUMBER: ${{ vars.CHIME_PHONE_NUMBER }}
+        # Configure a VC, this is implied if either of the above is set, however it show be set to TRUE if you want a VC and are not setting Phone or PBX
+        VOICE_CONNECTOR: ${{ vars.VOICE_CONNECTOR }}
+          
   # Now deploy the app into 2 regions at the same time via SAM with matrix job
   sam-deploy:
     strategy:
