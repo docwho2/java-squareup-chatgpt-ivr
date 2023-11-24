@@ -155,7 +155,7 @@ jobs:
       # Exclude modules that SAM builds so it can use SAM cache and speed deploys
       run: > 
         mvn -B install -DskipTests
-        --no-transfer-progress
+        --no-transfer-progress --quiet
         --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision,!ChimeSMALibrary/PollyPromptCreation'
 
     - name: Setup AWS SAM
