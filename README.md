@@ -416,13 +416,11 @@ You can run the following:
 
 ## Sample Asterisk Config
 
-Connecting your PBX to the Chime Voice Connectors to send and receive calls.  
-You would take the Chime Voice Connector hostnames from the output of stacks after deployment.
-Obviously if you tear down the stacks and redeploy, the Voice Connector names will change, so you need to go back to Asterisk and update the names.
+Connecting your PBX to the Chime Voice Connectors to send and receive calls.  You would take the Chime Voice Connector hostnames from the output of stacks after deployment.  Obviously if you tear down the stacks and redeploy, the Voice Connector names will change, so you need to go back to Asterisk and update the names.
 
-pjsip_wizzard.conf: 
+_pjsip_wizzard.conf_ examples: 
 
-```
+```properties
 [aws-chime-virginia]
 type=wizard
 transport=transport-udp
@@ -446,9 +444,9 @@ endpoint/dtmf_mode=auto
 endpoint/rtp_symmetric=yes
 ```
 
-extensions.conf excerpt:
+_extensions.conf_ excerpt:
 
-```
+```properties
 [incoming-twilio]
 
 exten => _+1320495242X,1,NoOp(Call for Copper Fox DID ${EXTEN})
@@ -483,8 +481,7 @@ exten => 292,1,NoOP(Call to AWS Chime Oregon)
 
 ```
 
-I've alo observed that Chime endpoints can change over time, usually there are 12, but once Asterisk locks them in it doesn't seem to update them over time.  
-Asterisk will refuse the call if a new endpoint is added/swapped at some point, so the brute force solution is to just relaod Asterisk every morning.
+I've alo observed that Chime endpoints can change over time, usually there are 12, but once Asterisk locks them in it doesn't seem to update them over time.  Asterisk will refuse the call if a new endpoint is added/swapped at some point, so the brute force solution is to just relaod Asterisk every morning.
 
 ```
 [root@Asterisk asterisk]# crontab -l
