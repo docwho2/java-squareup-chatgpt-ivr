@@ -207,6 +207,75 @@ Depending on how the caller asks about hours, the model uses the data to answer 
     - Speaks out the hours for each day in order (SUN, FRI, SAT)
     - Sometimes it sumarizes and says Saturday and Sunday from 10 to 5 and Sunday from 11 to 3
 
+## Chime SDK Phone Number
+
+Once you have deployed the project either via CLI or Workflow, everything is all SIP.  At this stage you could integrate a PBX (like Asterisk) and call into the application via the Voice Connector that was providioned, however the easiest way to test is to provision a phone number in the AWS Console, then create a SIP Rule to point the phone number to the SMA's created in each region.
+
+After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you will need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call the phone number, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
+
+
+![Chime Phone Targets](assets/chimephonenumber.png)
+
+
+## Twilio Provisioning and Setup
+
+[Twilio](https://www.twilio.com/) is like the swiss army knife of communications and allows you greater flexibility than provisioning a PSTN number in AWS Chime Voice SDK.
+
+Pros:
+- Larger Phone Number Pool
+  - International numbers (UK, Germany, etc.)
+  - Chime only provides numbers in the US.
+- Flexibility in terms of what you can do with incoming voice calls.
+  - Forward the number anywhere at any time.
+  - Use local cloud scripts in Twilio to do just about anything.
+  - Send to your SIP PBX.
+- SMS Support.
+  - Forward or respond to SMS in any way you want.
+  - You can [connect SMS to the Lex Bot](https://docs.aws.amazon.com/lex/latest/dg/twilio-bot-association.html) deployed in this solution to not only have GPT talk to customers, but also provide the same over SMS.
+  - Chime PSTN numbers assigned to SMA's do not support SMS in any way.
+- Load Balancing across AWS Regions.
+  - Chime numbers point to one region and only failover to the other region if the call can't be sent to the higher priority region.
+  - You can equally load balance calls to AWS regions.
+    - Futher if both regions didn't respond for some reason you can send the call to another SIP Destination (PBX, or some other destination)
+    - You can also use a [SIP Trunk Disaster Recovery URL](https://www.twilio.com/docs/sip-trunking#disaster-recovery) as a failsafe if all of Chime Voice becomes unreachable.
+    - In fact you could deploy to as many supported regions as you want, configure balancing equally over us-east-1 and us-west-2, and then a lower priority to ca-central-1 for example.
+- Twilio uses AWS itself and and it's [US Edge locations](https://www.twilio.com/docs/global-infrastructure/edge-locations) are positioned inside AWS regions.
+  - Low latency and the signaling never really goes over the Internet.
+
+Cons:
+- Introduces more complexity dealing with the integration, Chime Numbers just require a SIP Rule pointing to SMA's and done (no Voice Connector necessary).
+- Each Twilio number requires a distinct SIP trunk paired to Voice Connectors in Chime Voice SDK.
+  - You are limited to 3 Voice Connectors per region in your AWS account by default.
+
+### Twilio Integration Details
+
+The main issue with integration is the fact that say you have Twilio number +1-800-555-5555 and point it at the Chime Voice Connectors.
+- Chime recieves the SIP invite and sees that number +1-800-555-5555 is not known and rejects the call because that number does not exist in Chime.
+- You can however use [SIP Header Manipulation](https://www.twilio.com/docs/sip-trunking/sip-header-manipulation) to change the _To_ header to +1-703-555-0122.
+  - +1-703-555-0122 is special Chime number that the Voice Connector will answer and in conjuction with a _Request URI hostname_ SIP Rule pointing to a SMA will route the call properly into the application.
+  - Unfortunately Twilio does not yet provide an API to create these or assign them to a SIP trunk, thus some manual intervention is required for deployment.
+    - You only need to create the Header Manipulation Once which can then be used on any SIP trunk moving forward.
+    - When you initially deploy and if you detroy and then re-deploy, then you need to go to the Twilio console and apply the header manipulation to the SIP Trunk.
+
+Creating a SIP Header Manipulation in the Twilio Console:
+- In the Twilio Console _Develop_ section choose _Elatic SIP Trunking_ --> _SIP Header Manipulations_ [Link](https://console.twilio.com/us1/develop/sip-trunking/settings/header-manipulation?frameUrl=%2Fconsole%2Fsip-trunking%2Fsettings%2Fheader-manipulation%3Fx-target-region%3Dus1).
+- Click on _Create a Policy_ in the upper right.
+- Enter a name for the policy (like "Chime7035550122").
+- Click _Create_.
+- Click _Add request rule_.
+- Enter a name for the rule (like "To7035550122").
+- In the _Actions_ Block enter:
+  - SIP header field -> Select _To number_
+  - Action -> _Replace with_
+  - Value -> _+17035550122_
+- Click _Add rule_.
+- Click _Save Policy_ at the bottom of Screen.
+- You can now apply this to SIP Trunks (that you create or provisioned via CLI or Work Flow).
+
+(more to come here on provisioning)
+
+
+
 ## Deploy the Project
 
 This project uses both AWS SAM and AWS CDK to deploy resources.  Because Chime Voice SDK resources are not included in CloudFormation, they must be provisioned using AWS API calls.  Custom resources must be created to solve this problem.  This project includes and makes use of [Chime Voice SDK Provisioning Project](https://github.com/docwho2/java-chime-voice-sdk-cdk).
@@ -347,60 +416,6 @@ cd java-squareup-chatgpt-ivr
 You may find it easier to deploy in a [Cloud Shell](https://aws.amazon.com/cloudshell/).  Simply launch a Cloud Shell, then proceed like above.  The deploy script will install maven/Java if it detects you are in a CloudShell.  Note: Due limited storage when using a CloudShell if you have other artifacts and have otherwise used much of the storage, the deploy will fail with space issues (run "df" and check if you experience a failed deployment).
 
 You will see the progress as the stacks deploy.  If you want to change any of the values the script asked for you can simply run it again or as many times as you need.
-
-## Chime SDK Phone Number
-
-Once you have deployed the project either via CLI or Workflow, everything is all SIP.  At this stage you could integrate a PBX (like Asterisk) and call into the application via the Voice Connector that was providioned, however the easiest way to test is to provision a phone number in the AWS Console, then create a SIP Rule to point the phone number to the SMA's created in each region.
-
-After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you will need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. When you call the phone number, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
-
-
-![Chime Phone Targets](assets/chimephonenumber.png)
-
-
-## Twilio Provisioning and setup
-
-[Twilio](https://www.twilio.com/) is like the swiss army knife of communications and allows you greater flexibility than provisioning a PSTN number in AWS Chime Voice SDK.
-
-Pros:
-- Larger Phone Number Pool
-  - International numbers (UK, Germany, etc.)
-  - Chime only provides numbers in the US.
-- Flexibility in terms of what you can do with incoming voice calls
-  - Forward the number anywhere at any time
-  - Use local cloud scripts in Twilio to do just about anything
-  - Send to your SIP PBX
-- SMS Support
-  - Forward or respond to SMS in any way you want.
-  - You can [connect SMS to the Lex Bot](https://docs.aws.amazon.com/lex/latest/dg/twilio-bot-association.html) deployed in this solution to not only have GPT talk to customers, but also provide the same over SMS.
-  - PSTN numbers assigned to SMA's do not support SMS in any way.
-- Load Balancing across AWS Regions
-  - Chime numbers point to one region and only failover to the other region if the call can't be sent to the higher priority region.
-  - You can equally load balance calls to AWS regions
-    - Futher if both regions didn't respond for some reason you can send the call to another SIP Destination (PBX, or some other destination)
-    - You can also use a [SIP Trunk Disaster Recovery URL](https://www.twilio.com/docs/sip-trunking#disaster-recovery) as a failsafe if all of Chime Voice becomes unreachable.
-    - In fact you could deploy to as many supported regions as you want, configure balancing equally over us-east-1 and us-west-2, and then a lower priority to ca-central-1 for example.
-- Twilio uses AWS itself and and it's [US Edge locations](https://www.twilio.com/docs/global-infrastructure/edge-locations) are positioned inside AWS regions.
-  - Low latency and the signaling never really goes over the Internet.
-
-Cons:
-- Introduces more complexity dealining with integration, Chime Numbers just require a SIP Rule pointing to SMA's and done (no Voice Connector necessary).
-- Each Twilio number requires a distinct SIP trunk paired to Voice Connectors in Chime Voice SDK.
-  - You are limited to 3 Voice Connectors per region in your AWS account by default.
-
-### Twilio Integration Details
-
-The main issue with integration is the fact that say you have Twilio number +1-800-555-5555 and point it at the Chime Voice Connectors.
-- Chime recieves the SIP invite and sees that number +1-800-555-5555 is not known and rejects the call because that number does not exist in Chime.
-- You can however use [SIP Header Manipulation](https://www.twilio.com/docs/sip-trunking/sip-header-manipulation) to change the _To_ header to +1-703-555-0122.
-  - +1-703-555-0122 is special Chime number that the Voice Connector will answer and in conjuction with a _Request URI hostname_ SIP Rule pointing to a SMA will route the call properly into the application.
-  - Unfortunately Twilio does not yet provide an API to create these or assign them to a SIP trunk, thus some manual intervention is required for deployment.
-    - You only need to create the Header Manipulation Once which can then it be used on any SIP trunk moving forward.
-    - When you initially deploy and if you detroy and then re-deploy, then you need to go to the Twilio console and apple the header manipulation to the Trunk.
-
-Creating a SIP Header Manipulation in the Twilio Console:
-- Step 1 ....
-
 
 
 
