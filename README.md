@@ -358,6 +358,10 @@ After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-s
 ![Chime Phone Targets](assets/chimephonenumber.png)
 
 
+## Twilio Provisioning and setup
+
+(coming soon)
+
 ## Testing
 
 After deploying you can use the [test script](testGPT.sh) to send commands to ChatGPT just to make sure everything is working as planned.  The script collects your input and uses the aws cli to send requests to both regions.
@@ -409,6 +413,104 @@ You can run the following:
 ./destroy.sh
 
 ```
+
+## Sample Asterisk Config
+
+Connecting your PBX to the Chime Voice Connectors to send and receive calls.  
+You would take the Chime Voice Connector hostnames from the output of stacks after deployment.
+Obviously if you tear down the stacks and redeploy, the Voice Connector names will change, so you need to go back to Asterisk and update the names.
+
+pjsip_wizzard.conf: 
+
+```
+[aws-chime-virginia]
+type=wizard
+transport=transport-udp
+remote_hosts=fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws
+endpoint/context=incoming-twilio
+endpoint/disallow=all
+endpoint/allow=ulaw
+endpoint/direct_media=no
+endpoint/dtmf_mode=auto
+endpoint/rtp_symmetric=yes
+
+[aws-chime-oregon]
+type=wizard
+transport=transport-udp
+remote_hosts=cyl0xlnxwrojzkca0pz0d2.voiceconnector.chime.aws
+endpoint/context=incoming-twilio
+endpoint/disallow=all
+endpoint/allow=ulaw
+endpoint/direct_media=no
+endpoint/dtmf_mode=auto
+endpoint/rtp_symmetric=yes
+```
+
+extensions.conf excerpt:
+
+```
+[incoming-twilio]
+
+exten => _+1320495242X,1,NoOp(Call for Copper Fox DID ${EXTEN})
+        same => n,Goto(copperfox,${EXTEN:1},1)
+
+
+
+[copperfox]
+include => outbound-tc-local
+include => outbound-longdistance
+
+; Calls will come from Chime Voice Connector (or Twilio)
+exten => 13204952424,1,NoOp(Call to Copper Fox Main Line)
+	same => n,GoSub(known-callers,start,1)
+        same => n,Dial(SCCP/13204952424,40)
+        same => n,VoiceMail(${EXTEN})
+        same => n,Hangup()
+
+; Call SMA in East and failover to West if down
+exten => 290,1,NoOP(Call to AWS Chime)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-virginia)
+        same => n,Playback(sorry-youre-having-problems)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-oregon)
+
+; Call SMA in the East region only
+exten => 291,1,NoOP(Call to AWS Chime)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-virginia)
+
+; Call SMA in the West region only
+exten => 292,1,NoOP(Call to AWS Chime Oregon)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-oregon)
+
+```
+
+I've alo observed that Chime endpoints can change over time, usually there are 12, but once Asterisk locks them in it doesn't seem to update them over time.  
+Asterisk will refuse the call if a new endpoint is added/swapped at some point, so the brute force solution is to just relaod Asterisk every morning.
+
+```
+[root@Asterisk asterisk]# crontab -l
+0 6 * * * /sbin/asterisk -x "core restart when convenient"
+
+[root@Asterisk asterisk]# dig fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws
+
+; <<>> DiG 9.11.4-P2-RedHat-9.11.4-26.P2.amzn2.13.5 <<>> fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws
+;; QUESTION SECTION:
+;fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. IN A
+
+;; ANSWER SECTION:
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.114
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.0
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.101
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.108
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.103
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.115
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.102
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.100
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.107
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.1
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.116
+fdtthyhzkjkmvgvgvgykxx.voiceconnector.chime.aws. 60 IN A 3.80.16.106
+```
+
 
 ## Sample Deploy Output
 
