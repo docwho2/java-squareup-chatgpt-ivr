@@ -255,10 +255,10 @@ The main issue with integration is the fact that say you have Twilio number +1-8
   - +1-703-555-0122 is special Chime number that the Voice Connector will answer and in conjuction with a _Request URI hostname_ SIP Rule pointing to a SMA will route the call properly into the application.
   - Unfortunately Twilio does not yet provide an API to create these or assign them to a SIP trunk, thus some manual intervention is required for deployment.
     - You only need to create the Header Manipulation Once which can then be used on any SIP trunk moving forward.
-    - When you initially deploy and if you detroy and then re-deploy, then you need to go to the Twilio console and apply the header manipulation to the SIP Trunk.
+    - When you initially deploy and if you destroy and then re-deploy, then you need to go to the Twilio console and apply the header manipulation to the SIP Trunk.
 
 Creating a SIP Header Manipulation in the Twilio Console:
-- In the Twilio Console _Develop_ section choose _Elatic SIP Trunking_ --> _SIP Header Manipulations_ [Link](https://console.twilio.com/us1/develop/sip-trunking/settings/header-manipulation?frameUrl=%2Fconsole%2Fsip-trunking%2Fsettings%2Fheader-manipulation%3Fx-target-region%3Dus1).
+- In the Twilio Console _Develop_ section choose _Elastic SIP Trunking_ --> _SIP Header Manipulations_ [Link](https://console.twilio.com/us1/develop/sip-trunking/settings/header-manipulation?frameUrl=%2Fconsole%2Fsip-trunking%2Fsettings%2Fheader-manipulation%3Fx-target-region%3Dus1).
 - Click on _Create a Policy_ in the upper right.
 - Enter a name for the policy (like "Chime7035550122").
 - Click _Create_.
