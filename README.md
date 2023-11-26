@@ -218,7 +218,7 @@ Some of the prerequisites to fully utilize the project are API keys for both Ope
 
 * [Obtain OpenAI API key](https://platform.openai.com/docs/quickstart?context=curl)
 * [Obtain Square API Key](https://developer.squareup.com/docs/build-basics/access-tokens)
-  * [Obtain Square location ID](https://developer.squareup.com/blog/see-your-location-id-without-the-api-call/)
+* [Obtain Square location ID](https://developer.squareup.com/blog/see-your-location-id-without-the-api-call/)
 
 ### Forking repository and utlizing the GitHub Workflow
 
@@ -360,7 +360,49 @@ After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-s
 
 ## Twilio Provisioning and setup
 
-(coming soon)
+[Twilio](https://www.twilio.com/) is like the swiss army knife of communications and allows you greater flexibility than provisioning a PSTN number in AWS Chime Voice SDK.
+
+Pros:
+- Larger Phone Number Pool
+  - International numbers (UK, Germany, etc.)
+  - Chime only provides numbers in the US.
+- Flexibility in terms of what you can do with incoming voice calls
+  - Forward the number anywhere at any time
+  - Use local cloud scripts in Twilio to do just about anything
+  - Send to your SIP PBX
+- SMS Support
+  - Forward or respond to SMS in any way you want.
+  - You can [connect SMS to the Lex Bot](https://docs.aws.amazon.com/lex/latest/dg/twilio-bot-association.html) deployed in this solution to not only have GPT talk to customers, but also provide the same over SMS.
+  - PSTN numbers assigned to SMA's do not support SMS in any way.
+- Load Balancing across AWS Regions
+  - Chime numbers point to one region and only failover to the other region if the call can't be sent to the higher priority region.
+  - You can equally load balance calls to AWS regions
+    - Futher if both regions didn't respond for some reason you can send the call to another SIP Destination (PBX, or some other destination)
+    - You can also use a [SIP Trunk Disaster Recovery URL](https://www.twilio.com/docs/sip-trunking#disaster-recovery) as a failsafe if all of Chime Voice becomes unreachable.
+    - In fact you could deploy to as many supported regions as you want, configure balancing equally over us-east-1 and us-west-2, and then a lower priority to ca-central-1 for example.
+- Twilio uses AWS itself and and it's [US Edge locations](https://www.twilio.com/docs/global-infrastructure/edge-locations) are positioned inside AWS regions.
+  - Low latency and the signaling never really goes over the Internet.
+
+Cons:
+- Introduces more complexity dealining with integration, Chime Numbers just require a SIP Rule pointing to SMA's and done (no Voice Connector necessary).
+- Each Twilio number requires a distinct SIP trunk paired to Voice Connectors in Chime Voice SDK.
+  - You are limited to 3 Voice Connectors per region in your AWS account by default.
+
+### Twilio Integration Details
+
+The main issue with integration is the fact that say you have Twilio number +1-800-555-5555 and point it at the Chime Voice Connectors.
+- Chime recieves the SIP invite and sees that number +1-800-555-5555 is not known and rejects the call because that number does not exist in Chime.
+- You can however use [SIP Header Manipulation](https://www.twilio.com/docs/sip-trunking/sip-header-manipulation) to change the _To_ header to +1-703-555-0122.
+  - +1-703-555-0122 is special Chime number that the Voice Connector will answer and in conjuction with a _Request URI hostname_ SIP Rule pointing to a SMA will route the call properly into the application.
+  - Unfortunately Twilio does not yet provide an API to create these or assign them to a SIP trunk, thus some manual intervention is required for deployment.
+    - You only need to create the Header Manipulation Once which can then it be used on any SIP trunk moving forward.
+    - When you initially deploy and if you detroy and then re-deploy, then you need to go to the Twilio console and apple the header manipulation to the Trunk.
+
+Creating a SIP Header Manipulation in the Twilio Console:
+- Step 1 ....
+
+
+
 
 ## Testing
 
