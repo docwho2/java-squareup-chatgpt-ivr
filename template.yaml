@@ -335,18 +335,33 @@ Resources:
               ParentIntentSignature: "AMAZON.FallbackIntent"
               FulfillmentCodeHook:
                   Enabled: true
-              InitialResponseSetting:
-                  InitialResponse:
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 65
+                    StartResponse: 
                       AllowInterrupt: false
-                      MessageGroupsList:
-                          - Message:
-                              PlainTextMessage:
-                                Value: Thinking
-                            Variations:
+                      DelayInSeconds: 1
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Thinking
+                          Variations:
                               - PlainTextMessage:
                                   Value: Working
                               - PlainTextMessage:
                                   Value: Processing
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Still Thinking
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Still Working
+                              - PlainTextMessage:
+                                  Value: Still Processing
         - LocaleId: es_US
           Description: ChatGPT Bot Spanish
           NluConfidenceThreshold: 0.40
@@ -446,6 +461,7 @@ Resources:
       Handler: cloud.cleo.squareup.ChatGPTLambda
       AutoPublishAlias: SNAPSTART
       CodeUri: ./ChatGPT
+      Timeout: 60
       Environment: 
         Variables:
           OPENAI_MODEL: !Ref OPENAIMODEL
