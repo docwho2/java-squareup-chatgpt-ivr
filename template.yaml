@@ -468,6 +468,8 @@ Resources:
               Action:
                 # Allow send of SMS messages via SNS
                 - sns:Publish
+                # Send Emails 
+                - ses:SendEmail
               Resource: '*' 
   
   ChatGPTLogGroup:

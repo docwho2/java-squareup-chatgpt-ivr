@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.squareup.functions;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -78,6 +74,7 @@ public class SquareHours<Request> extends AbstractFunction {
                 
                 return json;
             } catch (Exception ex) {
+                log.error("Unhandled Error",ex);
                 return mapper.createObjectNode().put("error_message", ex.getLocalizedMessage());
             }
         };

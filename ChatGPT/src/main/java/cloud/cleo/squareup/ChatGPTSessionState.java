@@ -57,7 +57,7 @@ public class ChatGPTSessionState {
         // Mode specific prompting
         switch (inputMode) {
             case TEXT -> {
-                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  Do not use markdown in responses.  ");
+                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
                 sb.append("To interact with an employee suggest the person call ").append(System.getenv("MAIN_NUMBER")).append(" and ask to speak to that person.  ");
                 sb.append("Do not provide employee phone numbers.");
             }

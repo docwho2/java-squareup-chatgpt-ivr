@@ -8,6 +8,7 @@ import com.squareup.square.SquareClient;
 import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
@@ -42,7 +43,6 @@ public abstract class AbstractFunction<T> implements Cloneable {
     @Setter(AccessLevel.PROTECTED)
     private String callingNumber;
 
-    
     /**
      * Define here since used by most the of the functions
      */
@@ -58,7 +58,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
         final var loc = System.getenv("SQUARE_LOCATION_ID");
 
         squareEnabled = !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || loc.equalsIgnoreCase("DISABLED")));
-        System.out.println("Square Enabled check = " + squareEnabled);
+        log.debug("Square Enabled check = " + squareEnabled);
     }
 
     /**
@@ -73,20 +73,23 @@ public abstract class AbstractFunction<T> implements Cloneable {
         // Use Reflections to get all classes in the package
         Reflections reflections = new Reflections(AbstractFunction.class.getPackage().getName());
         final var allClasses = reflections.getSubTypesOf(AbstractFunction.class);
-
+        
+        // Remove any further Abstract Classes
+        allClasses.removeIf(c -> Modifier.isAbstract(c.getModifiers()));
+        
         // Loop through each class and instantiate using the default constructor
         for (var clazz : allClasses) {
             try {
                 final var func = (AbstractFunction) clazz.getDeclaredConstructor().newInstance();
                 if (func.isEnabled()) {
-                    System.out.println("Instantiated class: " + clazz.getName());
+                    log.debug("Instantiated class: " + clazz.getName());
                     functions.add(func);
                 } else {
-                    System.out.println("Class Disabled, Ignoring: " + clazz.getName());
+                    log.debug("Class Disabled, Ignoring: " + clazz.getName());
                 }
 
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                e.printStackTrace();
+                log.error("Error processing Function Classes",e);
             }
         }
         inited = true;
@@ -125,7 +128,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 }
 
             } catch (CloneNotSupportedException ex) {
-                ex.printStackTrace();
+                log.error("Error cloning Functions",ex);
             }
         });
         return new FunctionExecutor(list.stream().map(f -> f.getChatFunction()).toList());
@@ -171,13 +174,12 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 .executor(getRequestClass(), getExecutor())
                 .build();
     }
-    
-    
+
     private static final Pattern US_E164_PATTERN = Pattern.compile("^\\+1[2-9]\\d{2}[2-9]\\d{6}$");
 
     /**
      * Is the given number a valid US Phone number
-     * 
+     *
      * @param number
      * @return
      */
@@ -187,7 +189,6 @@ public abstract class AbstractFunction<T> implements Cloneable {
         }
         return US_E164_PATTERN.matcher(number).matches();
     }
-    
 
     /**
      * Override and return false to disable a particular function

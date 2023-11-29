@@ -55,6 +55,7 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                     return mapper.createObjectNode().put("message", "No items match the search query");
                 }
             } catch (Exception ex) {
+                log.error("Unhandled Error",ex);
                 return mapper.createObjectNode().put("error_message", ex.getLocalizedMessage());
             }
         };

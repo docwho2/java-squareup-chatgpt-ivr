@@ -56,6 +56,12 @@
             <artifactId>sns</artifactId>
         </dependency>
         
+         <!-- Send Email Messages -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ses</artifactId>
+        </dependency>
+        
         <!-- ChatGPT -->
         <dependency>
             <groupId>com.theokanning.openai-gpt3-java</groupId>
