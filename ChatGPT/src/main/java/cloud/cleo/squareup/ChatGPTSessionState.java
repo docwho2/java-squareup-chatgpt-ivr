@@ -51,13 +51,13 @@ public class ChatGPTSessionState {
         sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
 
         // Local Stuff to recommend
-        sb.append("Muggs of Mille Lacs is a great resturant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
-        sb.append("Wahkon Inn is another great resturant across the street that serves more home cooked type meals at a reasonable price frequented by locals.  ");
+        sb.append("Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
+        sb.append("Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  ");
 
         // Mode specific prompting
         switch (inputMode) {
             case TEXT -> {
-                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  Do not use markdown in responses.  ");
                 sb.append("To interact with an employee suggest the person call ").append(System.getenv("MAIN_NUMBER")).append(" and ask to speak to that person.  ");
                 sb.append("Do not provide employee phone numbers.");
             }
