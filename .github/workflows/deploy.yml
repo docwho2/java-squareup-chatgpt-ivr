@@ -229,7 +229,7 @@ jobs:
         # The SMA ID is was pushed to param store by the CDK stack
         SMA_ID=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
         # Chime for some reason loses reference to lambda, so always set to dummay and then back to what it should be
-        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${AWS_ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
+        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${AWS_ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA:SNAPSTART
         DUMMY_ENDPOINT=$(aws ssm get-parameter --name /${CDK_STACK_NAME}/LAMBDA_ARN --query Parameter.Value --output text)
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT}
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
