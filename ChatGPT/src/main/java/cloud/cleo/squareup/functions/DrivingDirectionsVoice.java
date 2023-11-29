@@ -1,6 +1,5 @@
 package cloud.cleo.squareup.functions;
 
-import java.math.BigDecimal;
 import java.util.function.Function;
 import software.amazon.awssdk.services.sns.SnsClient;
 

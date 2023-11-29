@@ -73,10 +73,10 @@ public abstract class AbstractFunction<T> implements Cloneable {
         // Use Reflections to get all classes in the package
         Reflections reflections = new Reflections(AbstractFunction.class.getPackage().getName());
         final var allClasses = reflections.getSubTypesOf(AbstractFunction.class);
-        
+
         // Remove any further Abstract Classes
         allClasses.removeIf(c -> Modifier.isAbstract(c.getModifiers()));
-        
+
         // Loop through each class and instantiate using the default constructor
         for (var clazz : allClasses) {
             try {
@@ -89,7 +89,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 }
 
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                log.error("Error processing Function Classes",e);
+                log.error("Error processing Function Classes", e);
             }
         }
         inited = true;
@@ -106,9 +106,27 @@ public abstract class AbstractFunction<T> implements Cloneable {
             init();
         }
 
+        String callingNumber = null;
+
+        if (lexRequest.getRequestAttributes() != null) {
+            if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channels:platform")) {
+                final var platform = lexRequest.getRequestAttributes().get("x-amz-lex:channels:platform");
+                if (platform.contains("Chime")) {
+                    // When chime calls us, the SMA will set "callingNumber" in the session
+                    callingNumber = lexRequest.getSessionState().getSessionAttributes() != null
+                            ? lexRequest.getSessionState().getSessionAttributes().get("callingNumber") : null;
+                }
+            }
+            // Check for Integration Channels (For Twilio)
+            if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channel-type")) {
+                // All the channels will populate user-id and for Twilio this will be the callers phone number
+               callingNumber = lexRequest.getRequestAttributes().get("x-amz-lex:user-id");
+            }
+        }
+
+        final var fromNumber = callingNumber;
+
         final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
-        final var callingNumber = lexRequest.getSessionState().getSessionAttributes() != null ? 
-                lexRequest.getSessionState().getSessionAttributes().get("callingNumber") : null;
         final var list = new LinkedList<AbstractFunction>();
 
         functions.forEach(f -> {
@@ -122,14 +140,14 @@ public abstract class AbstractFunction<T> implements Cloneable {
                     }
                     case SPEECH, DTMF -> {
                         if (func.isVoice()) {
-                            func.setCallingNumber(callingNumber);
+
                             list.add(func);
                         }
                     }
                 }
-
+                func.setCallingNumber(fromNumber);
             } catch (CloneNotSupportedException ex) {
-                log.error("Error cloning Functions",ex);
+                log.error("Error cloning Functions", ex);
             }
         });
         return new FunctionExecutor(list.stream().map(f -> f.getChatFunction()).toList());

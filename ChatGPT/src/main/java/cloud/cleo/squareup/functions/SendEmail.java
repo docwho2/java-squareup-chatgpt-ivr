@@ -37,13 +37,16 @@ public class SendEmail<Request> extends AbstractFunction {
         return (var r) -> {
 
             try {
+                // Put the callingNumber in the subject if it exists, it might not if using lex console for example
+                final var subject = getCallingNumber() == null ? r.subject :
+                        "[From " + getCallingNumber() + "] " + r.subject;
                 final var ses = SesClient.create();
                 final var id = ses.sendEmail((email) -> {
                     email.destination(dest -> dest.toAddresses(r.employee_email))
                             .message((mesg) -> {
                                 mesg.body((body) -> {
                                     body.text(cont -> cont.data(r.message));
-                                }).subject(cont -> cont.data(r.subject));
+                                }).subject(cont -> cont.data(subject));
                             }).source("chatgpt@copperfoxgifts.com");
                 });
 
