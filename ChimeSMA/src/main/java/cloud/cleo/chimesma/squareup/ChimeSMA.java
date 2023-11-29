@@ -97,7 +97,7 @@ public class ChimeSMA extends AbstractFlow {
             return switch (a.getIntentName()) {
                 case "Transfer" -> {
                     final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
-                    // final var botResponse = attrs.get("botResponse");  # Ignore what GPT says, sometimes it says we cannot transfer even though we are
+                    final var botResponse = attrs.get("botResponse"); 
                     final var phone = attrs.get("transferNumber");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
@@ -110,9 +110,9 @@ public class ChimeSMA extends AbstractFlow {
                         transfer.setArn(VC_ARN);
                         transfer.setDescription("Send Call to Main Number via SIP");
                     }
-                    yield PlayAudioAction.builder()
-                    .withDescription("Indicate transfer in progress")
-                    .withKey("transfer.wav")
+                    yield SpeakAction.builder()
+                    .withDescription("Indicate transfer in progress with Bot response")
+                    .withTextF(tf -> botResponse)
                     .withNextAction(transfer)
                     .build();
                 }

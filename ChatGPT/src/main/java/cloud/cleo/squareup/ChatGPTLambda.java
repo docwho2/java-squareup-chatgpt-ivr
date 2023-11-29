@@ -282,28 +282,14 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      */
     private LexV2Response buildQuitResponse(LexV2Event lexRequest) {
 
-        String state, action;
-        switch (LexInputMode.fromString(lexRequest.getInputMode())) {
-            case TEXT -> {
-                // For text, we say Quit is filled and close session
-                state = "Fulfilled";
-                action = "Close";
-            }
-            default -> {
-                // For voice we tell lex to return the intent and let it be fullfilled by Voice controller
-                state = "ReadyForFulfillment";
-                action = "Delegate";
-            }
-        }
-
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
                 .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
                 // Send back Quit Intent
-                .withIntent(Intent.builder().withName("Quit").withState(state).build())
+                .withIntent(Intent.builder().withName("Quit").withState("Fulfilled").build())
                 // Indicate the Action
-                .withDialogAction(DialogAction.builder().withType(action).build())
+                .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
 
         final var lexV2Res = LexV2Response.builder()
@@ -352,9 +338,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Retain the current session attributes
                 .withSessionAttributes(attrs)
                 // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
-                .withIntent(Intent.builder().withName("Transfer").withState("ReadyForFulfillment").build())
+                .withIntent(Intent.builder().withName("Transfer").withState("Fulfilled").build())
                 // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
-                .withDialogAction(DialogAction.builder().withType("Delegate").build())
+                .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
 
         final var lexV2Res = LexV2Response.builder()
