@@ -287,7 +287,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Retain the current session attributes
                 .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
                 // Send back Quit Intent
-                .withIntent(Intent.builder().withName("Quit").withState("Fulfilled").build())
+                .withIntent(Intent.builder().withName("Quit").withState("InProgress").build())
                 // Indicate the Action
                 .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
@@ -338,7 +338,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Retain the current session attributes
                 .withSessionAttributes(attrs)
                 // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
-                .withIntent(Intent.builder().withName("Transfer").withState("Fulfilled").build())
+                .withIntent(Intent.builder().withName("Transfer").withState("InProgress").build())
                 // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
                 .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
