@@ -109,7 +109,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             };
 
         } catch (Exception e) {
-            log.error(e);
+            log.error("Unhandled Exception",e);
             // Unhandled Exception
             return buildResponse(lexRequest, "Sorry, I'm having a problem fulfilling your request.  Chat GPT might be down, Please try again later.");
         }
