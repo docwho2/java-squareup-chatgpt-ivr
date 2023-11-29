@@ -133,7 +133,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             if (count > 2) {
                 log.debug("Two blank responses, sending to Quit Intent");
                 // Hang up on caller after 2 silience requests
-                return buildQuitResponse(lexRequest);
+                return buildQuitResponse(lexRequest,"Thank you for calling, goodbye.");
             } else {
                 attrs.put("blankCounter", count.toString());
                 // If we get slience (timeout without speech), then we get empty string on the transcript
@@ -259,7 +259,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         // Check to see if the GPT says the conversation is done
         if (hangupCall != null) {
-            return buildQuitResponse(lexRequest);
+            return buildQuitResponse(lexRequest,botResponse);
         }
 
         // Since we have a general response, add message asking if there is anything else
@@ -280,7 +280,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildQuitResponse(LexV2Event lexRequest) {
+    private LexV2Response buildQuitResponses(LexV2Event lexRequest) {
 
         // State to return
         final var ss = SessionState.builder()
@@ -289,6 +289,34 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Send back Quit Intent
                 .withIntent(Intent.builder().withName("Quit").withState("InProgress").build())
                 // Indicate the Action
+                .withDialogAction(DialogAction.builder().withType("Close").build())
+                .build();
+
+        final var lexV2Res = LexV2Response.builder()
+                .withSessionState(ss)
+                .build();
+        log.debug("Response is " + mapper.valueToTree(lexV2Res));
+        return lexV2Res;
+    }
+    private LexV2Response buildQuitResponse(LexV2Event lexRequest,  String botResponse) {
+
+        final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        
+        // The controller (Chime SAM Lambda) will grab this from the session since we are delegating, then transfer the call for us
+        attrs.put("botResponse", botResponse);
+        attrs.put("action", "quit");
+        
+
+        log.debug("Responding with quit action");
+        log.debug("Bot Response is " + botResponse);
+
+        // State to return
+        final var ss = SessionState.builder()
+                // Retain the current session attributes
+                .withSessionAttributes(attrs)
+                // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
+                .withIntent(Intent.builder().withName("FallbackIntent").withState("Fulfilled").build())
+                // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
                 .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
 
@@ -313,9 +341,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         
         // The controller (Chime SAM Lambda) will grab this from the session since we are delegating, then transfer the call for us
         attrs.put("transferNumber", transferNumber);
+        attrs.put("action", "transfer");
         
         if (botResponse != null) {
-            // Check to make sure transfer is not in the response
+            // Check to make sure transfer number is not in the response
             if (botResponse.contains(transferNumber)) {
                 botResponse = botResponse.replace(transferNumber, "");
             }
@@ -338,7 +367,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Retain the current session attributes
                 .withSessionAttributes(attrs)
                 // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
-                .withIntent(Intent.builder().withName("Transfer").withState("InProgress").build())
+                .withIntent(Intent.builder().withName("FallbackIntent").withState("Fulfilled").build())
                 // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
                 .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
