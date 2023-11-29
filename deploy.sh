@@ -144,7 +144,7 @@ VOICEIDEN=${VOICE_ID_EN} \
 VOICEIDES=${VOICE_ID_ES}"
 
 DUMMY_ENDPOINT=$(aws ssm get-parameter --region ${region} --name /${CDK_STACK_NAME}/LAMBDA_ARN --query Parameter.Value --output text)
-TARGET_ENDPOINT=arn:aws:lambda:${region}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
+TARGET_ENDPOINT=arn:aws:lambda:${region}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA:SNAPSTART
 SMA_ID=$(aws ssm get-parameter --region ${region} --name /${CDK_STACK_NAME}/SMA_ID --query Parameter.Value --output text)
 aws chime-sdk-voice update-sip-media-application --region ${region} --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT} > /dev/null
 aws chime-sdk-voice update-sip-media-application --region ${region} --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT} > /dev/null
