@@ -15,8 +15,7 @@ public class ChimeSMA extends AbstractFlow {
     private final static Action MAIN_MENU = getMainMenu();
 
     /**
-     * Simple Object that caches Square data about hours to determine whether
-     * store is open or closed
+     * Simple Object that caches Square data about hours to determine whether store is open or closed
      */
     private final static SquareHours squareHours = SquareHours.getInstance();
 
@@ -30,8 +29,7 @@ public class ChimeSMA extends AbstractFlow {
     private final static String VC_ARN = System.getenv("VC_ARN");
 
     /**
-     * Initial action is to play welcome message and whether store is open or
-     * closed
+     * Initial action is to play welcome message and whether store is open or closed
      *
      * @return
      */
@@ -56,8 +54,8 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * Main menu is just a LexBox, and the only outputs are Quit and Transfer.
-     * Quit - hang up the call Transfer. - transfer the call to another number.
+     * Main menu is just a LexBox, and the only outputs are Quit and Transfer. Quit - hang up the call Transfer. -
+     * transfer the call to another number.
      *
      * @return
      */
@@ -80,7 +78,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withLocale(english)
                 .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
                 // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("callingNumber",action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         // Will add Spanish later if needed
@@ -89,20 +87,21 @@ public class ChimeSMA extends AbstractFlow {
                 .withLocale(spanish)
                 .withContent("¿En qué puede ayudarte Chat GPT?")
                 // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("callingNumber",action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         // Two invocations of the bot, so create one function and use for both
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
-            return switch (a.getIntentName()) {
-                case "Transfer" -> {
-                    final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
-                    final var botResponse = attrs.get("botResponse"); 
+            final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
+            final var botResponse = attrs.get("botResponse");
+            final var action = attrs.get("action");
+            return switch (action) {
+                case "transfer" -> {
                     final var phone = attrs.get("transferNumber");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
                             .withRingbackToneKey("ringing.wav")
-                            .withCallTimeoutSeconds(60)  // Store has 40 seconds before VM, and default is 30, so push to 60 to be safe
+                            .withCallTimeoutSeconds(60) // Store has 40 seconds before VM, and default is 30, so push to 60 to be safe
                             .withUri(phone)
                             .build();
                     if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
@@ -116,8 +115,12 @@ public class ChimeSMA extends AbstractFlow {
                     .withNextAction(transfer)
                     .build();
                 }
-                case "Quit" ->
-                    goodbye;
+                case "quit" ->
+                    SpeakAction.builder()
+                    .withDescription("Saying Good Bye")
+                    .withTextF(tf -> botResponse)
+                    .withNextAction(goodbye)
+                    .build();
                 default ->
                     SpeakAction.builder()
                     .withText("A system error has occured, please call back and try again")
@@ -134,8 +137,7 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * When an error occurs on a Action and the Action did not specify an Error
-     * Action
+     * When an error occurs on a Action and the Action did not specify an Error Action
      *
      * @return the default error Action
      */
