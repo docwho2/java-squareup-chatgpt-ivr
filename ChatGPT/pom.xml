@@ -26,8 +26,7 @@
             <artifactId>aws-lambda-java-events</artifactId>
         </dependency>
         
-        
-        
+        <!-- Lambda Logging -->
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-log4j2</artifactId>
@@ -45,11 +44,19 @@
             <artifactId>log4j-slf4j18-impl</artifactId>
         </dependency>
         
+        <!-- Savinng ChatGPT Message Context -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>dynamodb-enhanced</artifactId>
         </dependency>
         
+        <!-- Send SMS Messages -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sns</artifactId>
+        </dependency>
+        
+        <!-- ChatGPT -->
         <dependency>
             <groupId>com.theokanning.openai-gpt3-java</groupId>
             <artifactId>service</artifactId>
@@ -61,15 +68,18 @@
             </exclusions>
         </dependency>
         
+        <!-- Square API Calls -->
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>square</artifactId>
         </dependency>
         
-         <dependency>
+        <!-- Used to get all Classes in a package for GPT function calling -->
+        <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>

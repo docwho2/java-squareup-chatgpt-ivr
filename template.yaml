@@ -462,6 +462,13 @@ Resources:
             TableName: !Ref SessionTable
         - DynamoDBWritePolicy:
             TableName: !Ref SessionTable
+        - Version: '2012-10-17' 
+          Statement:
+            - Effect: Allow
+              Action:
+                # Allow send of SMS messages via SNS
+                - sns:Publish
+              Resource: '*' 
   
   ChatGPTLogGroup:
     Type: AWS::Logs::LogGroup

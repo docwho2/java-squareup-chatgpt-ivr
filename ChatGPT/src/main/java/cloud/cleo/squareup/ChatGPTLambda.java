@@ -169,7 +169,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         // Set for special case of transfer and hangup
         ChatFunctionCall transferCall = null, hangupCall = null;
         try {
-            FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(inputMode);
+            FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
             functionExecutor.setObjectMapper(mapper);
 
             while (true) {

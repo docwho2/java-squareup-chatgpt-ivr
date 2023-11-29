@@ -2,6 +2,7 @@ package cloud.cleo.chimesma.squareup;
 
 import cloud.cleo.chimesma.actions.*;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -78,6 +79,8 @@ public class ChimeSMA extends AbstractFlow {
                 .withDescription("ChatGPT English")
                 .withLocale(english)
                 .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
+                // Send the calling number in so we can send texts if need be
+                .withSessionAttributesF(action -> Map.of("callingNumber",action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         // Will add Spanish later if needed
@@ -85,6 +88,8 @@ public class ChimeSMA extends AbstractFlow {
                 .withDescription("ChatGPT Spanish")
                 .withLocale(spanish)
                 .withContent("¿En qué puede ayudarte Chat GPT?")
+                // Send the calling number in so we can send texts if need be
+                .withSessionAttributesF(action -> Map.of("callingNumber",action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         // Two invocations of the bot, so create one function and use for both

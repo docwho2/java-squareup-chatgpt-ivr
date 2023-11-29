@@ -1,6 +1,7 @@
 package cloud.cleo.squareup.functions;
 
 import cloud.cleo.squareup.LexInputMode;
+import com.amazonaws.services.lambda.runtime.events.LexV2Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
@@ -10,6 +11,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.reflections.Reflections;
@@ -23,13 +27,21 @@ import org.reflections.Reflections;
 public abstract class AbstractFunction<T> implements Cloneable {
 
     // Initialize the Log4j logger.
-    protected Logger log = LogManager.getLogger(AbstractFunction.class);
-    
+    protected static final Logger log = LogManager.getLogger(AbstractFunction.class);
+
     protected final static ObjectMapper mapper = new ObjectMapper();
 
     private static final List<AbstractFunction> functions = new LinkedList<>();
     private static boolean inited = false;
 
+    /**
+     * When user is interacting via Voice, we need the calling number to send SMS to them
+     */
+    @Getter(AccessLevel.PROTECTED)
+    @Setter(AccessLevel.PROTECTED)
+    private String callingNumber;
+
+    
     /**
      * Define here since used by most the of the functions
      */
@@ -39,15 +51,15 @@ public abstract class AbstractFunction<T> implements Cloneable {
             .build();
 
     public final static boolean squareEnabled;
-    
+
     static {
         final var key = System.getenv("SQUARE_API_KEY");
         final var loc = System.getenv("SQUARE_LOCATION_ID");
-        
-        squareEnabled =  !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || loc.equalsIgnoreCase("DISABLED")));
+
+        squareEnabled = !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || loc.equalsIgnoreCase("DISABLED")));
         System.out.println("Square Enabled check = " + squareEnabled);
     }
-    
+
     /**
      * Register all the functions in this package. This should be called by a top level object that is being initialized
      * like a lambda, so during SNAPSTART init, all the functions will be inited as well.
@@ -69,9 +81,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
                     System.out.println("Instantiated class: " + clazz.getName());
                     functions.add(func);
                 } else {
-                     System.out.println("Class Disabled, Ignoring: " + clazz.getName());
+                    System.out.println("Class Disabled, Ignoring: " + clazz.getName());
                 }
-                
+
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                 e.printStackTrace();
             }
@@ -82,32 +94,35 @@ public abstract class AbstractFunction<T> implements Cloneable {
     /**
      * Obtain an Executer for all the registered functions
      *
-     * @param inputMode
+     * @param lexRequest
      * @return
      */
-    public static FunctionExecutor getFunctionExecuter(LexInputMode inputMode) {
+    public static FunctionExecutor getFunctionExecuter(LexV2Event lexRequest) {
         if (!inited) {
             init();
         }
 
+        final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
+        final var callingNumber = lexRequest.getRequestAttributes().get("callingNumber");
         final var list = new LinkedList<AbstractFunction>();
 
         functions.forEach(f -> {
             try {
                 final var func = (AbstractFunction) f.clone();
-                switch(inputMode) {
+                switch (inputMode) {
                     case TEXT -> {
-                        if ( func.isText() ) {
+                        if (func.isText()) {
                             list.add(func);
                         }
                     }
                     case SPEECH, DTMF -> {
-                        if ( func.isVoice() ) {
+                        if (func.isVoice()) {
+                            func.setCallingNumber(callingNumber);
                             list.add(func);
                         }
-                    }    
+                    }
                 }
-                
+
             } catch (CloneNotSupportedException ex) {
                 ex.printStackTrace();
             }
@@ -164,18 +179,20 @@ public abstract class AbstractFunction<T> implements Cloneable {
     protected boolean isEnabled() {
         return true;
     }
-    
+
     /**
-     * Provide and enable this function for voice calls.  Override to disable.
-     * @return 
+     * Provide and enable this function for voice calls. Override to disable.
+     *
+     * @return
      */
     protected boolean isVoice() {
         return true;
     }
-    
+
     /**
-     * Provide and enable this function for text interactions.  Override to disable.
-     * @return 
+     * Provide and enable this function for text interactions. Override to disable.
+     *
+     * @return
      */
     protected boolean isText() {
         return true;
