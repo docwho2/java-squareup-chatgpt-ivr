@@ -321,17 +321,12 @@ Resources:
           VoiceSettings:
             VoiceId: !Ref VOICEIDEN
           Intents:
-            - Name: "Quit"
-              Description: "Hang Up the call"
-              SampleUtterances:
-                - Utterance: "Quit"
-                - Utterance: "good bye"
-            - Name: "Transfer"
-              Description: "Send Call to a Phone Number"
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
               SampleUtterances:
                 - Utterance: "null"
             - Name: "FallbackIntent"
-              Description: "Default intent when no other intent matches, send to GPT"
+              Description: "Default intent, send to GPT, which should be everything"
               ParentIntentSignature: "AMAZON.FallbackIntent"
               FulfillmentCodeHook:
                   Enabled: true
@@ -368,17 +363,12 @@ Resources:
           VoiceSettings:
             VoiceId: !Ref VOICEIDES
           Intents:
-            - Name: "Quit"
-              Description: "Hang Up the call"
-              SampleUtterances:
-                - Utterance: "abandonar"
-                - Utterance: "adiós"
-            - Name: "Transfer"
-              Description: "Send Call to a Person"
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
               SampleUtterances:
                 - Utterance: "null"
             - Name: "FallbackIntent"
-              Description: "Default intent when no other intent matches, send to GPT"
+              Description: "Default intent, send to GPT, which should be everything"
               ParentIntentSignature: "AMAZON.FallbackIntent"
               FulfillmentCodeHook:
                   Enabled: true

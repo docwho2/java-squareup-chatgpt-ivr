@@ -93,8 +93,8 @@ public class ChimeSMA extends AbstractFlow {
         // Two invocations of the bot, so create one function and use for both
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
-            final var botResponse = attrs.get("botResponse");
-            final var action = attrs.get("action");
+            final var botResponse = attrs.get("botResponse");  // When transferring or hanging up, play back GPT's last response
+            final var action = attrs.get("action");  // We don't need or want real intents, so the action when exiting the Bot will be set
             return switch (action) {
                 case "transfer" -> {
                     final var phone = attrs.get("transferNumber");
@@ -119,14 +119,14 @@ public class ChimeSMA extends AbstractFlow {
                     SpeakAction.builder()
                     .withDescription("Saying Good Bye")
                     .withTextF(tf -> botResponse)
-                    .withNextAction(goodbye)
+                    .withNextAction(hangup)
                     .build();
                 default ->
                     SpeakAction.builder()
                     .withText("A system error has occured, please call back and try again")
                     .withNextAction(hangup)
                     .build();
-            }; // The Lex bot also has intent to speak with someone
+            }; 
         };
 
         // Both bots are the same, so the handler is the same

@@ -273,36 +273,12 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         return buildResponse(lexRequest, botResponse);
     }
 
-    /**
-     * Response that sends you to the Quit intent so the call or session can be ended
-     *
-     * @param lexRequest
-     * @param response
-     * @return
-     */
-    private LexV2Response buildQuitResponses(LexV2Event lexRequest) {
-
-        // State to return
-        final var ss = SessionState.builder()
-                // Retain the current session attributes
-                .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
-                // Send back Quit Intent
-                .withIntent(Intent.builder().withName("Quit").withState("InProgress").build())
-                // Indicate the Action
-                .withDialogAction(DialogAction.builder().withType("Close").build())
-                .build();
-
-        final var lexV2Res = LexV2Response.builder()
-                .withSessionState(ss)
-                .build();
-        log.debug("Response is " + mapper.valueToTree(lexV2Res));
-        return lexV2Res;
-    }
+    
     private LexV2Response buildQuitResponse(LexV2Event lexRequest,  String botResponse) {
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
         
-        // The controller (Chime SAM Lambda) will grab this from the session since we are delegating, then transfer the call for us
+        // The controller (Chime SAM Lambda) will grab this from the session
         attrs.put("botResponse", botResponse);
         attrs.put("action", "quit");
         
@@ -314,9 +290,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var ss = SessionState.builder()
                 // Retain the current session attributes
                 .withSessionAttributes(attrs)
-                // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
                 .withIntent(Intent.builder().withName("FallbackIntent").withState("Fulfilled").build())
-                // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
                 .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
 
@@ -339,7 +313,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
         
-        // The controller (Chime SAM Lambda) will grab this from the session since we are delegating, then transfer the call for us
+        // The controller (Chime SAM Lambda) will grab this from the session, then transfer the call for us
         attrs.put("transferNumber", transferNumber);
         attrs.put("action", "transfer");
         
@@ -354,12 +328,12 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Split the response on newline because sometimes GPT adds halucination about not being able to transfer a call even though it just did
                 attrs.put("botResponse", botResponse.split("\n")[0]);
             } else {
-                // Use a default transfer message if somehow no botmessage
+                // Use a default transfer message if somehow no bot message
                 attrs.put("botResponse", "Your call will no be transferred.");
             }
         }
 
-        log.debug("Responding with transfer Intent with transfer number [" + transferNumber + "]");
+        log.debug("Responding with transfer number [" + transferNumber + "]");
         log.debug("Bot Response is " + botResponse);
 
         // State to return
