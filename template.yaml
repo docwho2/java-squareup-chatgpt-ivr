@@ -337,10 +337,10 @@ Resources:
                   Enabled: true
                   FulfillmentUpdatesSpecification: 
                     Active: true
-                    TimeoutInSeconds: 65
+                    TimeoutInSeconds: 60
                     StartResponse: 
                       AllowInterrupt: false
-                      DelayInSeconds: 1
+                      DelayInSeconds: 3
                       MessageGroups:
                         - Message: 
                             PlainTextMessage:
