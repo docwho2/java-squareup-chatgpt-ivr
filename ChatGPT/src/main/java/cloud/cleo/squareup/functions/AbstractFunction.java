@@ -107,7 +107,8 @@ public abstract class AbstractFunction<T> implements Cloneable {
         }
 
         final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
-        final var callingNumber = lexRequest.getRequestAttributes() != null ? lexRequest.getRequestAttributes().get("callingNumber") : null;
+        final var callingNumber = lexRequest.getSessionState().getSessionAttributes() != null ? 
+                lexRequest.getSessionState().getSessionAttributes().get("callingNumber") : null;
         final var list = new LinkedList<AbstractFunction>();
 
         functions.forEach(f -> {
