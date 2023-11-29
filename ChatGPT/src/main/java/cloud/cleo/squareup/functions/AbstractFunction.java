@@ -11,6 +11,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -170,6 +171,23 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 .executor(getRequestClass(), getExecutor())
                 .build();
     }
+    
+    
+    private static final Pattern US_E164_PATTERN = Pattern.compile("^\\+1[2-9]\\d{2}[2-9]\\d{6}$");
+
+    /**
+     * Is the given number a valid US Phone number
+     * 
+     * @param number
+     * @return
+     */
+    protected static boolean isValidUSE164Number(String number) {
+        if (number == null || number.isEmpty()) {
+            return false;
+        }
+        return US_E164_PATTERN.matcher(number).matches();
+    }
+    
 
     /**
      * Override and return false to disable a particular function
