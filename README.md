@@ -36,6 +36,10 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
   - Callers can request to connect with specific employees, with the information sourced from a Square API call (Team Member list).
   - If the caller simply wishes to speak to a representative, the model is preloaded with a default number to redirect the call.
     - During transfers to the main line, this process is optimized to use SIP directly connecting to the store's [Asterisk PBX](https://www.asterisk.org).
+- Directions to the store can be requested and Google directions URL can be sent to the callers mobile device if requested.
+- Messages can be sent to via Email to any of the employees.
+  - ChatGPT can compose some interesting emails, quite entertaining.
+  - The calling number is included in the subject of the email to lend context.
 - You can call +1 (320) 425-0645 to try it, please don't ask to speak with someone as this is a real store with real people working in it.  This is deployed in production via the [workflow](.github/workflows/deploy.yml) and answers all calls for the store.
 
 ## High Level Components
@@ -79,44 +83,46 @@ final var lexBotEN = StartBotConversationAction.builder()
                 .build();
 ```
 
-If ChatGPT determines the call needs to be transferred or ended, that intent is returned and the SMA Controller transfers or ends the call.
+If ChatGPT determines the call needs to be transferred or ended, that action is returned and the SMA Controller transfers or ends the call.
 
 ```Java
 Function<StartBotConversationAction, Action> botNextAction = (a) -> {
-            return switch (a.getIntentName()) {
-                case "Transfer" -> {
-                    final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
-                    final var botResponse = attrs.get("botResponse");
-                    final var phone = attrs.get("transferNumber");
-                    final var transfer = CallAndBridgeAction.builder()
-                            .withDescription("Send Call to Team Member")
-                            .withRingbackToneKey("ringing.wav")
-                            .withUri(phone)
-                            .build();
-                    if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
-                        // We are transferring to main number, so use SIP by sending call to Voice Connector
-                        transfer.setArn(VC_ARN);
-                        transfer.setDescription("Send Call to Main Number via SIP");
-                    }
-                    // If we have a GPT response for the transfer, play that before transferring
-                    if (botResponse != null) {
-                        yield SpeakAction.builder()
-                        .withText(botResponse)
-                        .withNextAction(transfer)
-                        .build();
-                    } else {
-                        yield transfer;
-                    }
-                }
-                case "Quit" ->
-                    goodbye;
-                default ->
-                    SpeakAction.builder()
-                    .withText("A system error has occured, please call back and try again")
-                    .withNextAction(hangup)
-                    .build();
-            }; 
-        };
+    final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
+    final var botResponse = attrs.get("botResponse");  // When transferring or hanging up, play back GPT's last response
+    final var action = attrs.get("action");  // We don't need or want real intents, so the action when exiting the Bot will be set
+    return switch (action) {
+        case "transfer" -> {
+            final var phone = attrs.get("transferNumber");
+            final var transfer = CallAndBridgeAction.builder()
+                .withDescription("Send Call to Team Member")
+                .withRingbackToneKey("ringing.wav")
+                .withCallTimeoutSeconds(60) // Store has 40 seconds before VM, and default is 30, so push to 60 to be safe
+                .withUri(phone)
+               .build();
+            if (phone.equals(MAIN_NUMBER) && !VC_ARN.equalsIgnoreCase("PSTN")) {
+                // We are transferring to main number, so use SIP by sending call to Voice Connector
+                transfer.setArn(VC_ARN);
+                transfer.setDescription("Send Call to Main Number via SIP");
+            }
+            yield SpeakAction.builder()
+                .withDescription("Indicate transfer in progress with Bot response")
+                .withTextF(tf -> botResponse)
+                .withNextAction(transfer)
+                .build();
+            }
+        case "quit" ->
+            SpeakAction.builder()
+                .withDescription("Saying Good Bye")
+                .withTextF(tf -> botResponse)
+                .withNextAction(hangup)
+                .build();
+        default ->
+            SpeakAction.builder()
+                .withText("A system error has occured, please call back and try again")
+                .withNextAction(hangup)
+                .build();
+    }; 
+};
 ```
 
 ### ChatGPT Fullfillment Lambda
