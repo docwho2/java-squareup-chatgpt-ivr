@@ -3,7 +3,6 @@ name: Sandbox CDK and SAM Deployment
 
 on:
   push:
-    branches: [ "main" ]
     tags:        
       - sandbox
     paths-ignore:
