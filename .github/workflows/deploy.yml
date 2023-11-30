@@ -4,6 +4,8 @@ name: CDK and SAM Deployment
 on:
   push:
     branches: [ "main" ]
+    tags-ignore:        
+      - sandbox
     paths-ignore:
       - '**.png'
       - '**.md'
