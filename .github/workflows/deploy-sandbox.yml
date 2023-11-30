@@ -1,0 +1,195 @@
+
+name: Sandbox CDK and SAM Deployment
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.png'
+      - '**.md'
+      - '**.sh'
+
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+concurrency: sandbox
+
+
+jobs:
+  # First we must create all the Chime resources like Voice Connectors, SIP Media Application, SIP Rules, etc.
+  cdk-deploy:
+    runs-on: ubuntu-latest
+    environment: sandbox
+
+    steps:
+    - name:  Checkout Code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup AWS Credentials
+      id: aws-creds
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-east-1
+        # The full role ARN if you are using OIDC
+        # https://github.com/aws-actions/configure-aws-credentials#oidc
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
+    
+    - name: Add AWS_ACCOUNT_ID to Environment
+      run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+        cache: maven
+    
+    - name: Install AWS CDK
+      run: |
+        # Install latest version of AWS CDK
+        npm install -g aws-cdk
+        echo "Node Version: $(node -v)"
+        echo "CDK Version: $(cdk version)"
+      
+    - name: Ensure CDK is bootstraped
+      run: |
+        cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-east-1
+        cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-west-2
+      
+    - name: Deploy Stack with CDK 
+      working-directory: ./ChimeCDKProvision
+      run: |
+        # Deploy to both regions in parallel
+        cdk deploy -c accountId=${AWS_ACCOUNT_ID} -c stackName=${{ vars.CDK_STACK_NAME }} -c regionEast=us-east-1 -c regionWest=us-west-2 --concurrency=4 --all --require-approval=never --ci=true
+      env:
+        # For this Sandbox, we will only use a Chime Phone Number, no SIP Voice Connectors needed
+        CHIME_PHONE_NUMBER: ${{ vars.CHIME_PHONE_NUMBER }}
+       
+          
+  # Now deploy the app into 2 regions at the same time via SAM with matrix job
+  sam-deploy:
+    strategy:
+      matrix:
+        region: [ us-east-1, us-west-2 ]
+    runs-on: ubuntu-latest
+    environment: sandbox
+    needs: [cdk-deploy]
+    
+    steps:     
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup AWS Credentials
+      id: aws-creds
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: ${{ matrix.region }}
+        # The full role ARN if you are using OIDC
+        # https://github.com/aws-actions/configure-aws-credentials#oidc
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        mask-aws-account-id: true
+    
+    - name: Add AWS_ACCOUNT_ID to Environment
+      run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+        cache: maven     
+    
+    - name: Install ChimeSMALibrary Parent POM
+      working-directory: ./ChimeSMALibrary
+      run: mvn -N install --no-transfer-progress
+      
+    - name: Build/Install Needed Libraries
+      # Exclude modules that SAM builds so it can use SAM cache and speed deploys
+      run: > 
+        mvn -B install -DskipTests
+        --no-transfer-progress --quiet
+        --projects '!ChimeSMA,!ChatGPT,!ChimeCDKProvision,!ChimeSMALibrary/PollyPromptCreation'
+
+    - name: Setup AWS SAM
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+        
+    - name: Push Square API Key to Parameter store
+      run: >
+        aws ssm put-parameter
+        --name /${{ vars.STACK_NAME }}/SQUARE_API_KEY
+        --description "Square API Key used for stack ${STACK_NAME}"
+        --type String
+        --value ${{ secrets.SQUARE_API_KEY }}
+        --overwrite
+    
+    - name: Push OpenAI API Key to Parameter store
+      run: >
+        aws ssm put-parameter
+        --name /${{ vars.STACK_NAME }}/OPENAI_API_KEY
+        --description "OpenAI API Key used for stack ${STACK_NAME}"
+        --type String
+        --value ${{ secrets.OPENAI_API_KEY }}  
+        --overwrite
+    
+    - name: Cache SAM Build files
+      uses: actions/cache@v3
+      with:
+        path: .aws-sam
+        key: ${{ runner.os }}-sam
+       
+    - name: SAM Build
+      run: sam build
+    
+    - name: Does Stack Exist
+      id: stack-exists
+      continue-on-error: true
+      run: aws cloudformation describe-stacks --stack-name ${{ vars.STACK_NAME }} > /dev/null
+      
+    - name:  Delete PromptCreator Custom resource Logs if stack doesn't exist
+      if: steps.stack-exists.outcome == 'failure'
+      continue-on-error: true
+      run: |
+        aws logs delete-log-group --log-group-name "/aws/lambda/${{ vars.STACK_NAME }}-PromptCreator"
+    
+    - name:  Delete PromptCopier Custom resource Logs if stack doesn't exist
+      if: steps.stack-exists.outcome == 'failure'
+      continue-on-error: true
+      run: |
+        aws logs delete-log-group --log-group-name "/aws/lambda/${{ vars.STACK_NAME }}-PromptCopier"
+     
+    - name: SAM Deploy
+      run:  >
+        sam deploy --no-fail-on-empty-changeset --no-confirm-changeset
+        --region ${{ matrix.region }}
+        --stack-name ${{ vars.STACK_NAME }}
+        --parameter-overrides
+        SQUAREAPIKEY=/${{ vars.STACK_NAME }}/SQUARE_API_KEY
+        OPENAIAPIKEY=/${{ vars.STACK_NAME }}/OPENAI_API_KEY
+        SMAID=/${{ vars.CDK_STACK_NAME }}/SMA_ID
+        VOICECONNECTORARN=/${{ vars.CDK_STACK_NAME }}/VC_ARN
+        SQUAREENVIRONMENT=${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
+        SQUARELOCATIONID=${{ vars.SQUARE_LOCATION_ID || 'DISABLED' }}
+        TRANSFERNUMBER=${{ vars.TRANSFER_NUMBER || '+18004444444' }}
+        OPENAIMODEL=${{ vars.OPENAI_MODEL }}
+        VOICEIDEN=${{ vars.VOICE_ID_EN  || 'Joanna' }}
+        VOICEIDES=${{ vars.VOICE_ID_ES  || 'Lupe' }}
+    
+    - name: Update SMA Endpoint 
+      run: |
+        # The SMA ID is was pushed to param store by the CDK stack
+        SMA_ID=$(aws ssm get-parameter --name /${{ vars.CDK_STACK_NAME }}/SMA_ID --query Parameter.Value --output text)
+        # Chime for some reason loses reference to lambda, so always set to dummay and then back to what it should be
+        TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${AWS_ACCOUNT_ID}:function:${{ vars.STACK_NAME }}-ChimeSMA:SNAPSTART
+        DUMMY_ENDPOINT=$(aws ssm get-parameter --name /${{ vars.CDK_STACK_NAME }}/LAMBDA_ARN --query Parameter.Value --output text)
+        aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT}
+        aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
+  
