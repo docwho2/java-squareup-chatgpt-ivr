@@ -4,7 +4,7 @@ name: Sandbox CDK and SAM Deployment
 on:
   push:
     tags:        
-      - sandbox
+      - sandbox*
     paths-ignore:
       - '**.png'
       - '**.md'
