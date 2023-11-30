@@ -37,6 +37,7 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
   - If the caller simply wishes to speak to a representative, the model is preloaded with a default number to redirect the call.
     - During transfers to the main line, this process is optimized to use SIP directly connecting to the store's [Asterisk PBX](https://www.asterisk.org).
 - Directions to the store can be requested and Google directions URL can be sent to the callers mobile device if requested.
+  - When interacting with Text the link is just returned, when using voice, the link is sent to the caller.
 - Messages can be sent to via Email to any of the employees.
   - ChatGPT can compose some interesting emails, quite entertaining.
   - The calling number is included in the subject of the email to lend context.
