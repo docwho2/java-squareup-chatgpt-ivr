@@ -21,7 +21,7 @@ public class SchedulePrivateShopping<Request> extends AbstractFunction {
 
     @Override
     public String getDescription() {
-        return "Schedule a private Shopping session for 4 of more people at the store";
+        return "Schedule a private Shopping session for 4 of more people at the store, guide user asking for each parameter";
     }
 
     @Override
@@ -48,7 +48,7 @@ public class SchedulePrivateShopping<Request> extends AbstractFunction {
 
     private static class Request {
 
-        @JsonPropertyDescription("Name of the customer who would like to schedule the shopping event")
+        @JsonPropertyDescription("Name of the customer who would like to schedule the shopping event, please ask them for their name.")
         @JsonProperty(required = true)
         public String customer_name;
         
@@ -56,13 +56,13 @@ public class SchedulePrivateShopping<Request> extends AbstractFunction {
         @JsonProperty(required = true)
         public LocalDate date;
 
-        @JsonPropertyDescription("The time for the private shopping event")
+        @JsonPropertyDescription("The time in ISO format for the private shopping event")
         @JsonProperty(required = true)
         public LocalTime time;
 
-        @JsonPropertyDescription("Optional name of the employee requested to provide the event, must be a valid employee first name")
-        @JsonProperty(required = false)
-        public String employee_first_name;
+//        @JsonPropertyDescription("Optional name of the employee requested to provide the event, must be a valid employee first name")
+//        @JsonProperty(required = false)
+//        public String employee_first_name;
     }
 
     /**
