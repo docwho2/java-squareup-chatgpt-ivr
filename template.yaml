@@ -476,8 +476,8 @@ Resources:
                 - sns:Publish
                 # Send Emails 
                 - ses:SendEmail
-                # Validate numbers as mobile
-                - pinpoint:PhoneNumberValidate
+                # Validate numbers as mobile with Pinpoint
+                - mobiletargeting:PhoneNumberValidate
               Resource: '*' 
   
   ChatGPTLogGroup:
