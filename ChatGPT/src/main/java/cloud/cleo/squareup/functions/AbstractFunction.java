@@ -216,7 +216,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
      * Store this in case we try and send SMS twice ever, don't want to pay for the lookup again since it costs money.
      * AWS usually calls the same Lambda, but anyways no harm to try and cache to save a couple cents here and there.
      */
-    private static final Map<String,NumberValidateResponse> validatePhoneMap = new HashMap<>();
+    private static final Map<String, NumberValidateResponse> validatePhoneMap = new HashMap<>();
 
     /**
      * Is the callers number a valid Number we can send SMS to. We won't attempt to send to Voip or Landline callers
@@ -230,17 +230,19 @@ public abstract class AbstractFunction<T> implements Cloneable {
         try {
             NumberValidateResponse numberValidateResponse;
             log.debug("Validating " + callingNumber + "  with Pinpoint");
-            if (! validatePhoneMap.containsKey(callingNumber)) {
+            if (!validatePhoneMap.containsKey(callingNumber)) {
                 // First lookup, call pinpoint
                 numberValidateResponse = PinpointClient.create()
                         .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
                         .numberValidateResponse();
-                log.debug("Pinpoint returned " + numberValidateResponse.toBuilder().toString());
+                log.debug("Pinpoint returned "
+                        + mapper.convertValue(numberValidateResponse.toBuilder(), NumberValidateResponse.serializableBuilderClass()));
                 // Add to cache
                 validatePhoneMap.put(callingNumber, numberValidateResponse);
             } else {
                 numberValidateResponse = validatePhoneMap.get(callingNumber);
-                log.debug("Using cached Pinpoint response " + numberValidateResponse.toBuilder().toString());
+                log.debug("Using cached Pinpoint response "
+                        + mapper.convertValue(numberValidateResponse.toBuilder(), NumberValidateResponse.serializableBuilderClass()));
             }
             // The description of the phone type. Valid values are: MOBILE, LANDLINE, VOIP, INVALID, PREPAID, and OTHER.
             return switch (numberValidateResponse.phoneType()) {
