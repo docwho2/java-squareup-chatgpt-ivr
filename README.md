@@ -41,7 +41,7 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
 - Messages can be sent to via Email to any of the employees.
   - ChatGPT can compose some interesting emails, quite entertaining.
   - The calling number is included in the subject of the email to lend context.
-- You can call +1 (320) 425-0645 to try it, please don't ask to speak with someone as this is a real store with real people working in it.  This is deployed in production via the [workflow](.github/workflows/deploy.yml) and answers all calls for the store.
+- You can call into a test SandBox deployment via +1(612)254-0226 to try it out.
 
 ## High Level Components
 
