@@ -235,12 +235,12 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 numberValidateResponse = PinpointClient.create()
                         .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
                         .numberValidateResponse();
-                log.debug("Pinpoint returned ", numberValidateResponse);
+                log.debug("Pinpoint returned " + numberValidateResponse.toBuilder().toString());
                 // Add to cache
                 validatePhoneMap.put(callingNumber, numberValidateResponse);
             } else {
                 numberValidateResponse = validatePhoneMap.get(callingNumber);
-                log.debug("Using cached Pinpoint response ", numberValidateResponse);
+                log.debug("Using cached Pinpoint response " + numberValidateResponse.toBuilder().toString());
             }
             // The description of the phone type. Valid values are: MOBILE, LANDLINE, VOIP, INVALID, PREPAID, and OTHER.
             return switch (numberValidateResponse.phoneType()) {
