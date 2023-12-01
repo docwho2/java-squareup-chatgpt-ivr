@@ -21,12 +21,17 @@ public class DrivingDirectionsVoice extends AbstractDrivingDirections {
             try {
                 final var callingNumber = getCallingNumber();
                 
-                // Only send SMS to validated US Phone Numbers
-                if ( ! isValidUSE164Number(callingNumber) ) {
+                // Only send SMS to validated US Phone Numbers (in case callerID block, or some weird deal)
+                if ( ! hasValidUSE164Number() ) {
                     return mapper.createObjectNode().put("status","FAILED").put("message", "Calling number is not a valid US phone number");
                 }
                 
-                final var result = SnsClient.create().publish(b -> b.phoneNumber(callingNumber).message(DRIVING_DIRECTIONS_URL).build());
+                // Do not attempt to send to non-mobile numbers
+                if ( ! hasValidUSMobileNumber() ) {
+                    return mapper.createObjectNode().put("status","FAILED").put("message", "Caller is not calling from a mobile device");
+                }
+                
+                final var result = SnsClient.create().publish(b -> b.phoneNumber(callingNumber).message(DRIVING_DIRECTIONS_URL) );
                 log.info("SMS Directions sent to " + callingNumber + " with SNS id of " + result.messageId());
                 return mapper.createObjectNode().put("status","SUCCESS").put("message", "The directions have been sent");
             } catch (Exception e) {

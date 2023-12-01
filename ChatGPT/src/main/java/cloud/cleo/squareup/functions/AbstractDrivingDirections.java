@@ -12,7 +12,7 @@ public abstract class AbstractDrivingDirections<Request> extends AbstractFunctio
      /**
      * URL for driving directions with Place ID so it comes up as Copper Fox Properly for the Pin
      */
-    protected final static String DRIVING_DIRECTIONS_URL = "https://www.google.com/maps/dir/?api=1&destination=160+Main+St+Wahkon+MN+56386&destination_place_id=ChIJWxVcpjffs1IRcSX7D8pJSUY";
+    protected final static String DRIVING_DIRECTIONS_URL = "google.com/maps/dir/?api=1&destination=160+Main+St+Wahkon+MN+56386&destination_place_id=ChIJWxVcpjffs1IRcSX7D8pJSUY";
 
     
     @Override

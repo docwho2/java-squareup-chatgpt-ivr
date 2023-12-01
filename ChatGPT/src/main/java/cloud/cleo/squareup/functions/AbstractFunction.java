@@ -9,8 +9,10 @@ import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
@@ -19,6 +21,8 @@ import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.reflections.Reflections;
+import software.amazon.awssdk.services.pinpoint.PinpointClient;
+import software.amazon.awssdk.services.pinpoint.model.NumberValidateResponse;
 
 /**
  * Base class for ChatGPT functions
@@ -40,7 +44,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
      * When user is interacting via Voice, we need the calling number to send SMS to them
      */
     @Getter(AccessLevel.PROTECTED)
-    @Setter(AccessLevel.PROTECTED)
+    @Setter(AccessLevel.PRIVATE)
     private String callingNumber;
 
     /**
@@ -120,7 +124,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
             // Check for Integration Channels (For Twilio)
             if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channel-type")) {
                 // All the channels will populate user-id and for Twilio this will be the callers phone number
-               callingNumber = lexRequest.getRequestAttributes().get("x-amz-lex:user-id");
+                callingNumber = lexRequest.getRequestAttributes().get("x-amz-lex:user-id");
             }
         }
 
@@ -197,16 +201,58 @@ public abstract class AbstractFunction<T> implements Cloneable {
     private static final Pattern US_E164_PATTERN = Pattern.compile("^\\+1[2-9]\\d{2}[2-9]\\d{6}$");
 
     /**
-     * Is the given number a valid US Phone number
+     * Is the callers number a valid US Phone number
      *
-     * @param number
      * @return
      */
-    protected static boolean isValidUSE164Number(String number) {
-        if (number == null || number.isEmpty()) {
+    protected boolean hasValidUSE164Number() {
+        if (callingNumber == null || callingNumber.isEmpty()) {
             return false;
         }
-        return US_E164_PATTERN.matcher(number).matches();
+        return US_E164_PATTERN.matcher(callingNumber).matches();
+    }
+
+    /**
+     * Store this in case we try and send SMS twice ever, don't want to pay for the lookup again since it costs money.
+     * AWS usually calls the same Lambda, but anyways no harm to try and cache to save a couple cents here and there.
+     */
+    private static final Map<String,NumberValidateResponse> validatePhoneMap = new HashMap<>();
+
+    /**
+     * Is the callers number a valid Number we can send SMS to. We won't attempt to send to Voip or Landline callers
+     *
+     * @return
+     */
+    protected boolean hasValidUSMobileNumber() {
+        if (!hasValidUSE164Number()) {
+            return false;
+        }
+        try {
+            NumberValidateResponse numberValidateResponse;
+            log.debug("Validating " + callingNumber + "  with Pinpoint");
+            if (! validatePhoneMap.containsKey(callingNumber)) {
+                // First lookup, call pinpoint
+                numberValidateResponse = PinpointClient.create()
+                        .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
+                        .numberValidateResponse();
+                log.debug("Pinpoint returned ", numberValidateResponse);
+                // Add to cache
+                validatePhoneMap.put(callingNumber, numberValidateResponse);
+            } else {
+                numberValidateResponse = validatePhoneMap.get(callingNumber);
+                log.debug("Using cached Pinpoint response ", numberValidateResponse);
+            }
+            // The description of the phone type. Valid values are: MOBILE, LANDLINE, VOIP, INVALID, PREPAID, and OTHER.
+            return switch (numberValidateResponse.phoneType()) {
+                case "MOBILE", "PREPAID" ->
+                    true;
+                default ->
+                    false;
+            };
+        } catch (Exception e) {
+            log.error("Error making pinpoint call", e);
+            return false;
+        }
     }
 
     /**

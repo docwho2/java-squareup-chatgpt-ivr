@@ -51,7 +51,7 @@ public class SendEmail<Request> extends AbstractFunction {
                 });
 
                 log.info("Sent email to " + r.employee_email + " with id " + id);
-                log.info("Subject: " + r.subject);
+                log.info("Subject: " + subject);
                 log.info("Message: " + r.message);
                 return mapper.createObjectNode().put("status", "SUCCESS").put("message", "The email has been successfuly sent.");
             } catch (Exception e) {

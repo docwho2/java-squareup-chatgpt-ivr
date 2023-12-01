@@ -55,6 +55,10 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sns</artifactId>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>pinpoint</artifactId>
+        </dependency>
         
          <!-- Send Email Messages -->
         <dependency>
