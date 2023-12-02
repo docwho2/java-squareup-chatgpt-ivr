@@ -3,6 +3,7 @@ package cloud.cleo.squareup.functions;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.LexInputMode;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
@@ -241,14 +242,12 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 numberValidateResponse = pinpointAsyncClient
                         .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
                         .join().numberValidateResponse();
-                log.debug("Pinpoint returned "
-                        + mapper.convertValue(numberValidateResponse.toBuilder(), NumberValidateResponse.serializableBuilderClass()));
+                log.debug("Pinpoint returned ", convertPinpointResposeToJson(numberValidateResponse));
                 // Add to cache
                 validatePhoneMap.put(callingNumber, numberValidateResponse);
             } else {
                 numberValidateResponse = validatePhoneMap.get(callingNumber);
-                log.debug("Using cached Pinpoint response "
-                        + mapper.convertValue(numberValidateResponse.toBuilder(), NumberValidateResponse.serializableBuilderClass()));
+                log.debug("Using cached Pinpoint response ", convertPinpointResposeToJson(numberValidateResponse));
             }
             // The description of the phone type. Valid values are: MOBILE, LANDLINE, VOIP, INVALID, PREPAID, and OTHER.
             return switch (numberValidateResponse.phoneType()) {
@@ -261,6 +260,10 @@ public abstract class AbstractFunction<T> implements Cloneable {
             log.error("Error making pinpoint call", e);
             return false;
         }
+    }
+    
+    private String convertPinpointResposeToJson(NumberValidateResponse res) {
+       return mapper.valueToTree( mapper.convertValue(res.toBuilder(), NumberValidateResponse.serializableBuilderClass()) ).toPrettyString();
     }
 
     /**
