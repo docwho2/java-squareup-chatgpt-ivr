@@ -3,7 +3,6 @@ package cloud.cleo.squareup.functions;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.LexInputMode;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
@@ -13,7 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -24,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.reflections.Reflections;
 import software.amazon.awssdk.services.pinpoint.PinpointAsyncClient;
-import software.amazon.awssdk.services.pinpoint.PinpointClient;
 import software.amazon.awssdk.services.pinpoint.model.NumberValidateResponse;
 
 /**
@@ -40,9 +37,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
 
     protected final static ObjectMapper mapper = new ObjectMapper();
 
-    private static final List<AbstractFunction> functions = new LinkedList<>();
+    private static final Map<String,AbstractFunction> functions = new HashMap<>();
     private static boolean inited = false;
-
+   
     private final static PinpointAsyncClient pinpointAsyncClient = PinpointAsyncClient.builder()
             .httpClient(crtAsyncHttpClient)
             .build();
@@ -62,6 +59,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
             .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
             .build();
 
+    @Getter
     public final static boolean squareEnabled;
 
     static {
@@ -94,7 +92,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 final var func = (AbstractFunction) clazz.getDeclaredConstructor().newInstance();
                 if (func.isEnabled()) {
                     log.debug("Instantiated class: " + clazz.getName());
-                    functions.add(func);
+                    functions.put(func.getName(),func);
                 } else {
                     log.debug("Class Disabled, Ignoring: " + clazz.getName());
                 }
@@ -140,7 +138,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
         final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
         final var list = new LinkedList<AbstractFunction>();
 
-        functions.forEach(f -> {
+        functions.values().forEach(f -> {
             try {
                 final var func = (AbstractFunction) f.clone();
                 switch (inputMode) {
@@ -151,7 +149,6 @@ public abstract class AbstractFunction<T> implements Cloneable {
                     }
                     case SPEECH, DTMF -> {
                         if (func.isVoice()) {
-
                             list.add(func);
                         }
                     }
@@ -162,6 +159,16 @@ public abstract class AbstractFunction<T> implements Cloneable {
             }
         });
         return new FunctionExecutor(list.stream().map(f -> f.getChatFunction()).toList());
+    }
+    
+    /**
+     * Obtain function given it's name (null if not found).
+     * 
+     * @param name
+     * @return 
+     */
+    public static AbstractFunction getFunctionByName(String name) {
+        return functions.get(name);
     }
 
     /**
@@ -291,5 +298,16 @@ public abstract class AbstractFunction<T> implements Cloneable {
      */
     protected boolean isText() {
         return true;
+    }
+    
+    /**
+     * When this function is called, will this result in ending the current session 
+     * and returning control back to Chime.
+     * IE, hang up, transfer, etc.  This should all be voice related since you
+     * never terminated a text session, lex will time it out based on it's setting.
+     * @return 
+     */
+    public boolean isTerminating() {
+        return false;
     }
 }

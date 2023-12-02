@@ -46,8 +46,8 @@ public class TransferCall<Request> extends AbstractFunction {
 
     private static class Request {
         @JsonPropertyDescription("the phone number in E164 format to transfer the caller to")
-        @JsonProperty(required = true)
-        public String phone_number;
+        @JsonProperty(value = "transfer_number",required = true)
+        public String transfer_number;
     }
 
    /**
@@ -57,6 +57,15 @@ public class TransferCall<Request> extends AbstractFunction {
     @Override
     protected boolean isText() {
         return false;
+    }
+    
+    /**
+     * Call leaves GPT and back to Chime.  Voice Only.
+     * @return 
+     */
+    @Override
+    public boolean isTerminating() {
+        return true;
     }
 
 }

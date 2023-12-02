@@ -49,5 +49,14 @@ public class HangupCall<Request> extends AbstractFunction {
     protected boolean isText() {
         return false;
     }
+    
+    /**
+     * Call leaves GPT and back to Chime.  Voice Only.
+     * @return 
+     */
+    @Override
+    public boolean isTerminating() {
+        return true;
+    }
 
 }
