@@ -1,6 +1,7 @@
 package cloud.cleo.chimesma.squareup;
 
 import cloud.cleo.chimesma.actions.*;
+import cloud.cleo.chimesma.model.ParticipantTag;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -115,6 +116,23 @@ public class ChimeSMA extends AbstractFlow {
                     .withNextAction(transfer)
                     .build();
                 }
+                case "music" -> {
+                    final var transfer = CallAndBridgeAction.builder()
+                            .withDescription("Send Call Music On Hold")
+                            .withCallTimeoutSeconds(10)
+                            .withUri("music@iptel.org")
+                            .withArn(VC_ARN)
+                            .withNextAction(lexBotEN)
+                            .build();
+                    yield ReceiveDigitsAction.builder()
+                    .withInputDigitsRegex("^([0-9]|#|\\*)$")
+                    .withInBetweenDigitsDurationInMilliseconds(1000)
+                    .withFlushDigitsDurationInMilliseconds(3000)
+                    .withNextAction(transfer)
+                     // If they hit a key, disconnect LEG-B which is MOH side of the call
+                    .withDigitsRecevedAction(HangupAction.builder().withParticipantTag(ParticipantTag.LEG_B).build())
+                    .build();
+                }
                 case "quit" ->
                     SpeakAction.builder()
                     .withDescription("Saying Good Bye")
@@ -126,7 +144,7 @@ public class ChimeSMA extends AbstractFlow {
                     .withText("A system error has occured, please call back and try again")
                     .withNextAction(hangup)
                     .build();
-            }; 
+            };
         };
 
         // Both bots are the same, so the handler is the same
