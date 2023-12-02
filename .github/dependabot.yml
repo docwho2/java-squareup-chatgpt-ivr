@@ -10,9 +10,14 @@ updates:
       interval: "weekly"
   - package-ecosystem: "gitsubmodule"
     directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "maven"
+    directory: "/"
     allow:
       - dependency-name: "cloud.cleo.chimesma.squareup:lex-chatgpt-fullfill"
       - dependency-name: "cloud.cleo.chimesma.squareup:chime-sma-lambda"
+      - dependency-name: "cloud.cleo.chimesma.squareup:parent-pom"
     schedule:
       interval: "daily"
       
