@@ -97,7 +97,7 @@ public class ChimeSMA extends AbstractFlow {
             final var botResponse = attrs.get("botResponse");  // When transferring or hanging up, play back GPT's last response
             final var action = attrs.get("action");  // We don't need or want real intents, so the action when exiting the Bot will be set
             return switch (action) {
-                case "transfer" -> {
+                case "transfer_call" -> {
                     final var phone = attrs.get("transferNumber");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
@@ -116,7 +116,7 @@ public class ChimeSMA extends AbstractFlow {
                     .withNextAction(transfer)
                     .build();
                 }
-                case "music" -> {
+                case "hold_call" -> {
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call Music On Hold")
                             .withCallTimeoutSeconds(10)
@@ -133,7 +133,7 @@ public class ChimeSMA extends AbstractFlow {
                     .withDigitsRecevedAction(HangupAction.builder().withParticipantTag(ParticipantTag.LEG_B).build())
                     .build();
                 }
-                case "quit" ->
+                case "hangup_call" ->
                     SpeakAction.builder()
                     .withDescription("Saying Good Bye")
                     .withTextF(tf -> botResponse)
