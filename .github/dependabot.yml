@@ -8,11 +8,11 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-  - package-ecosystem: "gitsubmodule"
+  - package-ecosystem: "maven"
     directory: "/"
     allow:
-      - dependency-name: "ChatGPT"
-      - dependency-name: "ChimeSMA"
+      - dependency-name: "cloud.cleo.chimesma.squareup:lex-chatgpt-fullfill"
+      - dependency-name: "cloud.cleo.chimesma.squareup:chime-sma-lambda"
     schedule:
       interval: "daily"
       
