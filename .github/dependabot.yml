@@ -8,12 +8,18 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+      time: "03:40"
+      timezone: "America/Chicago"
   - package-ecosystem: "maven"
     directory: "/ChatGPT"
     schedule:
       interval: "daily"
+      time: "03:40"
+      timezone: "America/Chicago"
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
       interval: "daily"
+      time: "03:40"
+      timezone: "America/Chicago"
       
