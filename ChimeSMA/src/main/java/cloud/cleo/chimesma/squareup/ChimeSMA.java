@@ -13,8 +13,6 @@ import java.util.function.Function;
  */
 public class ChimeSMA extends AbstractFlow {
 
-    private final static Action MAIN_MENU = getMainMenu();
-
     /**
      * Simple Object that caches Square data about hours to determine whether store is open or closed
      */
@@ -29,6 +27,8 @@ public class ChimeSMA extends AbstractFlow {
      */
     private final static String VC_ARN = System.getenv("VC_ARN");
 
+    private final static Action MAIN_MENU = getMainMenu();
+    
     /**
      * Initial action is to play welcome message and whether store is open or closed
      *
@@ -103,6 +103,8 @@ public class ChimeSMA extends AbstractFlow {
                 .build();
         moh.setArn(VC_ARN);
         log.debug("VC_ARN = " + VC_ARN);
+        log.debug("VC_ARN_RT = " + System.getenv("VC_ARN"));
+        
         final var anyDigit = ReceiveDigitsAction.builder()
                 .withInputDigitsRegex("^([0-9]|#|\\*)$")
                 .withInBetweenDigitsDurationInMilliseconds(1000)
