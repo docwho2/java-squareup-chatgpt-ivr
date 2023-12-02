@@ -123,162 +123,160 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     private LexV2Response processGPT(LexV2Event lexRequest) {
-        try (dynamoDbAsyncClient; crtAsyncHttpClient) {
-            final var input = lexRequest.getInputTranscript();
-            final var localId = lexRequest.getBot().getLocaleId();
-            final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
-            final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        final var input = lexRequest.getInputTranscript();
+        final var localId = lexRequest.getBot().getLocaleId();
+        final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
+        final var attrs = lexRequest.getSessionState().getSessionAttributes();
 
-            log.debug("Java Locale is " + localId);
+        log.debug("Java Locale is " + localId);
 
-            if (input == null || input.isBlank()) {
-                log.debug("Got blank input, so just silent or nothing");
+        if (input == null || input.isBlank()) {
+            log.debug("Got blank input, so just silent or nothing");
 
-                var count = Integer.valueOf(attrs.getOrDefault("blankCounter", "0"));
-                count++;
+            var count = Integer.valueOf(attrs.getOrDefault("blankCounter", "0"));
+            count++;
 
-                if (count > 2) {
-                    log.debug("Two blank responses, sending to Quit Intent");
-                    // Hang up on caller after 2 silience requests
-                    return buildQuitResponse(lexRequest, "Thank you for calling, goodbye.");
-                } else {
-                    attrs.put("blankCounter", count.toString());
-                    // If we get slience (timeout without speech), then we get empty string on the transcript
-                    return buildResponse(lexRequest, "I'm sorry, I didn't catch that, if your done, simply say good bye, otherwise tell me how I can help?");
-                }
+            if (count > 2) {
+                log.debug("Two blank responses, sending to Quit Intent");
+                // Hang up on caller after 2 silience requests
+                return buildQuitResponse(lexRequest, "Thank you for calling, goodbye.");
             } else {
-                // The Input is not blank, so always put the counter back to zero
-                attrs.put("blankCounter", "0");
+                attrs.put("blankCounter", count.toString());
+                // If we get slience (timeout without speech), then we get empty string on the transcript
+                return buildResponse(lexRequest, "I'm sorry, I didn't catch that, if your done, simply say good bye, otherwise tell me how I can help?");
             }
+        } else {
+            // The Input is not blank, so always put the counter back to zero
+            attrs.put("blankCounter", "0");
+        }
 
-            // We could use phone Number coming in from Chime so that you could call back and keep session going between calls,
-            // But using lex sessionId as the key makes each phone call unique and more applicable to this use case
-            final var session_id = lexRequest.getSessionId();
+        // We could use phone Number coming in from Chime so that you could call back and keep session going between calls,
+        // But using lex sessionId as the key makes each phone call unique and more applicable to this use case
+        final var session_id = lexRequest.getSessionId();
 
-            // Key to record in Dynamo
-            final var key = Key.builder().partitionValue(session_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
+        // Key to record in Dynamo
+        final var key = Key.builder().partitionValue(session_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
 
-            //  load session state if it exists
-            log.debug("Start Retreiving Session State");
-            var session = sessionState.getItem(key).join();
-            log.debug("End Retreiving Session State");
+        //  load session state if it exists
+        log.debug("Start Retreiving Session State");
+        var session = sessionState.getItem(key).join();
+        log.debug("End Retreiving Session State");
 
-            if (session == null) {
-                session = new ChatGPTSessionState(session_id, inputMode);
-            }
+        if (session == null) {
+            session = new ChatGPTSessionState(session_id, inputMode);
+        }
 
-            // Since we can call and change language during session, always specifiy how we want responses
-            //session.addSystemMessage(lang.getString(CHATGPT_RESPONSE_LANGUAGE));
-            // add this request to the session
-            session.addUserMessage(input);
+        // Since we can call and change language during session, always specifiy how we want responses
+        //session.addSystemMessage(lang.getString(CHATGPT_RESPONSE_LANGUAGE));
+        // add this request to the session
+        session.addUserMessage(input);
 
-            String botResponse;
-            // Set for special case of transfer and hangup
-            ChatFunctionCall transferCall = null, hangupCall = null;
-            try {
-                FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
-                functionExecutor.setObjectMapper(mapper);
+        String botResponse;
+        // Set for special case of transfer and hangup
+        ChatFunctionCall transferCall = null, hangupCall = null;
+        try {
+            FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
+            functionExecutor.setObjectMapper(mapper);
 
-                while (true) {
-                    final var chatMessages = session.getChatMessages();
-                    ChatCompletionRequest request = ChatCompletionRequest.builder()
-                            .messages(chatMessages)
-                            .model(OPENAI_MODEL)
-                            .maxTokens(500)
-                            .temperature(0.2) // More focused
-                            .n(1) // Only return 1 completion
-                            .functions(functionExecutor.getFunctions())
-                            .functionCall(ChatCompletionRequest.ChatCompletionRequestFunctionCall.of("auto"))
-                            .build();
+            while (true) {
+                final var chatMessages = session.getChatMessages();
+                ChatCompletionRequest request = ChatCompletionRequest.builder()
+                        .messages(chatMessages)
+                        .model(OPENAI_MODEL)
+                        .maxTokens(500)
+                        .temperature(0.2) // More focused
+                        .n(1) // Only return 1 completion
+                        .functions(functionExecutor.getFunctions())
+                        .functionCall(ChatCompletionRequest.ChatCompletionRequestFunctionCall.of("auto"))
+                        .build();
 
-                    log.debug(chatMessages);
-                    log.debug("Start API Completion Call to ChatGPT");
-                    final var completion = open_ai_service.createChatCompletion(request);
-                    log.debug("End API Completion Call to ChatGPT");
-                    log.debug(completion);
+                log.debug(chatMessages);
+                log.debug("Start API Completion Call to ChatGPT");
+                final var completion = open_ai_service.createChatCompletion(request);
+                log.debug("End API Completion Call to ChatGPT");
+                log.debug(completion);
 
-                    ChatMessage responseMessage = completion.getChoices().get(0).getMessage();
-                    botResponse = completion.getChoices().get(0).getMessage().getContent();
+                ChatMessage responseMessage = completion.getChoices().get(0).getMessage();
+                botResponse = completion.getChoices().get(0).getMessage().getContent();
 
-                    // Add response to session
-                    session.addMessage(responseMessage);
+                // Add response to session
+                session.addMessage(responseMessage);
 
-                    ChatFunctionCall functionCall = responseMessage.getFunctionCall();
-                    if (functionCall != null) {
-                        log.debug("Trying to execute " + functionCall.getName() + "...");
+                ChatFunctionCall functionCall = responseMessage.getFunctionCall();
+                if (functionCall != null) {
+                    log.debug("Trying to execute " + functionCall.getName() + "...");
 
-                        // Track these special case functions because executing them does nothing really, we just need to know they were called
-                        switch (functionCall.getName()) {
-                            case TRANSFER_FUNCTION_NAME ->
-                                transferCall = functionCall;
-                            case HANGUP_FUNCTION_NAME ->
-                                hangupCall = functionCall;
-                        }
+                    // Track these special case functions because executing them does nothing really, we just need to know they were called
+                    switch (functionCall.getName()) {
+                        case TRANSFER_FUNCTION_NAME ->
+                            transferCall = functionCall;
+                        case HANGUP_FUNCTION_NAME ->
+                            hangupCall = functionCall;
+                    }
 
-                        Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
-                        /* You can also try 'executeAndConvertToMessage' inside a try-catch block, and add the following line inside the catch:
+                    Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
+                    /* You can also try 'executeAndConvertToMessage' inside a try-catch block, and add the following line inside the catch:
                 "message = executor.handleException(exception);"
                 The content of the message will be the exception itself, so the flow of the conversation will not be interrupted, and you will still be able to log the issue. */
 
-                        if (message.isPresent()) {
-                            /* At this point:
+                    if (message.isPresent()) {
+                        /* At this point:
                     1. The function requested was found
                     2. The request was converted to its specified object for execution (Weather.class in this case)
                     3. It was executed
                     4. The response was finally converted to a ChatMessage object. */
 
-                            log.debug("Executed " + functionCall.getName() + ".");
-                            session.addMessage(message.get());
-                            continue;
-                        } else {
-                            log.debug("Something went wrong with the execution of " + functionCall.getName() + "...");
-                            try {
-                                functionExecutor.executeAndConvertToMessage(functionCall);
-                            } catch (Exception e) {
-                                log.error("Funtion call error", e);
-                                return buildResponse(lexRequest, "FunctionCall Error: " + e.getMessage());
-                            }
+                        log.debug("Executed " + functionCall.getName() + ".");
+                        session.addMessage(message.get());
+                        continue;
+                    } else {
+                        log.debug("Something went wrong with the execution of " + functionCall.getName() + "...");
+                        try {
+                            functionExecutor.executeAndConvertToMessage(functionCall);
+                        } catch (Exception e) {
+                            log.error("Funtion call error", e);
+                            return buildResponse(lexRequest, "FunctionCall Error: " + e.getMessage());
                         }
                     }
-                    break;
                 }
-
-                // Save the session to dynamo
-                log.debug("Start Saving Session State");
-                session.incrementCounter();
-                sessionState.putItem(session);
-                log.debug("End Saving Session State");
-            } catch (RuntimeException rte) {
-                if (rte.getCause() != null && rte.getCause() instanceof SocketTimeoutException) {
-                    log.error("Response timed out", rte);
-                    botResponse = "The operation timed out, please ask your question again";
-                } else {
-                    throw rte;
-                }
+                break;
             }
 
-            log.debug("botResponse is [" + botResponse + "]");
-
-            // Check to see if GPT called the TRANSFER function
-            if (transferCall != null) {
-                return buildTransferResponse(lexRequest, transferCall.getArguments().findValue("phone_number").asText(), botResponse);
+            // Save the session to dynamo
+            log.debug("Start Saving Session State");
+            session.incrementCounter();
+            sessionState.putItem(session).join();
+            log.debug("End Saving Session State");
+        } catch (RuntimeException rte) {
+            if (rte.getCause() != null && rte.getCause() instanceof SocketTimeoutException) {
+                log.error("Response timed out", rte);
+                botResponse = "The operation timed out, please ask your question again";
+            } else {
+                throw rte;
             }
-
-            // Check to see if the GPT says the conversation is done
-            if (hangupCall != null) {
-                return buildQuitResponse(lexRequest, botResponse);
-            }
-
-            // Since we have a general response, add message asking if there is anything else
-            if (!TEXT.equals(inputMode)) {
-                // Only add if not text (added to voice response)
-                if (!botResponse.endsWith("?")) {  // If ends with question, then we don't need to further append question
-                    botResponse = botResponse + "  What else can I help you with?";
-                }
-            }
-
-            return buildResponse(lexRequest, botResponse);
         }
+
+        log.debug("botResponse is [" + botResponse + "]");
+
+        // Check to see if GPT called the TRANSFER function
+        if (transferCall != null) {
+            return buildTransferResponse(lexRequest, transferCall.getArguments().findValue("phone_number").asText(), botResponse);
+        }
+
+        // Check to see if the GPT says the conversation is done
+        if (hangupCall != null) {
+            return buildQuitResponse(lexRequest, botResponse);
+        }
+
+        // Since we have a general response, add message asking if there is anything else
+        if (!TEXT.equals(inputMode)) {
+            // Only add if not text (added to voice response)
+            if (!botResponse.endsWith("?")) {  // If ends with question, then we don't need to further append question
+                botResponse = botResponse + "  What else can I help you with?";
+            }
+        }
+
+        return buildResponse(lexRequest, botResponse);
     }
 
     private LexV2Response buildQuitResponse(LexV2Event lexRequest, String botResponse) {

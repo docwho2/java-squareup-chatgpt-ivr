@@ -29,7 +29,7 @@ public class DrivingDirectionsVoice extends AbstractDrivingDirections {
     @Override
     protected Function getExecutor() {
         return (var r) -> {
-            try (snsAsyncClient) {
+            try {
                 final var callingNumber = getCallingNumber();
                 
                 // Only send SMS to validated US Phone Numbers (in case callerID block, or some weird deal)

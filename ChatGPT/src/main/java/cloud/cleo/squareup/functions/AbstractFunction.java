@@ -233,7 +233,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
         if (!hasValidUSE164Number()) {
             return false;
         }
-        try (pinpointAsyncClient) {
+        try {
             NumberValidateResponse numberValidateResponse;
             log.debug("Validating " + callingNumber + "  with Pinpoint");
             if (!validatePhoneMap.containsKey(callingNumber)) {

@@ -41,7 +41,7 @@ public class SendEmail<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
 
-            try (sesAsyncClient){
+            try {
                 // Put the callingNumber in the subject if it exists, it might not if using lex console for example
                 final var subject = getCallingNumber() == null ? r.subject
                         : "[From " + getCallingNumber() + "] " + r.subject;
