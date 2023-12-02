@@ -91,6 +91,25 @@ public class ChimeSMA extends AbstractFlow {
                 .withSessionAttributesF(action -> Map.of("calling_number", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
+        //
+        // MOH Flow
+        //
+        final var moh = CallAndBridgeAction.builder()
+                .withDescription("Send Call to Music On Hold")
+                .withCallTimeoutSeconds(10)
+                .withUri("+13204952401") // Goes to Park Ext on PBX which gets you Hold Music
+                .withArn(VC_ARN)
+                .withNextLegBHangupAction(lexBotEN)
+                .build();
+        final var anyDigit = ReceiveDigitsAction.builder()
+                .withInputDigitsRegex("^([0-9]|#|\\*)$")
+                .withInBetweenDigitsDurationInMilliseconds(1000)
+                .withFlushDigitsDurationInMilliseconds(3000)
+                .withNextAction(moh)
+                // If they hit a key, disconnect LEG-B which is MOH side of the call
+                .withDigitsRecevedAction(HangupAction.builder().withParticipantTag(ParticipantTag.LEG_B).build())
+                .build();
+
         // Two invocations of the bot, so create one function and use for both
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
@@ -112,32 +131,16 @@ public class ChimeSMA extends AbstractFlow {
                     }
                     yield SpeakAction.builder()
                     .withDescription("Indicate transfer in progress with Bot response")
-                    .withTextF(tf -> botResponse)
+                    .withText(botResponse)
                     .withNextAction(transfer)
                     .build();
                 }
-                case "hold_call" -> {
-                    final var transfer = CallAndBridgeAction.builder()
-                            .withDescription("Send Call to Music On Hold")
-                            .withCallTimeoutSeconds(10)
-                            .withUri("+13204952401") // Goes to Park Ext on PBX which gets you Hold Music
-                            .withArn(VC_ARN)
-                            .withNextLegBHangupAction(lexBotEN)
-                            .build();
-                    final var anyDigit =  ReceiveDigitsAction.builder()
-                    .withInputDigitsRegex("^([0-9]|#|\\*)$")
-                    .withInBetweenDigitsDurationInMilliseconds(1000)
-                    .withFlushDigitsDurationInMilliseconds(3000)
-                    .withNextAction(transfer)
-                     // If they hit a key, disconnect LEG-B which is MOH side of the call
-                    .withDigitsRecevedAction(HangupAction.builder().withParticipantTag(ParticipantTag.LEG_B).build())
-                    .build();
-                    yield SpeakAction.builder()
+                case "hold_call" ->
+                    SpeakAction.builder()
                     .withDescription("Indicate MOH and press any key to return")
-                    .withTextF(tf -> botResponse)
+                    .withText(botResponse)
                     .withNextAction(anyDigit)
                     .build();
-                }
                 case "hangup_call" ->
                     SpeakAction.builder()
                     .withDescription("Saying Good Bye")
