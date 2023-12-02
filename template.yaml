@@ -461,6 +461,7 @@ Resources:
           SQUARE_ENVIRONMENT: !Ref SQUAREENVIRONMENT
           SESSION_TABLE_NAME: !Ref SessionTable
           MAIN_NUMBER: !Ref TRANSFERNUMBER
+          VC_ARN: !Ref VOICECONNECTORARN
       SnapStart:
         ApplyOn: PublishedVersions
       Policies: 
