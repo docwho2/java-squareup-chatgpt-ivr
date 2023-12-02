@@ -242,12 +242,12 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 numberValidateResponse = pinpointAsyncClient
                         .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
                         .join().numberValidateResponse();
-                log.debug("Pinpoint returned ", convertPinpointResposeToJson(numberValidateResponse));
+                log.debug("Pinpoint returned " +  convertPinpointResposeToJson(numberValidateResponse));
                 // Add to cache
                 validatePhoneMap.put(callingNumber, numberValidateResponse);
             } else {
                 numberValidateResponse = validatePhoneMap.get(callingNumber);
-                log.debug("Using cached Pinpoint response ", convertPinpointResposeToJson(numberValidateResponse));
+                log.debug("Using cached Pinpoint response " + convertPinpointResposeToJson(numberValidateResponse));
             }
             // The description of the phone type. Valid values are: MOBILE, LANDLINE, VOIP, INVALID, PREPAID, and OTHER.
             return switch (numberValidateResponse.phoneType()) {
