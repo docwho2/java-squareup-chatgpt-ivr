@@ -50,6 +50,12 @@
             <artifactId>dynamodb-enhanced</artifactId>
         </dependency>
         
+        <!-- Use newest Async HTTP client -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>aws-crt-client</artifactId>
+        </dependency>
+        
         <!-- Send SMS Messages -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
@@ -60,7 +66,7 @@
             <artifactId>pinpoint</artifactId>
         </dependency>
         
-         <!-- Send Email Messages -->
+        <!-- Send Email Messages -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>ses</artifactId>

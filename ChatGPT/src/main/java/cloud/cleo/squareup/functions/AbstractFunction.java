@@ -1,5 +1,6 @@
 package cloud.cleo.squareup.functions;
 
+import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.LexInputMode;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +22,7 @@ import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.reflections.Reflections;
+import software.amazon.awssdk.services.pinpoint.PinpointAsyncClient;
 import software.amazon.awssdk.services.pinpoint.PinpointClient;
 import software.amazon.awssdk.services.pinpoint.model.NumberValidateResponse;
 
@@ -39,6 +41,10 @@ public abstract class AbstractFunction<T> implements Cloneable {
 
     private static final List<AbstractFunction> functions = new LinkedList<>();
     private static boolean inited = false;
+
+    private final static PinpointAsyncClient pinpointAsyncClient = PinpointAsyncClient.builder()
+            .httpClient(crtAsyncHttpClient)
+            .build();
 
     /**
      * When user is interacting via Voice, we need the calling number to send SMS to them
@@ -227,14 +233,14 @@ public abstract class AbstractFunction<T> implements Cloneable {
         if (!hasValidUSE164Number()) {
             return false;
         }
-        try {
+        try (pinpointAsyncClient) {
             NumberValidateResponse numberValidateResponse;
             log.debug("Validating " + callingNumber + "  with Pinpoint");
             if (!validatePhoneMap.containsKey(callingNumber)) {
                 // First lookup, call pinpoint
-                numberValidateResponse = PinpointClient.create()
+                numberValidateResponse = pinpointAsyncClient
                         .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
-                        .numberValidateResponse();
+                        .join().numberValidateResponse();
                 log.debug("Pinpoint returned "
                         + mapper.convertValue(numberValidateResponse.toBuilder(), NumberValidateResponse.serializableBuilderClass()));
                 // Add to cache

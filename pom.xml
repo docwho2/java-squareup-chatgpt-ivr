@@ -34,7 +34,7 @@
         <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-events</module>
         <module>ChimeSMALibrary/ChimeSMAEvent</module>
         <module>ChimeSMALibrary/ChimeSMAFlow</module>
-         <!-- We are creating prompts as well, so pull in Prompt Creation -->
+        <!-- We are creating prompts as well, so pull in Prompt Creation -->
         <module>ChimeSMALibrary/PollyPromptCreation</module>
         <!-- Provision Chime Resources -->
         <module>ChimeCDKProvision</module>
@@ -52,6 +52,16 @@
                 <version>2.21.37</version>
                 <type>pom</type>
                 <scope>import</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>software.amazon.awssdk</groupId>
+                        <artifactId>netty-nio-client</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>software.amazon.awssdk</groupId>
+                        <artifactId>apache-client</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             
             
