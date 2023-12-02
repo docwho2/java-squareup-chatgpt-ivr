@@ -9,6 +9,7 @@ on:
       - '**.png'
       - '**.md'
       - '**.sh'
+      - '**dependabot.yml'
 
 
 permissions:

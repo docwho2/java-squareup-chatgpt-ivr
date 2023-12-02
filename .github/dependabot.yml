@@ -8,9 +8,11 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-  - package-ecosystem: "maven"
-    directory: "./"
-    open-pull-requests-limit: 10
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    allow:
+      - dependency-name: "ChatGPT"
+      - dependency-name: "ChimeSMA"
     schedule:
       interval: "daily"
       
