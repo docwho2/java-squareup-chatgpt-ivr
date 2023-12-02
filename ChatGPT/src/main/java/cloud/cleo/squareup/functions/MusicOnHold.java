@@ -33,7 +33,7 @@ public class MusicOnHold<Request> extends AbstractFunction {
     @Override
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
-            return mapper.createObjectNode().put("message", "The caller will now be placed on hold and hear music");
+            return mapper.createObjectNode().put("message", "The caller will now be placed on hold.  Inform caller to press any digit to return");
         };
     }
 

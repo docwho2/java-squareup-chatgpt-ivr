@@ -122,7 +122,7 @@ public class ChimeSMA extends AbstractFlow {
                             .withCallTimeoutSeconds(10)
                             .withUri("+13204952401") // Goes to Park Ext on PBX which gets you Hold Music
                             .withArn(VC_ARN)
-                            .withNextAction(lexBotEN)
+                            .withNextLegBHangupAction(lexBotEN)
                             .build();
                     yield ReceiveDigitsAction.builder()
                     .withInputDigitsRegex("^([0-9]|#|\\*)$")
