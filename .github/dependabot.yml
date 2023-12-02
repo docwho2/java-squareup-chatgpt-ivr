@@ -16,4 +16,8 @@ updates:
       - dependency-name: "cloud.cleo.chimesma.squareup:parent-pom"
     schedule:
       interval: "daily"
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "daily"
       
