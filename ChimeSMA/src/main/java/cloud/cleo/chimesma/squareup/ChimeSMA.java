@@ -124,13 +124,18 @@ public class ChimeSMA extends AbstractFlow {
                             .withArn(VC_ARN)
                             .withNextLegBHangupAction(lexBotEN)
                             .build();
-                    yield ReceiveDigitsAction.builder()
+                    final var anyDigit =  ReceiveDigitsAction.builder()
                     .withInputDigitsRegex("^([0-9]|#|\\*)$")
                     .withInBetweenDigitsDurationInMilliseconds(1000)
                     .withFlushDigitsDurationInMilliseconds(3000)
                     .withNextAction(transfer)
                      // If they hit a key, disconnect LEG-B which is MOH side of the call
                     .withDigitsRecevedAction(HangupAction.builder().withParticipantTag(ParticipantTag.LEG_B).build())
+                    .build();
+                    yield SpeakAction.builder()
+                    .withDescription("Indicate MOH and press any key to return")
+                    .withTextF(tf -> botResponse)
+                    .withNextAction(anyDigit)
                     .build();
                 }
                 case "hangup_call" ->
