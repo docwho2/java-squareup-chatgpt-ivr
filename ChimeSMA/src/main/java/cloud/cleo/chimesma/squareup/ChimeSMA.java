@@ -120,7 +120,7 @@ public class ChimeSMA extends AbstractFlow {
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Music On Hold")
                             .withCallTimeoutSeconds(10)
-                            .withUri("music@iptel.org")
+                            .withUri("+13204952401") // Goes to Park Ext on PBX which gets you Hold Music
                             .withArn(VC_ARN)
                             .withNextAction(lexBotEN)
                             .build();
