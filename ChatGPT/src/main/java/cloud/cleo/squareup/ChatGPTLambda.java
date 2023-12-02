@@ -35,6 +35,9 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -139,7 +142,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             if (count > 2) {
                 log.debug("Two blank responses, sending to Quit Intent");
                 // Hang up on caller after 2 silience requests
-                return buildQuitResponse(lexRequest, "Thank you for calling, goodbye.");
+                return buildTerminatingResponse(lexRequest, "hangup_call", Map.of(), "Thank you for calling, goodbye.");
             } else {
                 attrs.put("blankCounter", count.toString());
                 // If we get slience (timeout without speech), then we get empty string on the transcript
@@ -172,8 +175,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         session.addUserMessage(input);
 
         String botResponse;
-        // Set for special case of transfer and hangup
-        ChatFunctionCall transferCall = null, hangupCall = null;
+        // Store all the calls made
+        List<ChatFunctionCall> callsMade = new LinkedList<>();
         try {
             FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
             functionExecutor.setObjectMapper(mapper);
@@ -206,14 +209,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 if (functionCall != null) {
                     log.debug("Trying to execute " + functionCall.getName() + "...");
 
-                    // Track these special case functions because executing them does nothing really, we just need to know they were called
-                    switch (functionCall.getName()) {
-                        case TRANSFER_FUNCTION_NAME ->
-                            transferCall = functionCall;
-                        case HANGUP_FUNCTION_NAME ->
-                            hangupCall = functionCall;
-                    }
-
                     Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
                     /* You can also try 'executeAndConvertToMessage' inside a try-catch block, and add the following line inside the catch:
                 "message = executor.handleException(exception);"
@@ -228,6 +223,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
                         log.debug("Executed " + functionCall.getName() + ".");
                         session.addMessage(message.get());
+                        // Track each call made
+                        callsMade.add(functionCall);
                         continue;
                     } else {
                         log.debug("Something went wrong with the execution of " + functionCall.getName() + "...");
@@ -258,14 +255,22 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         log.debug("botResponse is [" + botResponse + "]");
 
-        // Check to see if GPT called the TRANSFER function
-        if (transferCall != null) {
-            return buildTransferResponse(lexRequest, transferCall.getArguments().findValue("phone_number").asText(), botResponse);
-        }
-
-        // Check to see if the GPT says the conversation is done
-        if (hangupCall != null) {
-            return buildQuitResponse(lexRequest, botResponse);
+        if ( ! callsMade.isEmpty() ) {
+            // Did a terminating function get executed
+            final var termCalled = callsMade.stream()
+                    .map(f -> AbstractFunction.getFunctionByName(f.getName()))
+                    .filter(f -> f.isTerminating() )
+                    .findAny()
+                    .orElse(null);
+            if ( termCalled != null ) {
+                log.debug("A termianting function was called = [" + termCalled.getName() + "]");
+                final ChatFunctionCall gptFunCall = callsMade.stream().filter(f -> f.getName().equals(termCalled.getName())).findAny().get();
+                final var args = mapper.convertValue(gptFunCall.getArguments(), Map.class);
+                return buildTerminatingResponse(lexRequest, gptFunCall.getName(), args, botResponse);
+            } else {
+                log.debug("The following funtion calls were made " + callsMade + " but none are terminating");
+            }
+            
         }
 
         // Since we have a general response, add message asking if there is anything else
@@ -279,66 +284,24 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         return buildResponse(lexRequest, botResponse);
     }
 
-    private LexV2Response buildQuitResponse(LexV2Event lexRequest, String botResponse) {
-
-        final var attrs = lexRequest.getSessionState().getSessionAttributes();
-
-        // The controller (Chime SAM Lambda) will grab this from the session
-        attrs.put("botResponse", botResponse);
-        attrs.put("action", "quit");
-
-        log.debug("Responding with quit action");
-        log.debug("Bot Response is " + botResponse);
-
-        // State to return
-        final var ss = SessionState.builder()
-                // Retain the current session attributes
-                .withSessionAttributes(attrs)
-                .withIntent(Intent.builder().withName("FallbackIntent").withState("Fulfilled").build())
-                .withDialogAction(DialogAction.builder().withType("Close").build())
-                .build();
-
-        final var lexV2Res = LexV2Response.builder()
-                .withSessionState(ss)
-                .build();
-        log.debug("Response is " + mapper.valueToTree(lexV2Res));
-        return lexV2Res;
-    }
 
     /**
-     * Response that will trigger a transfer of a voice call (not applicable to Text interface)
+     * Response that will Lex to be done so some action can be performed at the Chime Level (hang up, transfer, MOH, etc.)
      *
      * @param lexRequest
      * @param transferNumber
      * @param botResponse
      * @return
      */
-    private LexV2Response buildTransferResponse(LexV2Event lexRequest, String transferNumber, String botResponse) {
+    private LexV2Response buildTerminatingResponse(LexV2Event lexRequest, String function_name, Map<String,String> functionArgs, String botResponse) {
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
 
         // The controller (Chime SAM Lambda) will grab this from the session, then transfer the call for us
-        attrs.put("transferNumber", transferNumber);
-        attrs.put("action", "transfer");
+        attrs.put("action", function_name);
+        attrs.put("bot_response", botResponse);
+        attrs.putAll(functionArgs);
 
-        if (botResponse != null) {
-            // Check to make sure transfer number is not in the response
-            if (botResponse.contains(transferNumber)) {
-                botResponse = botResponse.replace(transferNumber, "");
-            }
-
-            botResponse = botResponse.trim();
-            if (!botResponse.isBlank()) {
-                // Split the response on newline because sometimes GPT adds halucination about not being able to transfer a call even though it just did
-                attrs.put("botResponse", botResponse.split("\n")[0]);
-            } else {
-                // Use a default transfer message if somehow no bot message
-                attrs.put("botResponse", "Your call will no be transferred.");
-            }
-        }
-
-        log.debug("Responding with transfer number [" + transferNumber + "]");
-        log.debug("Bot Response is " + botResponse);
 
         // State to return
         final var ss = SessionState.builder()

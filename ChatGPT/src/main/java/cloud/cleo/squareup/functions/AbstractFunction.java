@@ -176,7 +176,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
      *
      * @return
      */
-    protected abstract String getName();
+    public abstract String getName();
 
     /**
      * Description for the function

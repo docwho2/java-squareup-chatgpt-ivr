@@ -79,7 +79,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withLocale(english)
                 .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
                 // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(action -> Map.of("calling_number", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         // Will add Spanish later if needed
@@ -88,17 +88,17 @@ public class ChimeSMA extends AbstractFlow {
                 .withLocale(spanish)
                 .withContent("¿En qué puede ayudarte Chat GPT?")
                 // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(action -> Map.of("calling_number", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         // Two invocations of the bot, so create one function and use for both
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
-            final var botResponse = attrs.get("botResponse");  // When transferring or hanging up, play back GPT's last response
+            final var botResponse = attrs.get("bot_response");  // When transferring or hanging up, play back GPT's last response
             final var action = attrs.get("action");  // We don't need or want real intents, so the action when exiting the Bot will be set
             return switch (action) {
                 case "transfer_call" -> {
-                    final var phone = attrs.get("transferNumber");
+                    final var phone = attrs.get("transfer_number");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
                             .withRingbackToneKey("ringing.wav")
@@ -118,7 +118,7 @@ public class ChimeSMA extends AbstractFlow {
                 }
                 case "hold_call" -> {
                     final var transfer = CallAndBridgeAction.builder()
-                            .withDescription("Send Call Music On Hold")
+                            .withDescription("Send Call to Music On Hold")
                             .withCallTimeoutSeconds(10)
                             .withUri("music@iptel.org")
                             .withArn(VC_ARN)

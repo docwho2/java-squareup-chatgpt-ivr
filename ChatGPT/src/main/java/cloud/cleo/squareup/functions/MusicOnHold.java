@@ -18,7 +18,7 @@ public class MusicOnHold<Request> extends AbstractFunction {
 
     @Override
     public String getDescription() {
-        return "Should be called when the caller needs more time to respond or requests more time";
+        return "Should be called when the caller needs more time to respond or requests more time so they can be put on hold";
     }
 
     @Override
