@@ -56,8 +56,9 @@ public class MusicOnHold<Request> extends AbstractFunction {
      */
     @Override
     protected boolean isEnabled() {
-        final var vc_arn = System.getenv("VC_ARN");
-        return vc_arn != null && ! vc_arn.isBlank() && ! vc_arn.equalsIgnoreCase("PSTN");
+        //final var vc_arn = System.getenv("VC_ARN");
+        //return vc_arn != null && ! vc_arn.isBlank() && ! vc_arn.equalsIgnoreCase("PSTN");
+        return false; // Disable for now until more work can be done on SMA lib
     }
 
     /**
