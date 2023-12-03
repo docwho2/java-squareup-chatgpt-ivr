@@ -101,9 +101,6 @@ public class ChimeSMA extends AbstractFlow {
                 .withArn(VC_ARN)
                 .withNextLegBHangupAction(lexBotEN)
                 .build();
-        moh.setArn(VC_ARN);
-        log.debug("VC_ARN = " + VC_ARN);
-        log.debug("VC_ARN_RT = " + System.getenv("VC_ARN"));
         
         final var anyDigit = ReceiveDigitsAction.builder()
                 .withInputDigitsRegex("^([0-9]|#|\\*)$")
