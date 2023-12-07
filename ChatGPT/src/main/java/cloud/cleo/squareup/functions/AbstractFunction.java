@@ -1,5 +1,6 @@
 package cloud.cleo.squareup.functions;
 
+import cloud.cleo.squareup.ChannelPlatform;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.LexInputMode;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
@@ -37,15 +38,16 @@ public abstract class AbstractFunction<T> implements Cloneable {
 
     protected final static ObjectMapper mapper = new ObjectMapper();
 
-    private static final Map<String,AbstractFunction> functions = new HashMap<>();
+    private static final Map<String, AbstractFunction> functions = new HashMap<>();
     private static boolean inited = false;
-   
+
     private final static PinpointAsyncClient pinpointAsyncClient = PinpointAsyncClient.builder()
             .httpClient(crtAsyncHttpClient)
             .build();
 
     /**
-     * When user is interacting via Voice, we need the calling number to send SMS to them
+     * When user is interacting via Voice, we need the calling number to send
+     * SMS to them
      */
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
@@ -71,8 +73,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Register all the functions in this package. This should be called by a top level object that is being initialized
-     * like a lambda, so during SNAPSTART init, all the functions will be inited as well.
+     * Register all the functions in this package. This should be called by a
+     * top level object that is being initialized like a lambda, so during
+     * SNAPSTART init, all the functions will be inited as well.
      */
     public static void init() {
         if (inited) {
@@ -92,7 +95,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 final var func = (AbstractFunction) clazz.getDeclaredConstructor().newInstance();
                 if (func.isEnabled()) {
                     log.debug("Instantiated class: " + clazz.getName());
-                    functions.put(func.getName(),func);
+                    functions.put(func.getName(), func);
                 } else {
                     log.debug("Class Disabled, Ignoring: " + clazz.getName());
                 }
@@ -120,17 +123,21 @@ public abstract class AbstractFunction<T> implements Cloneable {
         if (lexRequest.getRequestAttributes() != null) {
             if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channels:platform")) {
                 final var platform = lexRequest.getRequestAttributes().get("x-amz-lex:channels:platform");
-                if (platform.contains("Chime")) {
-                    // When chime calls us, the SMA will set "callingNumber" in the session
-                    callingNumber = lexRequest.getSessionState().getSessionAttributes() != null
-                            ? lexRequest.getSessionState().getSessionAttributes().get("callingNumber") : null;
+                log.debug("Requesting platform is " + platform);
+                switch (ChannelPlatform.fromString(platform)) {
+                    case CHIME ->
+                        // For Chime we will pass in the calling number as Session Attribute callingNumber
+                        callingNumber = lexRequest.getSessionState().getSessionAttributes() != null
+                                ? lexRequest.getSessionState().getSessionAttributes().get("callingNumber") : null;
+                    case TWILIO ->
+                        // Twilio channel will use sessiond ID, however without +, so prepend to make it full E164
+                        callingNumber = "+".concat(lexRequest.getSessionId());
                 }
+            } else {
+                log.debug("No channels platform set, request from Lex Console or CLI");
             }
-            // Check for Integration Channels (For Twilio)
-            if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channel-type")) {
-                // All the channels will populate user-id and for Twilio this will be the callers phone number
-                callingNumber = lexRequest.getRequestAttributes().get("x-amz-lex:user-id");
-            }
+        } else {
+            log.debug("No channels platform set, request from Lex Console or CLI");
         }
 
         final var fromNumber = callingNumber;
@@ -160,12 +167,12 @@ public abstract class AbstractFunction<T> implements Cloneable {
         });
         return new FunctionExecutor(list.stream().map(f -> f.getChatFunction()).toList());
     }
-    
+
     /**
      * Obtain function given it's name (null if not found).
-     * 
+     *
      * @param name
-     * @return 
+     * @return
      */
     public static AbstractFunction getFunctionByName(String name) {
         return functions.get(name);
@@ -193,7 +200,8 @@ public abstract class AbstractFunction<T> implements Cloneable {
     protected abstract Class<T> getRequestClass();
 
     /**
-     * The Executer that will be run when the function is executed by the Executer
+     * The Executer that will be run when the function is executed by the
+     * Executer
      *
      * @return
      */
@@ -227,13 +235,16 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Store this in case we try and send SMS twice ever, don't want to pay for the lookup again since it costs money.
-     * AWS usually calls the same Lambda, but anyways no harm to try and cache to save a couple cents here and there.
+     * Store this in case we try and send SMS twice ever, don't want to pay for
+     * the lookup again since it costs money. AWS usually calls the same Lambda,
+     * but anyways no harm to try and cache to save a couple cents here and
+     * there.
      */
     private static final Map<String, NumberValidateResponse> validatePhoneMap = new HashMap<>();
 
     /**
-     * Is the callers number a valid Number we can send SMS to. We won't attempt to send to Voip or Landline callers
+     * Is the callers number a valid Number we can send SMS to. We won't attempt
+     * to send to Voip or Landline callers
      *
      * @return
      */
@@ -249,7 +260,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 numberValidateResponse = pinpointAsyncClient
                         .phoneNumberValidate(t -> t.numberValidateRequest(r -> r.isoCountryCode("US").phoneNumber(callingNumber)))
                         .join().numberValidateResponse();
-                log.debug("Pinpoint returned " +  convertPinpointResposeToJson(numberValidateResponse));
+                log.debug("Pinpoint returned " + convertPinpointResposeToJson(numberValidateResponse));
                 // Add to cache
                 validatePhoneMap.put(callingNumber, numberValidateResponse);
             } else {
@@ -268,9 +279,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
             return false;
         }
     }
-    
+
     private String convertPinpointResposeToJson(NumberValidateResponse res) {
-       return mapper.valueToTree( mapper.convertValue(res.toBuilder(), NumberValidateResponse.serializableBuilderClass()) ).toPrettyString();
+        return mapper.valueToTree(mapper.convertValue(res.toBuilder(), NumberValidateResponse.serializableBuilderClass())).toPrettyString();
     }
 
     /**
@@ -292,20 +303,22 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Provide and enable this function for text interactions. Override to disable.
+     * Provide and enable this function for text interactions. Override to
+     * disable.
      *
      * @return
      */
     protected boolean isText() {
         return true;
     }
-    
+
     /**
-     * When this function is called, will this result in ending the current session 
-     * and returning control back to Chime.
-     * IE, hang up, transfer, etc.  This should all be voice related since you
-     * never terminated a text session, lex will time it out based on it's setting.
-     * @return 
+     * When this function is called, will this result in ending the current
+     * session and returning control back to Chime. IE, hang up, transfer, etc.
+     * This should all be voice related since you never terminated a text
+     * session, lex will time it out based on it's setting.
+     *
+     * @return
      */
     public boolean isTerminating() {
         return false;

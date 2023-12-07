@@ -4,21 +4,23 @@
  */
 package cloud.cleo.squareup;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 /**
  *
  * @author sjensen
  */
+@AllArgsConstructor
 public enum LexInputMode {
 
     DTMF("DTMF"),
     SPEECH("Speech"),
     TEXT("Text");
 
+    @Getter
     private final String mode;
 
-    private LexInputMode(String mode) {
-        this.mode = mode;
-    }
 
     public static LexInputMode fromString(String mode) {
         return switch (mode) {
@@ -29,11 +31,8 @@ public enum LexInputMode {
             case "Text" ->
                 TEXT;
             default ->
-                throw new RuntimeException("Unknown LexInput Mode");
+                throw new RuntimeException("Unknown LexInput Mode [" + mode + "]");
         };
     }
     
-    public String getMode() {
-        return mode;
-    }
 }
