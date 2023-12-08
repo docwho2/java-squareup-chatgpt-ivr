@@ -1,6 +1,7 @@
 package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
@@ -45,6 +46,9 @@ public class DrivingDirectionsVoice extends AbstractDrivingDirections {
                 final var result = snsAsyncClient.publish(b -> b.phoneNumber(callingNumber).message(DRIVING_DIRECTIONS_URL) ).join();
                 log.info("SMS Directions sent to " + callingNumber + " with SNS id of " + result.messageId());
                 return mapper.createObjectNode().put("status","SUCCESS").put("message", "The directions have been sent");
+            } catch (CompletionException e) {
+               log.error("Could not send Directions via SMS to caller",e.getCause());
+                return mapper.createObjectNode().put("status","FAILED").put("message", "An error has occurred, this function may be down");
             } catch (Exception e) {
                 log.error("Could not send Directions via SMS to caller",e);
                 return mapper.createObjectNode().put("status","FAILED").put("message", "An error has occurred, this function may be down");

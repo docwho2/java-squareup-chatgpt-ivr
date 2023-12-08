@@ -3,6 +3,7 @@ package cloud.cleo.squareup.functions;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
 
@@ -43,8 +44,14 @@ public class SendEmail<Request> extends AbstractFunction {
 
             try {
                 // Put the callingNumber in the subject if it exists, it might not if using lex console for example
-                final var subject = getCallingNumber() == null ? r.subject
-                        : "[From " + getCallingNumber() + "] " + r.subject;
+                final String subject = switch (getChannelPlatform()) {
+                    case CHIME, CONNECT ->
+                        "[From Voice " + getCallingNumber() + "] " + r.subject;
+                    case TWILIO ->
+                        "[From SMS " + getCallingNumber() + "] " + r.subject;
+                    default ->
+                        "[From " + getChannelPlatform() + "/" + getSessionId() + "] " + r.subject;
+                };
 
                 final var id = sesAsyncClient.sendEmail((email) -> {
                     email.destination(dest -> dest.toAddresses(r.employee_email))
@@ -59,6 +66,9 @@ public class SendEmail<Request> extends AbstractFunction {
                 log.info("Subject: " + subject);
                 log.info("Message: " + r.message);
                 return mapper.createObjectNode().put("status", "SUCCESS").put("message", "The email has been successfuly sent.");
+            } catch (CompletionException e) {
+                log.error("Unhandled Error", e.getCause());
+                return mapper.createObjectNode().put("status", "FAILED").put("message", "An error has occurred, the email could not be sent.");
             } catch (Exception e) {
                 log.error("Unhandled Error", e);
                 return mapper.createObjectNode().put("status", "FAILED").put("message", "An error has occurred, the email could not be sent.");
@@ -88,7 +98,7 @@ public class SendEmail<Request> extends AbstractFunction {
      */
     @Override
     protected boolean isEnabled() {
-        return squareEnabled;
+        return isSquareEnabled();
     }
 
 }

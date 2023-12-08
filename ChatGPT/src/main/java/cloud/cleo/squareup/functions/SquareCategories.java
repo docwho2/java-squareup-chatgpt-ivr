@@ -77,7 +77,7 @@ public class SquareCategories<Request> extends AbstractFunction {
       
     @Override
     protected boolean isEnabled() {
-        return squareEnabled;
+        return isSquareEnabled();
     }
 
 }

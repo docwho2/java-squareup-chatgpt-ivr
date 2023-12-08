@@ -4,6 +4,7 @@
  */
 package cloud.cleo.squareup;
 
+import cloud.cleo.squareup.enums.LexInputMode;
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
 import cloud.cleo.squareup.functions.AbstractFunction;
@@ -68,7 +69,7 @@ public class ChatGPTSessionState {
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
                 // Transferring
-                if (AbstractFunction.squareEnabled) {
+                if (AbstractFunction.isSquareEnabled()) {
                     sb.append("To transfer or speak with a employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                     sb.append("Do not provide callers employee phone numbers, you can use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 }

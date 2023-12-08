@@ -1,8 +1,9 @@
 package cloud.cleo.squareup.functions;
 
-import cloud.cleo.squareup.ChannelPlatform;
+import cloud.cleo.squareup.enums.ChannelPlatform;
+import static cloud.cleo.squareup.enums.ChannelPlatform.UNKNOWN;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
-import cloud.cleo.squareup.LexInputMode;
+import cloud.cleo.squareup.enums.LexInputMode;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
@@ -14,6 +15,7 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
@@ -47,12 +49,28 @@ public abstract class AbstractFunction<T> implements Cloneable {
 
     /**
      * When user is interacting via Voice, we need the calling number to send
-     * SMS to them
+     * SMS to them.
      */
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
     private String callingNumber;
 
+    /**
+     * The Channel that is being used to interact with Lex. Will be UNKNOWN if
+     * no channel is set (like from Lex Console or AWS CLI, etc.).
+     */
+    @Getter(AccessLevel.PROTECTED)
+    @Setter(AccessLevel.PRIVATE)
+    private ChannelPlatform channelPlatform;
+
+    
+    /**
+     * The Lex Session ID.
+     */
+    @Getter(AccessLevel.PROTECTED)
+    @Setter(AccessLevel.PRIVATE)
+    private String sessionId;
+    
     /**
      * Define here since used by most the of the functions
      */
@@ -61,15 +79,23 @@ public abstract class AbstractFunction<T> implements Cloneable {
             .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
             .build();
 
-    @Getter
-    public final static boolean squareEnabled;
+    private final static boolean squareEnabled;
 
     static {
         final var key = System.getenv("SQUARE_API_KEY");
         final var loc = System.getenv("SQUARE_LOCATION_ID");
 
         squareEnabled = !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || loc.equalsIgnoreCase("DISABLED")));
-        log.debug("Square Enabled check = " + squareEnabled);
+        log.debug("Square Enabled = " + squareEnabled);
+    }
+
+    /**
+     * Is Square enabled (API Key and Location ID set to something).
+     *
+     * @return
+     */
+    public final static boolean isSquareEnabled() {
+        return squareEnabled;
     }
 
     /**
@@ -119,12 +145,15 @@ public abstract class AbstractFunction<T> implements Cloneable {
         }
 
         String callingNumber = null;
+        ChannelPlatform channelPlatform = UNKNOWN;
 
         if (lexRequest.getRequestAttributes() != null) {
             if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channels:platform")) {
-                final var platform = lexRequest.getRequestAttributes().get("x-amz-lex:channels:platform");
+                final var platformS = lexRequest.getRequestAttributes().get("x-amz-lex:channels:platform");
+                final var platform = ChannelPlatform.fromString(platformS);
                 log.debug("Requesting platform is " + platform);
-                switch (ChannelPlatform.fromString(platform)) {
+                channelPlatform = platform;
+                switch (platform) {
                     case CHIME ->
                         // For Chime we will pass in the calling number as Session Attribute callingNumber
                         callingNumber = lexRequest.getSessionState().getSessionAttributes() != null
@@ -140,14 +169,16 @@ public abstract class AbstractFunction<T> implements Cloneable {
             log.debug("No channels platform set, request from Lex Console or CLI");
         }
 
-        final var fromNumber = callingNumber;
-
         final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
         final var list = new LinkedList<AbstractFunction>();
+        final var sessionId = lexRequest.getSessionId();
 
-        functions.values().forEach(f -> {
+        for (var f : functions.values()) {
             try {
                 final var func = (AbstractFunction) f.clone();
+                func.setCallingNumber(callingNumber);
+                func.setChannelPlatform(channelPlatform);
+                func.setSessionId(sessionId);
                 switch (inputMode) {
                     case TEXT -> {
                         if (func.isText()) {
@@ -160,11 +191,10 @@ public abstract class AbstractFunction<T> implements Cloneable {
                         }
                     }
                 }
-                func.setCallingNumber(fromNumber);
             } catch (CloneNotSupportedException ex) {
                 log.error("Error cloning Functions", ex);
             }
-        });
+        }
         return new FunctionExecutor(list.stream().map(f -> f.getChatFunction()).toList());
     }
 
@@ -274,6 +304,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 default ->
                     false;
             };
+        } catch (CompletionException e) {
+            log.error("Unhandled Error", e.getCause());
+            return false;
         } catch (Exception e) {
             log.error("Error making pinpoint call", e);
             return false;
@@ -315,7 +348,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     /**
      * When this function is called, will this result in ending the current
      * session and returning control back to Chime. IE, hang up, transfer, etc.
-     * This should all be voice related since you never terminated a text
+     * This should all be voice related since you never terminate a text
      * session, lex will time it out based on it's setting.
      *
      * @return

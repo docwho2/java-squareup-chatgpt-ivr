@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.squareup;
+package cloud.cleo.squareup.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,7 +25,8 @@ public enum ChannelPlatform {
     SLACK("Slack"),
     CONNECT("Connect"),
     CONNECT_CHAT("Connect Chat"),
-    GENESYS_CLOUD("Genesys Cloud");
+    GENESYS_CLOUD("Genesys Cloud"),
+    UNKNOWN("No Platform Provided");
 
     @Getter
     private final String channel;
@@ -47,7 +48,7 @@ public enum ChannelPlatform {
             case "Genesys Cloud" ->
                 GENESYS_CLOUD;
             default ->
-                throw new RuntimeException("Unknown Channel Plaform [" + channel + "]");
+                UNKNOWN;
         };
     }
 

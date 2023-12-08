@@ -4,7 +4,8 @@
  */
 package cloud.cleo.squareup;
 
-import static cloud.cleo.squareup.LexInputMode.TEXT;
+import cloud.cleo.squareup.enums.LexInputMode;
+import static cloud.cleo.squareup.enums.LexInputMode.TEXT;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import cloud.cleo.squareup.json.DurationDeserializer;
 import cloud.cleo.squareup.json.DurationSerializer;
@@ -39,6 +40,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
@@ -76,6 +78,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
+    
+    public final static String GENERAL_ERROR_MESG = "Sorry, I'm having a problem fulfilling your request. Please try again later.";
 
     // Eveverything here will be done at SnapStart init
     static {
@@ -118,10 +122,13 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                     processGPT(lexRequest);
             };
 
+        } catch (CompletionException e) {
+            log.error("Unhandled Future Exception", e.getCause());
+            return buildResponse(lexRequest, GENERAL_ERROR_MESG);
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             // Unhandled Exception
-            return buildResponse(lexRequest, "Sorry, I'm having a problem fulfilling your request.  Chat GPT might be down, Please try again later.");
+            return buildResponse(lexRequest, GENERAL_ERROR_MESG);
         }
     }
 
@@ -161,9 +168,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var key = Key.builder().partitionValue(session_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
 
         //  load session state if it exists
-        log.debug("Start Retreiving Session State");
         var session = sessionState.getItem(key).join();
-        log.debug("End Retreiving Session State");
 
         if (session == null) {
             session = new ChatGPTSessionState(session_id, inputMode);
@@ -176,7 +181,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         String botResponse;
         // Store all the calls made
-        List<ChatFunctionCall> callsMade = new LinkedList<>();
+        List<ChatFunctionCall> functionCallsMade = new LinkedList<>();
         try {
             FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
             functionExecutor.setObjectMapper(mapper);
@@ -224,7 +229,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                         log.debug("Executed " + functionCall.getName() + ".");
                         session.addMessage(message.get());
                         // Track each call made
-                        callsMade.add(functionCall);
+                        functionCallsMade.add(functionCall);
                         continue;
                     } else {
                         log.debug("Something went wrong with the execution of " + functionCall.getName() + "...");
@@ -240,10 +245,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             }
 
             // Save the session to dynamo
-            log.debug("Start Saving Session State");
             session.incrementCounter();
             sessionState.putItem(session).join();
-            log.debug("End Saving Session State");
         } catch (RuntimeException rte) {
             if (rte.getCause() != null && rte.getCause() instanceof SocketTimeoutException) {
                 log.error("Response timed out", rte);
@@ -255,22 +258,21 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         log.debug("botResponse is [" + botResponse + "]");
 
-        if ( ! callsMade.isEmpty() ) {
+        if (!functionCallsMade.isEmpty()) {
             // Did a terminating function get executed
-            final var termCalled = callsMade.stream()
+            final var termCalled = functionCallsMade.stream()
                     .map(f -> AbstractFunction.getFunctionByName(f.getName()))
-                    .filter(f -> f.isTerminating() )
+                    .filter(f -> f.isTerminating())
                     .findAny()
                     .orElse(null);
-            if ( termCalled != null ) {
+            if (termCalled != null) {
                 log.debug("A termianting function was called = [" + termCalled.getName() + "]");
-                final ChatFunctionCall gptFunCall = callsMade.stream().filter(f -> f.getName().equals(termCalled.getName())).findAny().get();
+                final ChatFunctionCall gptFunCall = functionCallsMade.stream().filter(f -> f.getName().equals(termCalled.getName())).findAny().get();
                 final var args = mapper.convertValue(gptFunCall.getArguments(), Map.class);
                 return buildTerminatingResponse(lexRequest, gptFunCall.getName(), args, botResponse);
             } else {
-                log.debug("The following funtion calls were made " + callsMade + " but none are terminating");
+                log.debug("The following funtion calls were made " + functionCallsMade + " but none are terminating");
             }
-            
         }
 
         // Since we have a general response, add message asking if there is anything else
@@ -284,32 +286,31 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         return buildResponse(lexRequest, botResponse);
     }
 
-
     /**
-     * Response that will Lex to be done so some action can be performed at the Chime Level (hang up, transfer, MOH, etc.)
+     * Response that will tell Lex we are done so some action can be performed at the
+     * Chime Level (hang up, transfer, MOH, etc.)
      *
      * @param lexRequest
      * @param transferNumber
      * @param botResponse
      * @return
      */
-    private LexV2Response buildTerminatingResponse(LexV2Event lexRequest, String function_name, Map<String,String> functionArgs, String botResponse) {
+    private LexV2Response buildTerminatingResponse(LexV2Event lexRequest, String function_name, Map<String, String> functionArgs, String botResponse) {
 
         final var attrs = lexRequest.getSessionState().getSessionAttributes();
 
-        // The controller (Chime SAM Lambda) will grab this from the session, then transfer the call for us
+        // The controller (Chime SAM Lambda) will grab this from the session, then perform the terminating action
         attrs.put("action", function_name);
         attrs.put("bot_response", botResponse);
         attrs.putAll(functionArgs);
 
-
         // State to return
         final var ss = SessionState.builder()
-                // Retain the current session attributes
+                // Send all Session Attrs
                 .withSessionAttributes(attrs)
-                // Send back Transfer Intent and let lex know that caller will fullfil it (namely Chime SMA Controller)
+                // We are always using Fallback, and let Lex know everything is fulfilled
                 .withIntent(Intent.builder().withName("FallbackIntent").withState("Fulfilled").build())
-                // Indicate the action as delegate, meaning lex won't fullfill, the caller will (Chime SMA Controller)
+                // Indicate we are closing things up, IE we are done here
                 .withDialogAction(DialogAction.builder().withType("Close").build())
                 .build();
 
@@ -321,8 +322,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at LEX. IE, we are sending back GPT
-     * response, and then waiting for Lex to collect speech and once again call us so we can send to GPT, effectively
+     * General Response used to send back a message and Elicit Intent again at
+     * LEX. IE, we are sending back GPT response, and then waiting for Lex to
+     * collect speech and once again call us so we can send to GPT, effectively
      * looping until we call a terminating event like Quit or Transfer.
      *
      * @param lexRequest

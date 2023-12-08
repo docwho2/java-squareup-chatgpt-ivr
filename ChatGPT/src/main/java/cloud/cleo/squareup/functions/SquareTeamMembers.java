@@ -81,6 +81,6 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
    
     @Override
     protected boolean isEnabled() {
-        return squareEnabled;
+        return isSquareEnabled();
     }
 }
