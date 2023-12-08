@@ -128,12 +128,22 @@ aws ssm put-parameter \
         --overwrite \
         --region ${region} > /dev/null
 
+# Set to disabled for now
+aws ssm put-parameter \
+        --name /${STACK_NAME}/FB_PAGE_ACCESS_TOKEN \
+        --description "Facebook Access Token used for stack ${STACK_NAME}" \
+        --type String \
+        --value DISABLED \
+        --overwrite \
+        --region ${region} > /dev/null
+
 sam deploy --no-fail-on-empty-changeset --no-confirm-changeset \
 --region ${region} \
 --stack-name ${STACK_NAME} \
 --parameter-overrides "\
  SQUAREAPIKEY=/${STACK_NAME}/SQUARE_API_KEY \
 OPENAIAPIKEY=/${STACK_NAME}/OPENAI_API_KEY \
+FBPAGEACCESSTOKEN=/${STACK_NAME}/FB_PAGE_ACCESS_TOKEN \
 SMAID=/${CDK_STACK_NAME}/SMA_ID \
 VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN \
 SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT} \

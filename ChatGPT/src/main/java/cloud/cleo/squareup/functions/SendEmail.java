@@ -3,6 +3,8 @@ package cloud.cleo.squareup.functions;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
@@ -49,6 +51,8 @@ public class SendEmail<Request> extends AbstractFunction {
                         "[From Voice " + getCallingNumber() + "] " + r.subject;
                     case TWILIO ->
                         "[From SMS " + getCallingNumber() + "] " + r.subject;
+                    case FACEBOOK ->
+                        "[From Facebook User " + getFacebookName(getSessionId()) + "] " + r.subject;
                     default ->
                         "[From " + getChannelPlatform() + "/" + getSessionId() + "] " + r.subject;
                 };
@@ -99,6 +103,33 @@ public class SendEmail<Request> extends AbstractFunction {
     @Override
     protected boolean isEnabled() {
         return isSquareEnabled();
+    }
+
+    /**
+     * Given a Facebook user ID (internal ID) get the users full name
+     * 
+     * @param id
+     * @return 
+     */
+    private String getFacebookName(String id) {
+
+        try {
+            URL url = new URL("https://graph.facebook.com/v18.0/" + id + "?access_token=" + System.getenv("FB_PAGE_ACCESS_TOKEN"));
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+            log.debug("Facebook Call Response Code: " + responseCode);
+
+            final var result = mapper.readTree(connection.getInputStream());
+            log.debug("FB Graph Query result is " + result.toPrettyString());
+
+            return result.findValue("name").asText();
+
+        } catch (Exception e) {
+            log.error("Facebook user name retrieval error", e);
+            return "Unknown";
+        }
     }
 
 }

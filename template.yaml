@@ -15,6 +15,10 @@ Parameters:
     Description: The ARN of a Voice Connector (or VC Group) to be used to send calls via SIP (set to PSTN to not use SIP for transfers)
     Type: AWS::SSM::Parameter::Value<String>
     Default: VOICE_CONNECTOR_ARN
+  FBPAGEACCESSTOKEN:
+    Description: Facebook Access Token stored in parameter store used to retrieve the FB users name when using FB Channel
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: FB_PAGE_ACCESS_TOKEN
   SQUAREAPIKEY:
     Description: Square API Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
@@ -462,6 +466,7 @@ Resources:
           SESSION_TABLE_NAME: !Ref SessionTable
           MAIN_NUMBER: !Ref TRANSFERNUMBER
           VC_ARN: !Ref VOICECONNECTORARN
+          FB_PAGE_ACCESS_TOKEN: !Ref FBPAGEACCESSTOKEN
       SnapStart:
         ApplyOn: PublishedVersions
       Policies: 

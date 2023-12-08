@@ -24,7 +24,8 @@ env:
   # Create secrets in the repository and they will be pushed to Parameter store, these are required
   # If you don't set an API key for square, you can still use ChatGPT by itself
   SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'NEED_TO_SET_THIS' }}  
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'NEED_TO_SET_THIS' }}
+  FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN || 'DISABLED' }}
     
   
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
@@ -184,6 +185,15 @@ jobs:
         --value ${OPENAI_API_KEY}
         --overwrite
     
+    - name: Push Facebook Access Token to Parameter store
+      run: >
+        aws ssm put-parameter
+        --name /${STACK_NAME}/FB_PAGE_ACCESS_TOKEN
+        --description "Facebook Access token used for stack ${STACK_NAME}"
+        --type String
+        --value ${FB_PAGE_ACCESS_TOKEN}
+        --overwrite
+    
     - name: Cache SAM Build files
       uses: actions/cache@v3
       with:
@@ -218,6 +228,7 @@ jobs:
         --parameter-overrides
         SQUAREAPIKEY=/${STACK_NAME}/SQUARE_API_KEY
         OPENAIAPIKEY=/${STACK_NAME}/OPENAI_API_KEY
+        FBPAGEACCESSTOKEN=/${STACK_NAME}/FB_PAGE_ACCESS_TOKEN
         SMAID=/${CDK_STACK_NAME}/SMA_ID
         VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
         SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT}

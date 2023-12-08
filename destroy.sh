@@ -40,7 +40,7 @@ sam delete --region ${region} --stack-name ${STACK_NAME} --no-prompts
 # Delete the API Keys that were pushed
 echo
 echo "Deleting OPENAI_API_KEY and SQUARE_API_KEY API from SSM Parameter Store in region ${region}"
-aws ssm --region ${region} delete-parameters --names "/${STACK_NAME}/OPENAI_API_KEY" "/${STACK_NAME}/SQUARE_API_KEY" > /dev/null
+aws ssm --region ${region} delete-parameters --names "/${STACK_NAME}/OPENAI_API_KEY" "/${STACK_NAME}/SQUARE_API_KEY" "/${STACK_NAME}/FB_PAGE_ACCESS_TOKEN" > /dev/null
 
 
 echo
