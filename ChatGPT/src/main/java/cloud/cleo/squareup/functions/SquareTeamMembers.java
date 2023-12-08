@@ -41,7 +41,7 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                return client.getTeamApi()
+                return getSquareClient().getTeamApi()
                         .searchTeamMembers(new SearchTeamMembersRequest.Builder().query(new SearchTeamMembersQuery.Builder()
                                 // Only return active employees at the defined location
                                 .filter(new SearchTeamMembersFilter.Builder().status("ACTIVE").locationIds(List.of(System.getenv("SQUARE_LOCATION_ID"))).build())

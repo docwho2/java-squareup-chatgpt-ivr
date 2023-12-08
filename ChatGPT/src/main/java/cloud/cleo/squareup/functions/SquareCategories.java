@@ -43,7 +43,7 @@ public class SquareCategories<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                final var objects = client.getCatalogApi()
+                final var objects = getSquareClient().getCatalogApi()
                         // Only retrieve Category objects
                         .searchCatalogObjects(new SearchCatalogObjectsRequest.Builder()
                                 .includeDeletedObjects(false)

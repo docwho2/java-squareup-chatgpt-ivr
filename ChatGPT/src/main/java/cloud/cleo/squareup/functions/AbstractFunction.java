@@ -63,39 +63,51 @@ public abstract class AbstractFunction<T> implements Cloneable {
     @Setter(AccessLevel.PRIVATE)
     private ChannelPlatform channelPlatform;
 
-    
     /**
      * The Lex Session ID.
      */
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
     private String sessionId;
-    
-    /**
-     * Define here since used by most the of the functions
-     */
-    protected final static SquareClient client = new SquareClient.Builder()
-            .accessToken(System.getenv("SQUARE_API_KEY"))
-            .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
-            .build();
 
     private final static boolean squareEnabled;
+    private final static SquareClient squareClient;
 
     static {
         final var key = System.getenv("SQUARE_API_KEY");
         final var loc = System.getenv("SQUARE_LOCATION_ID");
 
-        squareEnabled = !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || loc.equalsIgnoreCase("DISABLED")));
+        squareEnabled = !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || key.equalsIgnoreCase("DISABLED")));
         log.debug("Square Enabled = " + squareEnabled);
+
+        // If square enabled, then configure the client
+        if (squareEnabled) {
+            squareClient = new SquareClient.Builder()
+                    .accessToken(key)
+                    .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
+                    .build();
+        } else {
+            squareClient = null;
+        }
     }
 
     /**
-     * Is Square enabled (API Key and Location ID set to something).
+     * Is Square enabled (API Key and Location ID set to something that looks
+     * valid).
      *
      * @return
      */
     public final static boolean isSquareEnabled() {
         return squareEnabled;
+    }
+
+    /**
+     * Square client to make API Calls.
+     *
+     * @return client or null if not enabled
+     */
+    protected final static SquareClient getSquareClient() {
+        return squareClient;
     }
 
     /**

@@ -40,7 +40,7 @@ public class SquareItemSearch<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                var items = client.getCatalogApi()
+                var items = getSquareClient().getCatalogApi()
                         .searchCatalogItems(new SearchCatalogItemsRequest.Builder().textFilter(r.search_text).limit(5).build())
                         .getItems();
 

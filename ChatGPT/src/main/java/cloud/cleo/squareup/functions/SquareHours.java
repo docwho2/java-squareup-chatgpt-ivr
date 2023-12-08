@@ -53,7 +53,7 @@ public class SquareHours<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                final var loc = client.getLocationsApi().retrieveLocation(System.getenv("SQUARE_LOCATION_ID")).getLocation();
+                final var loc = getSquareClient().getLocationsApi().retrieveLocation(System.getenv("SQUARE_LOCATION_ID")).getLocation();
                 final var bh = new BusinessHours(loc);
                 
                 final var tz = ZoneId.of(loc.getTimezone());
