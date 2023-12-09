@@ -342,19 +342,19 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         final var messages = new LinkedList<LexV2Response.Message>();
 
-        if (card != null) {
+        // Always send a plain text response
+        messages.add(LexV2Response.Message.builder()
+                .withContentType("PlainText")
+                .withContent(response)
+                .build());
+        
+         if (card != null) {
             // If we are going to send a Card, we will send ahead of message
             messages.add(LexV2Response.Message.builder()
                     .withContentType("ImageResponseCard")
                     .withImageResponseCard(card)
                     .build());
         }
-
-        // Always send a plain text response
-        messages.add(LexV2Response.Message.builder()
-                .withContentType("PlainText")
-                .withContent(response)
-                .build());
 
         // State to return
         final var ss = SessionState.builder()
