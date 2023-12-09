@@ -345,7 +345,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var lexV2Res = LexV2Response.builder()
                 .withSessionState(ss)
                 // We are using plain text responses
-                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, card)})
+                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, null),
+                new LexV2Response.Message("ImageResponseCard", null, card)})
                 .build();
         log.debug("Response is " + mapper.valueToTree(lexV2Res));
         return lexV2Res;
