@@ -22,6 +22,8 @@ import com.amazonaws.services.lambda.runtime.events.LexV2Event.DialogAction;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.Intent;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.SessionState;
 import com.amazonaws.services.lambda.runtime.events.LexV2Response;
+import com.amazonaws.services.lambda.runtime.events.LexV2Response.Button;
+import com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -78,7 +80,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
-    
+
     public final static String GENERAL_ERROR_MESG = "Sorry, I'm having a problem fulfilling your request. Please try again later.";
 
     // Eveverything here will be done at SnapStart init
@@ -287,8 +289,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * Response that will tell Lex we are done so some action can be performed at the
-     * Chime Level (hang up, transfer, MOH, etc.)
+     * Response that will tell Lex we are done so some action can be performed at the Chime Level (hang up, transfer,
+     * MOH, etc.)
      *
      * @param lexRequest
      * @param transferNumber
@@ -322,17 +324,16 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at
-     * LEX. IE, we are sending back GPT response, and then waiting for Lex to
-     * collect speech and once again call us so we can send to GPT, effectively
+     * General Response used to send back a message and Elicit Intent again at LEX. IE, we are sending back GPT
+     * response, and then waiting for Lex to collect speech and once again call us so we can send to GPT, effectively
      * looping until we call a terminating event like Quit or Transfer.
      *
      * @param lexRequest
      * @param response
      * @return
      */
-    private LexV2Response buildResponse(LexV2Event lexRequest, String response) {
-
+    private LexV2Response buildResponse(LexV2Event lexRequest, String response ) {
+        
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
@@ -344,9 +345,23 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var lexV2Res = LexV2Response.builder()
                 .withSessionState(ss)
                 // We are using plain text responses
-                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, null)})
+                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, buildCard())})
                 .build();
         log.debug("Response is " + mapper.valueToTree(lexV2Res));
         return lexV2Res;
+    }
+
+    private ImageResponseCard buildCard() {
+        ImageResponseCard.builder()
+                .withTitle("Some things to try")
+                .withSubtitle("Choose or ask Copper Fox anything")
+                .withImageUrl("https://72b6471711788fd6c666.cdn6.editmysite.com/uploads/b/72b6471711788fd6c666eed4a5b17dc3a865a3e6dc2dd040a352310363be0faf/Copper-Fox-Logo_Logo-Badge-02_RGB_1633462067.png?width=2400&optimize=medium")
+                .withButtons(List.of(
+                        Button.builder().withText("Hours").withValue("What are you business hours?").build(),
+                        Button.builder().withText("Location").withValue("What is your address and URL for driving directions?").build(),
+                        Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build()
+                ).toArray(Button[]::new))
+                .build();
+        return null;
     }
 }
