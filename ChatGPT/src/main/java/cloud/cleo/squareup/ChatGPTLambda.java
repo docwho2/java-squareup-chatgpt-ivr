@@ -352,7 +352,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     private ImageResponseCard buildCard() {
-        ImageResponseCard.builder()
+        return ImageResponseCard.builder()
                 .withTitle("Some things to try")
                 .withSubtitle("Choose or ask Copper Fox anything")
                 .withImageUrl("https://72b6471711788fd6c666.cdn6.editmysite.com/uploads/b/72b6471711788fd6c666eed4a5b17dc3a865a3e6dc2dd040a352310363be0faf/Copper-Fox-Logo_Logo-Badge-02_RGB_1633462067.png?width=2400&optimize=medium")
@@ -362,6 +362,5 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                         Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build()
                 ).toArray(Button[]::new))
                 .build();
-        return null;
     }
 }
