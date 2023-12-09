@@ -124,12 +124,21 @@ public class SendEmail<Request> extends AbstractFunction {
             final var result = mapper.readTree(connection.getInputStream());
             log.debug("FB Graph Query result is " + result.toPrettyString());
 
-            return result.findValue("name").asText();
+            // Check for name first
+            if ( result.findValue("name") != null ) {
+                return result.findValue("name").asText();
+            }
+            
+            // Usually returns first and last
+            if (result.findValue("first_name") != null && result.findValue("last_name") != null ) {
+                return result.findValue("first_name").asText() + " " + result.findValue("last_name").asText();
+            }
 
         } catch (Exception e) {
             log.error("Facebook user name retrieval error", e);
-            return "Unknown";
         }
+        
+        return "Unknown";
     }
 
 }

@@ -355,7 +355,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         return ImageResponseCard.builder()
                 .withTitle("Some things to try")
                 .withSubtitle("Choose or ask Copper Fox anything")
-                .withImageUrl("https://72b6471711788fd6c666.cdn6.editmysite.com/uploads/b/72b6471711788fd6c666eed4a5b17dc3a865a3e6dc2dd040a352310363be0faf/Copper-Fox-Logo_Logo-Badge-02_RGB_1633462067.png?width=2400&optimize=medium")
                 .withButtons(List.of(
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
                         Button.builder().withText("Location").withValue("What is your address and URL for driving directions?").build(),
