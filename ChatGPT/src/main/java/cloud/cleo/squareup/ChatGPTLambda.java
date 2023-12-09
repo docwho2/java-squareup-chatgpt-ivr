@@ -332,7 +332,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildResponse(LexV2Event lexRequest, String response ) {
+    private LexV2Response buildResponse(LexV2Event lexRequest, String response, ImageResponseCard card ) {
         
         // State to return
         final var ss = SessionState.builder()
@@ -345,11 +345,16 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var lexV2Res = LexV2Response.builder()
                 .withSessionState(ss)
                 // We are using plain text responses
-                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, buildCard())})
+                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, card)})
                 .build();
         log.debug("Response is " + mapper.valueToTree(lexV2Res));
         return lexV2Res;
     }
+    
+    private LexV2Response buildResponse(LexV2Event lexRequest, String response) {
+        return buildResponse(lexRequest, response, buildCard());
+    }
+    
 
     private ImageResponseCard buildCard() {
         return ImageResponseCard.builder()
@@ -357,7 +362,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 .withSubtitle("Choose or ask Copper Fox anything")
                 .withButtons(List.of(
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
-                        Button.builder().withText("Location").withValue("What is your address and URL for driving directions?").build(),
+                        Button.builder().withText("Location").withValue("What is your address and driving directions?").build(),
                         Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build()
                 ).toArray(Button[]::new))
                 .build();
