@@ -162,23 +162,23 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             attrs.put("blankCounter", "0");
         }
 
-        // We could use phone Number coming in from Chime so that you could call back and keep session going between calls,
-        // But using lex sessionId as the key makes each phone call unique and more applicable to this use case
+        // Will be phone if from SMS, Facebook the userID, Chime unique generated ID
         final var session_id = lexRequest.getSessionId();
+        log.debug("Lex Session ID is " + session_id);
 
-        // Key to record in Dynamo
+        // Key to record in Dynamo which we key by date.  So SMS/Facebook session won't span forever (by day)
         final var key = Key.builder().partitionValue(session_id).sortValue(LocalDate.now(ZoneId.of("America/Chicago")).toString()).build();
 
         //  load session state if it exists
         var session = sessionState.getItem(key).join();
 
+        boolean session_new = false;
         if (session == null) {
             session = new ChatGPTSessionState(session_id, inputMode);
+            session_new = true;  // Track whether is new session so we can send welcome card for Facebook Channel
         }
 
-        // Since we can call and change language during session, always specifiy how we want responses
-        //session.addSystemMessage(lang.getString(CHATGPT_RESPONSE_LANGUAGE));
-        // add this request to the session
+        // add the user request to the session
         session.addUserMessage(input);
 
         String botResponse;
@@ -285,6 +285,12 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             }
         }
 
+        if (session_new) {
+            // If this a new Session send back a Welcome card
+            return buildResponse(lexRequest, botResponse, buildWelcomeCard());
+        }
+        
+        // Default response from GPT that is not a terminating action
         return buildResponse(lexRequest, botResponse);
     }
 
@@ -332,8 +338,24 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildResponse(LexV2Event lexRequest, String response, ImageResponseCard card ) {
-        
+    private LexV2Response buildResponse(LexV2Event lexRequest, String response, ImageResponseCard card) {
+
+        final var messages = new LinkedList<LexV2Response.Message>();
+
+        if (card != null) {
+            // If we are going to send a Card, we will send ahead of message
+            messages.add(LexV2Response.Message.builder()
+                    .withContentType("ImageResponseCard")
+                    .withImageResponseCard(card)
+                    .build());
+        }
+
+        // Always send a plain text response
+        messages.add(LexV2Response.Message.builder()
+                .withContentType("PlainText")
+                .withContent(response)
+                .build());
+
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
@@ -344,23 +366,33 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         final var lexV2Res = LexV2Response.builder()
                 .withSessionState(ss)
-                // We are using plain text responses
-                .withMessages(new LexV2Response.Message[]{new LexV2Response.Message("PlainText", response, null),
-                new LexV2Response.Message("ImageResponseCard", null, card)})
+                // List of messages to send back
+                .withMessages(messages.toArray(LexV2Response.Message[]::new))
                 .build();
         log.debug("Response is " + mapper.valueToTree(lexV2Res));
         return lexV2Res;
     }
-    
-    private LexV2Response buildResponse(LexV2Event lexRequest, String response) {
-        return buildResponse(lexRequest, response, buildCard());
-    }
-    
 
-    private ImageResponseCard buildCard() {
+    /**
+     * Send a response without a card.
+     *
+     * @param lexRequest
+     * @param response
+     * @return
+     */
+    private LexV2Response buildResponse(LexV2Event lexRequest, String response) {
+        return buildResponse(lexRequest, response, null);
+    }
+
+    /**
+     * Welcome card which would be displayed for FaceBook Users (and in Lex Console of course)
+     *
+     * @return
+     */
+    private ImageResponseCard buildWelcomeCard() {
         return ImageResponseCard.builder()
-                .withTitle("Some things to try")
-                .withSubtitle("Choose or ask Copper Fox anything")
+                .withTitle("Welcome to Copper Fox Gifts")
+                .withSubtitle("Ask us anything or use a quick action below")
                 .withButtons(List.of(
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
                         Button.builder().withText("Location").withValue("What is your address and driving directions?").build(),
