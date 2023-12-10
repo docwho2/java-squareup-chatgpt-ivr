@@ -4,7 +4,6 @@ import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
@@ -106,7 +105,7 @@ public class SendEmail<Request> extends AbstractFunction {
     }
 
     /**
-     * Given a Facebook user ID (internal ID) get the users full name
+     * Given a Facebook user Page Scoped ID get the users full name
      * 
      * @param id
      * @return 
@@ -114,9 +113,9 @@ public class SendEmail<Request> extends AbstractFunction {
     private String getFacebookName(String id) {
 
         try {
-            URL url = new URL("https://graph.facebook.com/v18.0/" + id + "?access_token=" + System.getenv("FB_PAGE_ACCESS_TOKEN"));
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) getFaceBookURL(id, null).openConnection();
             connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/json");
 
             int responseCode = connection.getResponseCode();
             log.debug("Facebook Call Response Code: " + responseCode);

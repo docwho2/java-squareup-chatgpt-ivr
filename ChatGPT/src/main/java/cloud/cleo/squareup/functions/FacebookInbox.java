@@ -4,7 +4,6 @@ import static cloud.cleo.squareup.enums.ChannelPlatform.FACEBOOK;
 import static cloud.cleo.squareup.functions.AbstractFunction.log;
 import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.function.Function;
 
 /**
@@ -33,21 +32,28 @@ public class FacebookInbox<Request> extends AbstractFunction {
 
     /**
      * https://developers.facebook.com/docs/messenger-platform/handover-protocol/conversation-control
+     *
      * @return
      */
     @Override
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                // TODO replace hard coded page ID
-                URL url = new URL("https://graph.facebook.com/v18.0/105958158478591/pass_thread_control?access_token=" 
-                        + System.getenv("FB_PAGE_ACCESS_TOKEN")
-                        + "&recipient=" + getSessionId()
-                        // The below app ID is a special ID for Inbox
-                        + "&target_app_id=263902037430900"
-                );
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                // TODO replace hard coded page ID   
+                HttpURLConnection connection = (HttpURLConnection) getFaceBookURL("105958158478591", "pass_thread_control").openConnection();
                 connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json; utf-8");
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setDoOutput(true);
+                
+                // Construct the payload
+                var json = mapper.createObjectNode();
+                // Special Target for Inbox
+                json.put("target_app_id","263902037430900");
+                json.putObject("recipient").put("id", getSessionId());
+                
+                log.debug("Post Payload for thread control " + json.toPrettyString());
+                mapper.writeValue(connection.getOutputStream(), json);
 
                 int responseCode = connection.getResponseCode();
                 log.debug("Facebook Call Response Code: " + responseCode);
@@ -55,14 +61,14 @@ public class FacebookInbox<Request> extends AbstractFunction {
                 final var result = mapper.readTree(connection.getInputStream());
                 log.debug("FB Pass Thread Control result is " + result.toPrettyString());
 
-                if ( result.findValue("success") != null && result.findValue("success").asBoolean() == true) {
-                   log.debug("Call Succeeded in passing thread control");
+                if (result.findValue("success") != null && result.findValue("success").asBoolean() == true) {
+                    log.debug("Call Succeeded in passing thread control");
                 } else {
                     log.debug("Call FAILED to pass thread control");
                 }
 
             } catch (Exception e) {
-                log.error("Facebook user name retrieval error", e);
+                log.error("Facebook Pass Thread Control error", e);
             }
             return mapper.createObjectNode().put("message", "Conversation has been moved to the Inbox, a person will respond shortly.");
         };

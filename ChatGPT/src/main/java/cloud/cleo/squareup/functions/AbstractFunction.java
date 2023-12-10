@@ -12,6 +12,8 @@ import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -20,6 +22,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,16 +51,15 @@ public abstract class AbstractFunction<T> implements Cloneable {
             .build();
 
     /**
-     * When user is interacting via Voice, we need the calling number to send
-     * SMS to them.
+     * When user is interacting via Voice, we need the calling number to send SMS to them.
      */
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
     private String callingNumber;
 
     /**
-     * The Channel that is being used to interact with Lex. Will be UNKNOWN if
-     * no channel is set (like from Lex Console or AWS CLI, etc.).
+     * The Channel that is being used to interact with Lex. Will be UNKNOWN if no channel is set (like from Lex Console
+     * or AWS CLI, etc.).
      */
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
@@ -92,8 +94,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Is Square enabled (API Key and Location ID set to something that looks
-     * valid).
+     * Is Square enabled (API Key and Location ID set to something that looks valid).
      *
      * @return
      */
@@ -111,9 +112,8 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Register all the functions in this package. This should be called by a
-     * top level object that is being initialized like a lambda, so during
-     * SNAPSTART init, all the functions will be inited as well.
+     * Register all the functions in this package. This should be called by a top level object that is being initialized
+     * like a lambda, so during SNAPSTART init, all the functions will be inited as well.
      */
     public static void init() {
         if (inited) {
@@ -242,8 +242,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     protected abstract Class<T> getRequestClass();
 
     /**
-     * The Executer that will be run when the function is executed by the
-     * Executer
+     * The Executer that will be run when the function is executed by the Executer
      *
      * @return
      */
@@ -277,16 +276,13 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Store this in case we try and send SMS twice ever, don't want to pay for
-     * the lookup again since it costs money. AWS usually calls the same Lambda,
-     * but anyways no harm to try and cache to save a couple cents here and
-     * there.
+     * Store this in case we try and send SMS twice ever, don't want to pay for the lookup again since it costs money.
+     * AWS usually calls the same Lambda, but anyways no harm to try and cache to save a couple cents here and there.
      */
     private static final Map<String, NumberValidateResponse> validatePhoneMap = new HashMap<>();
 
     /**
-     * Is the callers number a valid Number we can send SMS to. We won't attempt
-     * to send to Voip or Landline callers
+     * Is the callers number a valid Number we can send SMS to. We won't attempt to send to Voip or Landline callers
      *
      * @return
      */
@@ -348,8 +344,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Provide and enable this function for text interactions. Override to
-     * disable.
+     * Provide and enable this function for text interactions. Override to disable.
      *
      * @return
      */
@@ -358,14 +353,39 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * When this function is called, will this result in ending the current
-     * session and returning control back to Chime. IE, hang up, transfer, etc.
-     * This should all be voice related since you never terminate a text
-     * session, lex will time it out based on it's setting.
+     * When this function is called, will this result in ending the current session and returning control back to Chime.
+     * IE, hang up, transfer, etc. This should all be voice related since you never terminate a text session, lex will
+     * time it out based on it's setting.
      *
      * @return
      */
     public boolean isTerminating() {
         return false;
+    }
+
+    /**
+     * Get the base URL for Facebook Graph Operations with page access token incorporated.
+     * @param id
+     * @param operation
+     * @return
+     * @throws MalformedURLException
+     */
+    protected URL getFaceBookURL(@NonNull String id, String operation) throws MalformedURLException {
+        StringBuilder sb = new StringBuilder("https://graph.facebook.com/");
+        
+        // Version of API we are calling
+        sb.append("v18.0/");
+        
+        // ID for the entity we are using (Page ID, or Page scoped User ID)
+        sb.append(id);
+        
+        // Optional operation
+        if ( operation != null ) {
+            sb.append('/').append(operation);
+        }
+        
+        sb.append("?access_token=").append(System.getenv("FB_PAGE_ACCESS_TOKEN"));
+        
+        return new URL(sb.toString());
     }
 }
