@@ -39,8 +39,7 @@ public class FacebookInbox<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                // TODO replace hard coded page ID   
-                HttpURLConnection connection = (HttpURLConnection) getFaceBookURL("105958158478591", "pass_thread_control").openConnection();
+                HttpURLConnection connection = (HttpURLConnection) getFaceBookURL(System.getenv("FB_PAGE_ID"), "pass_thread_control").openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json; utf-8");
                 connection.setRequestProperty("Accept", "application/json");

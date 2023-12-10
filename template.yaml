@@ -16,9 +16,13 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: VOICE_CONNECTOR_ARN
   FBPAGEACCESSTOKEN:
-    Description: Facebook Access Token stored in parameter store used to retrieve the FB users name when using FB Channel
+    Description: Facebook Access Token stored in parameter store used to make FB API calls when using FB Channel
     Type: AWS::SSM::Parameter::Value<String>
     Default: FB_PAGE_ACCESS_TOKEN
+  FBPAGEID:
+    Description: Facebook Page ID used to make FB API calls when using FB Channel
+    Type: String
+    Default: DISABLED
   SQUAREAPIKEY:
     Description: Square API Key stored in parameter store
     Type: AWS::SSM::Parameter::Value<String>
@@ -466,6 +470,7 @@ Resources:
           SESSION_TABLE_NAME: !Ref SessionTable
           MAIN_NUMBER: !Ref TRANSFERNUMBER
           VC_ARN: !Ref VOICECONNECTORARN
+          FB_PAGE_ID: !Ref FBPAGEID
           FB_PAGE_ACCESS_TOKEN: !Ref FBPAGEACCESSTOKEN
       SnapStart:
         ApplyOn: PublishedVersions

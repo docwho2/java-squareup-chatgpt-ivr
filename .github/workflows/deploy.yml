@@ -26,7 +26,8 @@ env:
   SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY || 'DISABLED' }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'NEED_TO_SET_THIS' }}
   FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN || 'DISABLED' }}
-    
+  
+  FB_PAGE_ID: ${{ vars.FB_PAGE_ID || 'DISABLED' }}
   
   # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
   # Create repository variables to override any/all of the below from the defaults
@@ -229,6 +230,7 @@ jobs:
         SQUAREAPIKEY=/${STACK_NAME}/SQUARE_API_KEY
         OPENAIAPIKEY=/${STACK_NAME}/OPENAI_API_KEY
         FBPAGEACCESSTOKEN=/${STACK_NAME}/FB_PAGE_ACCESS_TOKEN
+        FBPAGEID=${FB_PAGE_ID}
         SMAID=/${CDK_STACK_NAME}/SMA_ID
         VOICECONNECTORARN=/${CDK_STACK_NAME}/VC_ARN
         SQUAREENVIRONMENT=${SQUARE_ENVIRONMENT}
