@@ -4,7 +4,9 @@
  */
 package cloud.cleo.squareup;
 
+import static cloud.cleo.squareup.enums.LexDialogAction.*;
 import static cloud.cleo.squareup.enums.LexInputMode.TEXT;
+import static cloud.cleo.squareup.enums.LexMessageContentType.*;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import cloud.cleo.squareup.json.DurationDeserializer;
 import cloud.cleo.squareup.json.DurationSerializer;
@@ -17,7 +19,6 @@ import cloud.cleo.squareup.json.ZonedSerializer;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event.DialogAction;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.Intent;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.SessionState;
 import com.amazonaws.services.lambda.runtime.events.LexV2Response;
@@ -316,7 +317,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // We are always using Fallback, and let Lex know everything is fulfilled
                 .withIntent(Intent.builder().withName("FallbackIntent").withState("Fulfilled").build())
                 // Indicate we are closing things up, IE we are done here
-                .withDialogAction(DialogAction.builder().withType("Close").build())
+                .withDialogAction(Close.getDialogAction())
                 .build();
 
         final var lexV2Res = LexV2Response.builder()
@@ -342,14 +343,14 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         // Always send a plain text response
         //  If this is not first in the list, Lex will error
         messages.add(LexV2Response.Message.builder()
-                .withContentType("PlainText")
+                .withContentType(PlainText.toString())
                 .withContent(response)
                 .build());
         
          if (card != null) {
             // Add a card if present
             messages.add(LexV2Response.Message.builder()
-                    .withContentType("ImageResponseCard")
+                    .withContentType(ImageResponseCard.toString())
                     .withImageResponseCard(card)
                     .build());
         }
@@ -359,7 +360,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Retain the current session attributes
                 .withSessionAttributes(lexRequest.getSessionAttributes())
                 // Always ElictIntent, so you're back at the LEX Bot looking for more input
-                .withDialogAction(DialogAction.builder().withType("ElicitIntent").build())
+                .withDialogAction(ElicitIntent.getDialogAction())
                 .build();
 
         final var lexV2Res = LexV2Response.builder()
@@ -388,8 +389,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @return
      */
     private ImageResponseCard buildWelcomeCard() {
-        return ImageResponseCard.builder()
+        return com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard.builder()
                 .withTitle("Welcome to Copper Fox Gifts")
+                .withImageUrl("https://www.copperfoxgifts.com/logo.png")
                 .withSubtitle("Ask us anything or use a quick action below")
                 .withButtons(List.of(
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
