@@ -489,6 +489,8 @@ Resources:
                 - ses:SendEmail
                 # Validate numbers as mobile with Pinpoint
                 - mobiletargeting:PhoneNumberValidate
+                # AWS Cost forecast
+                - ce:GetCostForecast
               Resource: '*' 
   
   ChatGPTLogGroup:

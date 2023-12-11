@@ -4,6 +4,7 @@ import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.costexplorer.CostExplorerAsyncClient;
@@ -18,7 +19,7 @@ import software.amazon.awssdk.services.costexplorer.model.Metric;
  * @author sjensen
  * @param <Request>
  */
-public class AWSCostExplorer<Request> extends AbstractFunction {
+public class AWSCostForecast<Request> extends AbstractFunction {
 
     protected final static CostExplorerAsyncClient costExplorerAsyncClient = CostExplorerAsyncClient.builder()
             .httpClient(crtAsyncHttpClient)
@@ -47,10 +48,21 @@ public class AWSCostExplorer<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-
+                final var today = LocalDate.now(ZoneId.of("America/Chicago"));
+                
+                if (r.start_date.compareTo(today) < 0 ) {
+                    // The start date is less than today, but also check end to see if it's after today
+                    if ( r.end_date.isAfter(today) ) {
+                        // We are OK, just adjust start to today (like if you are forecasting this month)
+                        r.start_date = today;
+                    } else {
+                        return mapper.createObjectNode().put("status", "FAILED").put("message", "end_date must be in the future, try another range.");
+                    }
+                }
+                
                 final var cfr = GetCostForecastRequest.builder()
                         .timePeriod(b -> b.start(r.start_date.toString()).end(r.end_date.plusDays(1).toString()))
-                        .granularity(r.granularity != null ? r.granularity : Granularity.MONTHLY)
+                        .granularity(Granularity.MONTHLY)
                         .metric(Metric.BLENDED_COST)
                         .build();
 
@@ -78,9 +90,6 @@ public class AWSCostExplorer<Request> extends AbstractFunction {
         @JsonProperty(required = true)
         public LocalDate end_date;
 
-        @JsonPropertyDescription("How granular you want the forecast to be. You can get 3 months of DAILY forecasts or 12 months of MONTHLY forecasts. Defaults to MONTHLY.")
-        @JsonProperty(required = false)
-        public Granularity granularity;
     }
 
 
