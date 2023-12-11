@@ -4,7 +4,6 @@
  */
 package cloud.cleo.squareup;
 
-import cloud.cleo.squareup.enums.LexInputMode;
 import static cloud.cleo.squareup.enums.LexInputMode.TEXT;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import cloud.cleo.squareup.json.DurationDeserializer;
@@ -121,26 +120,24 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             // IE, we are only using lex here to process speech and send it to us
             return switch (intentName) {
                 default ->
-                    processGPT(lexRequest);
+                    processGPT(new LexV2EventWrapper(lexRequest));
             };
 
         } catch (CompletionException e) {
             log.error("Unhandled Future Exception", e.getCause());
-            return buildResponse(lexRequest, GENERAL_ERROR_MESG);
+            return buildResponse(new LexV2EventWrapper(lexRequest), GENERAL_ERROR_MESG);
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             // Unhandled Exception
-            return buildResponse(lexRequest, GENERAL_ERROR_MESG);
+            return buildResponse(new LexV2EventWrapper(lexRequest), GENERAL_ERROR_MESG);
         }
     }
 
-    private LexV2Response processGPT(LexV2Event lexRequest) {
+    private LexV2Response processGPT(LexV2EventWrapper lexRequest) {
         final var input = lexRequest.getInputTranscript();
-        final var localId = lexRequest.getBot().getLocaleId();
-        final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
-        final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        final var inputMode = lexRequest.getInputMode();
+        final var attrs = lexRequest.getSessionAttributes();
 
-        log.debug("Java Locale is " + localId);
 
         if (input == null || input.isBlank()) {
             log.debug("Got blank input, so just silent or nothing");
@@ -162,7 +159,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             attrs.put("blankCounter", "0");
         }
 
-        // Will be phone if from SMS, Facebook the userID, Chime unique generated ID
+        // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
         final var session_id = lexRequest.getSessionId();
         log.debug("Lex Session ID is " + session_id);
 
@@ -174,7 +171,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         boolean session_new = false;
         if (session == null) {
-            session = new ChatGPTSessionState(session_id, inputMode);
+            session = new ChatGPTSessionState(lexRequest);
             session_new = true;  // Track whether is new session so we can send welcome card for Facebook Channel
         }
 
@@ -303,9 +300,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param botResponse
      * @return
      */
-    private LexV2Response buildTerminatingResponse(LexV2Event lexRequest, String function_name, Map<String, String> functionArgs, String botResponse) {
+    private LexV2Response buildTerminatingResponse(LexV2EventWrapper lexRequest, String function_name, Map<String, String> functionArgs, String botResponse) {
 
-        final var attrs = lexRequest.getSessionState().getSessionAttributes();
+        final var attrs = lexRequest.getSessionAttributes();
 
         // The controller (Chime SAM Lambda) will grab this from the session, then perform the terminating action
         attrs.put("action", function_name);
@@ -338,18 +335,19 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildResponse(LexV2Event lexRequest, String response, ImageResponseCard card) {
+    private LexV2Response buildResponse(LexV2EventWrapper lexRequest, String response, ImageResponseCard card) {
 
         final var messages = new LinkedList<LexV2Response.Message>();
 
         // Always send a plain text response
+        //  If this is not first in the list, Lex will error
         messages.add(LexV2Response.Message.builder()
                 .withContentType("PlainText")
                 .withContent(response)
                 .build());
         
          if (card != null) {
-            // If we are going to send a Card, we will send ahead of message
+            // Add a card if present
             messages.add(LexV2Response.Message.builder()
                     .withContentType("ImageResponseCard")
                     .withImageResponseCard(card)
@@ -359,7 +357,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         // State to return
         final var ss = SessionState.builder()
                 // Retain the current session attributes
-                .withSessionAttributes(lexRequest.getSessionState().getSessionAttributes())
+                .withSessionAttributes(lexRequest.getSessionAttributes())
                 // Always ElictIntent, so you're back at the LEX Bot looking for more input
                 .withDialogAction(DialogAction.builder().withType("ElicitIntent").build())
                 .build();
@@ -380,7 +378,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildResponse(LexV2Event lexRequest, String response) {
+    private LexV2Response buildResponse(LexV2EventWrapper lexRequest, String response) {
         return buildResponse(lexRequest, response, null);
     }
 

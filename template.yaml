@@ -523,12 +523,12 @@ Resources:
       TableName: !Sub ${AWS::StackName}-session
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: phoneNumber
+        - AttributeName: sessionId
           AttributeType: S
         - AttributeName: date
           AttributeType: S
       KeySchema:
-        - AttributeName: phoneNumber
+        - AttributeName: sessionId
           KeyType: HASH
         - AttributeName: date
           KeyType: RANGE

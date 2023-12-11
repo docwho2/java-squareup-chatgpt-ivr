@@ -1,10 +1,8 @@
 package cloud.cleo.squareup.functions;
 
 import cloud.cleo.squareup.enums.ChannelPlatform;
-import static cloud.cleo.squareup.enums.ChannelPlatform.UNKNOWN;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
-import cloud.cleo.squareup.enums.LexInputMode;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event;
+import cloud.cleo.squareup.LexV2EventWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
@@ -151,37 +149,15 @@ public abstract class AbstractFunction<T> implements Cloneable {
      * @param lexRequest
      * @return
      */
-    public static FunctionExecutor getFunctionExecuter(LexV2Event lexRequest) {
+    public static FunctionExecutor getFunctionExecuter(LexV2EventWrapper lexRequest) {
         if (!inited) {
             init();
         }
 
-        String callingNumber = null;
-        ChannelPlatform channelPlatform = UNKNOWN;
+        final String callingNumber = lexRequest.getPhoneE164();
+        final ChannelPlatform channelPlatform = lexRequest.getChannelPlatform();
 
-        if (lexRequest.getRequestAttributes() != null) {
-            if (lexRequest.getRequestAttributes().containsKey("x-amz-lex:channels:platform")) {
-                final var platformS = lexRequest.getRequestAttributes().get("x-amz-lex:channels:platform");
-                final var platform = ChannelPlatform.fromString(platformS);
-                log.debug("Requesting platform is " + platform);
-                channelPlatform = platform;
-                switch (platform) {
-                    case CHIME ->
-                        // For Chime we will pass in the calling number as Session Attribute callingNumber
-                        callingNumber = lexRequest.getSessionState().getSessionAttributes() != null
-                                ? lexRequest.getSessionState().getSessionAttributes().get("callingNumber") : null;
-                    case TWILIO ->
-                        // Twilio channel will use sessiond ID, however without +, so prepend to make it full E164
-                        callingNumber = "+".concat(lexRequest.getSessionId());
-                }
-            } else {
-                log.debug("No channels platform set, request from Lex Console or CLI");
-            }
-        } else {
-            log.debug("No channels platform set, request from Lex Console or CLI");
-        }
-
-        final var inputMode = LexInputMode.fromString(lexRequest.getInputMode());
+        final var inputMode = lexRequest.getInputMode();
         final var list = new LinkedList<AbstractFunction>();
         final var sessionId = lexRequest.getSessionId();
 

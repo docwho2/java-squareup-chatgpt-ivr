@@ -1,10 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package cloud.cleo.squareup;
 
-import cloud.cleo.squareup.enums.LexInputMode;
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
 import cloud.cleo.squareup.functions.AbstractFunction;
@@ -19,7 +15,7 @@ import lombok.Data;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
 /**
- * Object to track use of ChatGPT
+ * Object to store and accumulate ChatGPT Session Data (messages) in DynamoDB.
  *
  * @author sjensen
  */
@@ -27,19 +23,37 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 @Data
 public class ChatGPTSessionState {
 
-    private String phoneNumber;
+    /**
+     * Session Id which could be phone number or unique identifier depending on the channel.
+     */
+    private String sessionId;
+    /**
+     * We qualify all sessions with today's date because channels like Twilio and Facebook have static sessionId's.
+     * If we didn't use date as a range key, then static ID's like SMS would have too much session data and accumulate
+     * day to day.  So essentially SMS and FB sessions will span one day.  Chime will generate a unique sessionId
+     * per call, so for voice calls, a session is a call.
+     */
     private LocalDate date;
+    /**
+     * ChatGPT messages from the GPT Library.
+     */
     private List<ChatGPTMessage> messages;
+    /**
+     * Counter to track number of interactions, just to see them in Dynamo console to look for longer running chats.
+     */
     private Long counter;
-    private Instant lastUpdate;
+
+    /**
+     * Unix timestamp when this Dynamo record should be deleted.  We don't want session data hanging in the table forever.
+     */
     private Long ttl;
 
     public ChatGPTSessionState() {
         this.messages = new LinkedList<>();
     }
 
-    public ChatGPTSessionState(String phoneNumber, LexInputMode inputMode) {
-        this.phoneNumber = phoneNumber;
+    public ChatGPTSessionState(LexV2EventWrapper lexRequest) {
+        this.sessionId = lexRequest.getSessionId();
         this.date = LocalDate.now(ZoneId.of("America/Chicago"));
         this.messages = new LinkedList<>();
 
@@ -48,6 +62,7 @@ public class ChatGPTSessionState {
         // General Prompting
         sb.append("Please be a helpfull assistant for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
         sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
+        // We need to tell GPT the date so it has a reference for Store hours, when calling via API it has no date knowledge
         sb.append("The current date is  ").append(date).append(".  ");
         sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
 
@@ -56,9 +71,22 @@ public class ChatGPTSessionState {
         sb.append("Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  ");
 
         // Mode specific prompting
-        switch (inputMode) {
+        switch (lexRequest.getInputMode()) {
             case TEXT -> {
-                sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+                switch(lexRequest.getChannelPlatform()) {
+                    case FACEBOOK -> {
+                        // Don't need very short or char limit, but we don't want to output a book either
+                        sb.append("I am interacting via Facebook Messenger.  Please keep answers short and concise.  ");
+                    }
+                    case TWILIO -> {
+                        // Try and keep SMS segements down, hence the "very" short reference and character preference
+                        sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+                    }
+                    default -> {
+                        // Keep very short for anything else (CLI and lex Console testing)
+                        sb.append("Please keep answers very short and concise.  ");
+                    }
+                }
                 sb.append("To interact with an employee suggest the person call ").append(System.getenv("MAIN_NUMBER")).append(" and ask to speak to that person.  ");
                 sb.append("Do not provide employee phone numbers.");
             }
@@ -80,17 +108,17 @@ public class ChatGPTSessionState {
 
         this.messages.add(new ChatGPTMessage(ChatGPTMessage.MessageRole.system, sb.toString()));
 
-        // Expire entries after 30 days
+        // Expire entries after 30 days so Dynamo Table doesn't keep growing forever
         this.ttl = Instant.now().plus(Duration.ofDays(30)).getEpochSecond();
         this.counter = 0L;
     }
 
     /**
-     * @return the phoneNumber
+     * @return the sessionId
      */
     @DynamoDbPartitionKey
-    public String getPhoneNumber() {
-        return phoneNumber;
+    public String getSessionId() {
+        return sessionId;
     }
 
     /**
