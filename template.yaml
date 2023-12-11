@@ -520,7 +520,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
-      TableName: !Sub ${AWS::StackName}-session
+      TableName: !Sub ${AWS::StackName}-sessions
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: sessionId
