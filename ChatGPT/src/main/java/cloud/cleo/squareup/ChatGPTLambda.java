@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.enums.LexDialogAction.*;
@@ -292,7 +289,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 // Push this into the Lex Session so on the next incoming message we can short circuit and call FB API
                 attrs.put(FACEBOOK_INBOX_FUNCTION_NAME, "true");
                 // Ignore what GPT said and send back message with Card asking how the bot did.
-                return buildResponse(lexRequest, "ChatBot has been removed from the conversation.", buildTransferCard());
+                return buildResponse(lexRequest, "ChatBot will be removed from this conversation after clicking below.", buildTransferCard());
             }
         }
 
@@ -429,7 +426,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      */
     private ImageResponseCard buildTransferCard() {
         return com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard.builder()
-                .withTitle("Conversation moved to Inbox")
+                .withTitle("Conversation will move to Inbox")
                 .withImageUrl("https://www.copperfoxgifts.com/logo.png")
                 .withSubtitle("Please tell us how our AI ChatBot did?")
                 .withButtons(List.of(

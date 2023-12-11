@@ -70,6 +70,8 @@ public class ChatGPTSessionState {
         sb.append("Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
         sb.append("Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  ");
 
+        sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ").append(System.getenv("MAIN_NUMBER")).append(".  ");
+        
         // Mode specific prompting
         switch (lexRequest.getInputMode()) {
             case TEXT -> {
@@ -87,8 +89,6 @@ public class ChatGPTSessionState {
                         sb.append("Please keep answers very short and concise.  ");
                     }
                 }
-                sb.append("To interact with an employee suggest the person call ").append(System.getenv("MAIN_NUMBER")).append(" and ask to speak to that person.  ");
-                sb.append("Do not provide employee phone numbers.");
             }
             case SPEECH, DTMF -> {
                 sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");
@@ -99,10 +99,9 @@ public class ChatGPTSessionState {
                 // Transferring
                 if (AbstractFunction.isSquareEnabled()) {
                     sb.append("To transfer or speak with a employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
-                    sb.append("Do not provide callers employee phone numbers, you can use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
+                    sb.append("Do not provide callers employee phone numbers, you can only use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 }
-                sb.append("If the caller wants to just speak to a person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
-
+                sb.append("If the caller wants to just speak to any person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
             }
         }
 
