@@ -3,6 +3,7 @@ package cloud.cleo.squareup.functions;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.concurrent.CompletionException;
@@ -14,7 +15,7 @@ import software.amazon.awssdk.services.costexplorer.model.Granularity;
 import software.amazon.awssdk.services.costexplorer.model.Metric;
 
 /**
- * Send an Email message
+ * AWS Account cost forecast.  Just something to play with.
  *
  * @author sjensen
  * @param <Request>
@@ -60,9 +61,15 @@ public class AWSCostForecast<Request> extends AbstractFunction {
                     }
                 }
                 
+                Granularity gran = Granularity.DAILY;
+                // Uswe monthly when range is a month or greater, use DAILY otherwise (for shorter spans)
+                if ( Duration.between(r.start_date, r.end_date).compareTo(Duration.ofDays(29)) >= 0 ) {
+                    gran = Granularity.MONTHLY;
+                }
+                
                 final var cfr = GetCostForecastRequest.builder()
                         .timePeriod(b -> b.start(r.start_date.toString()).end(r.end_date.plusDays(1).toString()))
-                        .granularity(Granularity.MONTHLY)
+                        .granularity(gran)
                         .metric(Metric.BLENDED_COST)
                         .build();
 
