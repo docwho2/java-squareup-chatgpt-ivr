@@ -1,9 +1,9 @@
 package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
+import cloud.cleo.squareup.FaceBookOperations;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import java.net.HttpURLConnection;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
@@ -51,7 +51,7 @@ public class SendEmail<Request> extends AbstractFunction {
                     case TWILIO ->
                         "[From SMS " + getCallingNumber() + "] " + r.subject;
                     case FACEBOOK ->
-                        "[From Facebook User " + getFacebookName(getSessionId()) + "] " + r.subject;
+                        "[From Facebook User " + FaceBookOperations.getFacebookName(getSessionId()) + "] " + r.subject;
                     default ->
                         "[From " + getChannelPlatform() + "/" + getSessionId() + "] " + r.subject;
                 };
@@ -102,42 +102,6 @@ public class SendEmail<Request> extends AbstractFunction {
     @Override
     protected boolean isEnabled() {
         return isSquareEnabled();
-    }
-
-    /**
-     * Given a Facebook user Page Scoped ID get the users full name
-     * 
-     * @param id
-     * @return 
-     */
-    private String getFacebookName(String id) {
-
-        try {
-            HttpURLConnection connection = (HttpURLConnection) getFaceBookURL(id, null).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("Accept", "application/json");
-
-            int responseCode = connection.getResponseCode();
-            log.debug("Facebook Call Response Code: " + responseCode);
-
-            final var result = mapper.readTree(connection.getInputStream());
-            log.debug("FB Graph Query result is " + result.toPrettyString());
-
-            // Check for name first
-            if ( result.findValue("name") != null ) {
-                return result.findValue("name").asText();
-            }
-            
-            // Usually returns first and last
-            if (result.findValue("first_name") != null && result.findValue("last_name") != null ) {
-                return result.findValue("first_name").asText() + " " + result.findValue("last_name").asText();
-            }
-
-        } catch (Exception e) {
-            log.error("Facebook user name retrieval error", e);
-        }
-        
-        return "Unknown";
     }
 
 }

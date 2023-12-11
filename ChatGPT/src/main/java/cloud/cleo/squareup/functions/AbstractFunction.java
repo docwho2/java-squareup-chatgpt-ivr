@@ -10,8 +10,6 @@ import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -20,7 +18,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -337,31 +334,5 @@ public abstract class AbstractFunction<T> implements Cloneable {
      */
     public boolean isTerminating() {
         return false;
-    }
-
-    /**
-     * Get the base URL for Facebook Graph Operations with page access token incorporated.
-     * @param id
-     * @param operation
-     * @return
-     * @throws MalformedURLException
-     */
-    protected URL getFaceBookURL(@NonNull String id, String operation) throws MalformedURLException {
-        StringBuilder sb = new StringBuilder("https://graph.facebook.com/");
-        
-        // Version of API we are calling
-        sb.append("v18.0/");
-        
-        // ID for the entity we are using (Page ID, or Page scoped User ID)
-        sb.append(id);
-        
-        // Optional operation
-        if ( operation != null ) {
-            sb.append('/').append(operation);
-        }
-        
-        sb.append("?access_token=").append(System.getenv("FB_PAGE_ACCESS_TOKEN"));
-        
-        return new URL(sb.toString());
     }
 }

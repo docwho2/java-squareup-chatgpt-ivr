@@ -80,6 +80,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
+    public final static String FACEBOOK_INBOX_FUNCTION_NAME = "facebook_inbox";
 
     public final static String GENERAL_ERROR_MESG = "Sorry, I'm having a problem fulfilling your request. Please try again later.";
 
@@ -106,6 +107,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         // Create and init all the functions in the package
         AbstractFunction.init();
+        // Hit static initializers in this as well so it's loaded and hot
+        new FaceBookOperations();
     }
 
     @Override
@@ -138,7 +141,18 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         final var input = lexRequest.getInputTranscript();
         final var inputMode = lexRequest.getInputMode();
         final var attrs = lexRequest.getSessionAttributes();
+        // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
+        final var session_id = lexRequest.getSessionId();
 
+        // Special Facebook Short Circut
+        if (attrs.containsKey(FACEBOOK_INBOX_FUNCTION_NAME)) {
+            log.debug("Facebook Short Circut, calling FB API to move thread to FB Inbox");
+            FaceBookOperations.transferToInbox(session_id);
+            // Clear out all sessions Attributes
+            attrs.clear();
+            // Send a close indicating we are done with this Lex Session
+            return buildTerminatingResponse(lexRequest, FACEBOOK_INBOX_FUNCTION_NAME, Map.of(), "Thread moved to Facebook Inbox.");
+        }
 
         if (input == null || input.isBlank()) {
             log.debug("Got blank input, so just silent or nothing");
@@ -160,8 +174,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             attrs.put("blankCounter", "0");
         }
 
-        // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
-        final var session_id = lexRequest.getSessionId();
         log.debug("Lex Session ID is " + session_id);
 
         // Key to record in Dynamo which we key by date.  So SMS/Facebook session won't span forever (by day)
@@ -273,6 +285,15 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             } else {
                 log.debug("The following funtion calls were made " + functionCallsMade + " but none are terminating");
             }
+
+            // Special Facebook handoff check
+            if (functionCallsMade.stream().anyMatch(f -> f.getName().equals(FACEBOOK_INBOX_FUNCTION_NAME))) {
+                // Session needs to move to Inbox, but we can't do it now because then our response won't make it to end user
+                // Push this into the Lex Session so on the next incoming message we can short circuit and call FB API
+                attrs.put(FACEBOOK_INBOX_FUNCTION_NAME, "true");
+                // Ignore what GPT said and send back message with Card asking how the bot did.
+                return buildResponse(lexRequest, "ChatBot has been removed from the conversation.", buildTransferCard());
+            }
         }
 
         // Since we have a general response, add message asking if there is anything else
@@ -287,7 +308,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             // If this a new Session send back a Welcome card
             return buildResponse(lexRequest, botResponse, buildWelcomeCard());
         }
-        
+
         // Default response from GPT that is not a terminating action
         return buildResponse(lexRequest, botResponse);
     }
@@ -346,8 +367,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 .withContentType(PlainText.toString())
                 .withContent(response)
                 .build());
-        
-         if (card != null) {
+
+        if (card != null) {
             // Add a card if present
             messages.add(LexV2Response.Message.builder()
                     .withContentType(ImageResponseCard.toString())
@@ -397,6 +418,24 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
                         Button.builder().withText("Location").withValue("What is your address and driving directions?").build(),
                         Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build()
+                ).toArray(Button[]::new))
+                .build();
+    }
+
+    /**
+     * Transfer from Bot to Inbox Card
+     *
+     * @return
+     */
+    private ImageResponseCard buildTransferCard() {
+        return com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard.builder()
+                .withTitle("Conversation moved to Inbox")
+                .withImageUrl("https://www.copperfoxgifts.com/logo.png")
+                .withSubtitle("Please tell us how our AI ChatBot did?")
+                .withButtons(List.of(
+                        Button.builder().withText("Epic Fail").withValue("Chatbot was not Helpful.").build(),
+                        Button.builder().withText("Needs Work").withValue("Chatbot needs some work.").build(),
+                        Button.builder().withText("Great Job!").withValue("Chatbot did a great job!").build()
                 ).toArray(Button[]::new))
                 .build();
     }
