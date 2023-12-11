@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import static java.time.temporal.ChronoUnit.DAYS;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.costexplorer.CostExplorerAsyncClient;
@@ -63,7 +64,7 @@ public class AWSCostForecast<Request> extends AbstractFunction {
                 
                 Granularity gran = Granularity.DAILY;
                 // Uswe monthly when range is a month or greater, use DAILY otherwise (for shorter spans)
-                if ( Duration.between(r.start_date, r.end_date).compareTo(Duration.ofDays(29)) >= 0 ) {
+                if ( DAYS.between(r.start_date, r.end_date) >= 28 ) {
                     gran = Granularity.MONTHLY;
                 }
                 
