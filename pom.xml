@@ -133,7 +133,7 @@
             <dependency>
                 <groupId>com.squareup</groupId>
                 <artifactId>square</artifactId>
-                <version>35.0.0.20231115</version>
+                <version>36.0.0.20231213</version>
             </dependency>
             
             <dependency>
