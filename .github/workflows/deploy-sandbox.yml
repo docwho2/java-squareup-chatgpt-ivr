@@ -141,6 +141,15 @@ jobs:
         --value ${{ secrets.OPENAI_API_KEY }}  
         --overwrite
     
+    - name: Push Facebook Access Token to Parameter store
+      run: >
+        aws ssm put-parameter
+        --name /${STACK_NAME}/FB_PAGE_ACCESS_TOKEN
+        --description "Facebook Access token used for stack ${STACK_NAME}"
+        --type String
+        --value DISABLED
+        --overwrite
+    
     - name: Cache SAM Build files
       uses: actions/cache@v3
       with:
@@ -175,6 +184,7 @@ jobs:
         --parameter-overrides
         SQUAREAPIKEY=/${{ vars.STACK_NAME }}/SQUARE_API_KEY
         OPENAIAPIKEY=/${{ vars.STACK_NAME }}/OPENAI_API_KEY
+        FBPAGEACCESSTOKEN=/${{ vars.STACK_NAME }}/FB_PAGE_ACCESS_TOKEN
         SMAID=/${{ vars.CDK_STACK_NAME }}/SMA_ID
         VOICECONNECTORARN=/${{ vars.CDK_STACK_NAME }}/VC_ARN
         SQUAREENVIRONMENT=${{ vars.SQUARE_ENVIRONMENT || 'SANDBOX' }}
