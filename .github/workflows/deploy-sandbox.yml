@@ -144,7 +144,7 @@ jobs:
     - name: Push Facebook Access Token to Parameter store
       run: >
         aws ssm put-parameter
-        --name /${STACK_NAME}/FB_PAGE_ACCESS_TOKEN
+        --name /${{ vars.STACK_NAME }}/FB_PAGE_ACCESS_TOKEN
         --description "Facebook Access token used for stack ${STACK_NAME}"
         --type String
         --value DISABLED
