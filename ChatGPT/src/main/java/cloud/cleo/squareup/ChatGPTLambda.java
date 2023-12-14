@@ -1,8 +1,6 @@
-
 package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.enums.LexDialogAction.*;
-import static cloud.cleo.squareup.enums.LexInputMode.TEXT;
 import static cloud.cleo.squareup.enums.LexMessageContentType.*;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import cloud.cleo.squareup.json.DurationDeserializer;
@@ -112,7 +110,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     public LexV2Response handleRequest(LexV2Event lexRequest, Context cntxt) {
 
         try {
-            log.debug(mapper.valueToTree(lexRequest).toString());
+            log.debug(mapper.valueToTree(lexRequest).toPrettyString());
             final var intentName = lexRequest.getSessionState().getIntent().getName();
             log.debug("Intent: " + intentName);
 
@@ -136,7 +134,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     private LexV2Response processGPT(LexV2EventWrapper lexRequest) {
         final var input = lexRequest.getInputTranscript();
-        final var inputMode = lexRequest.getInputMode();
         final var attrs = lexRequest.getSessionAttributes();
         // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
         final var session_id = lexRequest.getSessionId();
@@ -224,17 +221,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                     log.debug("Trying to execute " + functionCall.getName() + "...");
 
                     Optional<ChatMessage> message = functionExecutor.executeAndConvertToMessageSafely(functionCall);
-                    /* You can also try 'executeAndConvertToMessage' inside a try-catch block, and add the following line inside the catch:
-                "message = executor.handleException(exception);"
-                The content of the message will be the exception itself, so the flow of the conversation will not be interrupted, and you will still be able to log the issue. */
 
                     if (message.isPresent()) {
-                        /* At this point:
-                    1. The function requested was found
-                    2. The request was converted to its specified object for execution (Weather.class in this case)
-                    3. It was executed
-                    4. The response was finally converted to a ChatMessage object. */
-
                         log.debug("Executed " + functionCall.getName() + ".");
                         session.addMessage(message.get());
                         // Track each call made
@@ -294,15 +282,15 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         }
 
         // Since we have a general response, add message asking if there is anything else
-        if (!TEXT.equals(inputMode)) {
-            // Only add if not text (added to voice response)
-            if (!botResponse.endsWith("?")) {  // If ends with question, then we don't need to further append question
-                botResponse = botResponse + "  What else can I help you with?";
-            }
+        //  For voice it just seems more natural to always end with a question.
+        if (lexRequest.isVoice() && !botResponse.endsWith("?")) {
+            // If ends with question, then we don't need to further append question
+            botResponse = botResponse + "  What else can I help you with?";
         }
 
-        if (session_new) {
-            // If this a new Session send back a Welcome card
+        if (session_new && lexRequest.isFacebook()) {
+            // If this a new Session send back a Welcome card for Facebook Channel
+            // This works for Twilio/SMS, but sends a MMS and costs more money (it sends logo, but of course doesn't support the buttons)
             return buildResponse(lexRequest, botResponse, buildWelcomeCard());
         }
 
@@ -311,8 +299,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * Response that will tell Lex we are done so some action can be performed at the Chime Level (hang up, transfer,
-     * MOH, etc.)
+     * Response that will tell Lex we are done so some action can be performed
+     * at the Chime Level (hang up, transfer, MOH, etc.)
      *
      * @param lexRequest
      * @param transferNumber
@@ -346,8 +334,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at LEX. IE, we are sending back GPT
-     * response, and then waiting for Lex to collect speech and once again call us so we can send to GPT, effectively
+     * General Response used to send back a message and Elicit Intent again at
+     * LEX. IE, we are sending back GPT response, and then waiting for Lex to
+     * collect speech and once again call us so we can send to GPT, effectively
      * looping until we call a terminating event like Quit or Transfer.
      *
      * @param lexRequest
@@ -402,7 +391,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * Welcome card which would be displayed for FaceBook Users (and in Lex Console of course)
+     * Welcome card which would be displayed for FaceBook Users in Messenger.
      *
      * @return
      */
@@ -420,7 +409,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * Transfer from Bot to Inbox Card
+     * Transfer from Bot to Inbox Card for Facebook Messenger.
      *
      * @return
      */

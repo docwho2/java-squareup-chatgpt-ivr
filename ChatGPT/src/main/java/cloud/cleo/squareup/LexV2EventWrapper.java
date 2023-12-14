@@ -13,7 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * Wrapper for Event to add utility functions.
+ * Wrapper for Lex Input Event to add utility functions.
  *
  * @author sjensen
  */
@@ -29,7 +29,7 @@ public class LexV2EventWrapper {
     /**
      * Return Input Mode as Enumeration.
      *
-     * @return InputMode enum
+     * @return InputMode enumeration
      */
     public LexInputMode getInputMode() {
         return LexInputMode.fromString(event.getInputMode());
@@ -69,17 +69,16 @@ public class LexV2EventWrapper {
      * @return
      */
     public ChannelPlatform getChannelPlatform() {
-        if (event.getRequestAttributes() != null) {
-            if (event.getRequestAttributes().containsKey("x-amz-lex:channels:platform")) {
-                return ChannelPlatform.fromString(event.getRequestAttributes().get("x-amz-lex:channels:platform"));
-            }
+        if (event.getRequestAttributes() != null && event.getRequestAttributes().containsKey("x-amz-lex:channels:platform")) {
+            return ChannelPlatform.fromString(event.getRequestAttributes().get("x-amz-lex:channels:platform"));
         }
+        // Unknown will be something new we haven't accounted for or direct Lex API calls (console, aws cli, etc..)
         return ChannelPlatform.UNKNOWN;
     }
 
     /**
-     * Get the calling (or SMS originating) number for the session. For Channels like Facebook or CLI testing, this will
-     * not be available and null.
+     * Get the calling (or SMS originating) number for the session. For Channels
+     * like Facebook or CLI testing, this will not be available and null.
      *
      * @return E164 number or null if not applicable to channel.
      */
@@ -117,10 +116,20 @@ public class LexV2EventWrapper {
 
     /**
      * Session Id for the interaction.
-     * @return 
+     *
+     * @return
      */
     public String getSessionId() {
         return event.getSessionId();
+    }
+
+    /**
+     * Is this request from the Facebook Channel.
+     *
+     * @return
+     */
+    public boolean isFacebook() {
+        return getChannelPlatform().equals(FACEBOOK);
     }
 
 }

@@ -9,7 +9,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Perform various Facebook operations. Used when Channel is FB.
+ * Perform various Facebook operations. Used when Channel is FB.  Rather
+ * than pull in some other dependency, we will just use basic HTTP for all
+ * Facebook operations.
  *
  * @author sjensen
  */
@@ -20,17 +22,20 @@ public class FaceBookOperations {
 
     private final static ObjectMapper mapper = new ObjectMapper();
 
-    
     /**
-     * Transfer control of Messenger Thread Session from Bot control to the Inbox.  Used when end user needs to deal with
-     * a real person to resolve issue the Bot can't handle.
-     * https://developers.facebook.com/docs/messenger-platform/handover-protocol/conversation-control
+     * Transfer control of Messenger Thread Session from Bot control to the
+     * Inbox. Used when end user needs to deal with a real person to resolve
+     * issue the Bot can't handle.  Some people despise Bots, so we need to allow
+     * getting the Bot out of the conversation.
      * 
-     * @param id 
+     * https://developers.facebook.com/docs/messenger-platform/handover-protocol/conversation-control
+     *
+     * @param id
      */
     public static void transferToInbox(String id) {
+        HttpURLConnection connection = null;
         try {
-            HttpURLConnection connection = (HttpURLConnection) getFaceBookURL(System.getenv("FB_PAGE_ID"), "pass_thread_control").openConnection();
+            connection = (HttpURLConnection) getFaceBookURL(System.getenv("FB_PAGE_ID"), "pass_thread_control").openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json; utf-8");
             connection.setRequestProperty("Accept", "application/json");
@@ -40,12 +45,13 @@ public class FaceBookOperations {
             var json = mapper.createObjectNode();
             // Special Target for Inbox
             json.put("target_app_id", "263902037430900");
+            // The page scoped user ID of the person chatting with us
             json.putObject("recipient").put("id", id);
 
             log.debug("Post Payload for thread control " + json.toPrettyString());
             mapper.writeValue(connection.getOutputStream(), json);
 
-            int responseCode = connection.getResponseCode();
+            final int responseCode = connection.getResponseCode();
             log.debug("Facebook Call Response Code: " + responseCode);
 
             final var result = mapper.readTree(connection.getInputStream());
@@ -59,6 +65,10 @@ public class FaceBookOperations {
 
         } catch (Exception e) {
             log.error("Facebook Pass Thread Control error", e);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
@@ -69,12 +79,13 @@ public class FaceBookOperations {
      * @return
      */
     public static String getFacebookName(String id) {
+        HttpURLConnection connection = null;
         try {
-            HttpURLConnection connection = (HttpURLConnection) getFaceBookURL(id, null).openConnection();
+            connection = (HttpURLConnection) getFaceBookURL(id, null).openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Accept", "application/json");
 
-            int responseCode = connection.getResponseCode();
+            final int responseCode = connection.getResponseCode();
             log.debug("Facebook Call Response Code: " + responseCode);
 
             final var result = mapper.readTree(connection.getInputStream());
@@ -92,13 +103,18 @@ public class FaceBookOperations {
 
         } catch (Exception e) {
             log.error("Facebook user name retrieval error", e);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
 
         return "Unknown";
     }
 
     /**
-     * Get the base URL for Facebook Graph Operations with page access token incorporated.
+     * Get the base URL for Facebook Graph Operations with page access token
+     * incorporated.
      *
      * @param id
      * @param operation
@@ -106,7 +122,7 @@ public class FaceBookOperations {
      * @throws MalformedURLException
      */
     private static URL getFaceBookURL(@NonNull String id, String operation) throws MalformedURLException {
-        StringBuilder sb = new StringBuilder("https://graph.facebook.com/");
+        final var sb = new StringBuilder("https://graph.facebook.com/");
 
         // Version of API we are calling
         sb.append("v18.0/");
