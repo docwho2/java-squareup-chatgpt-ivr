@@ -93,6 +93,8 @@ public class ChatGPTSessionState {
                         sb.append("Please keep answers very short and concise.  ");
                     }
                 }
+                // Since we are fallback intent, from a Text input perspective, we can support any language ChatGPT understands
+                sb.append("Detect the language of the prompt and respond in that language.  ");
             }
             case SPEECH, DTMF -> {
                 sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");

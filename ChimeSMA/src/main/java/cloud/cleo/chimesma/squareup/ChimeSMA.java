@@ -150,8 +150,10 @@ public class ChimeSMA extends AbstractFlow {
                     .build();
                 case "switch_language" ->
                     switch (attrs.get("language")) {
-                        case "Spanish" ->
-                            lexBotES;
+                        case "Spanish" -> {
+                            lexBotES.setContentF(f -> botResponse);
+                            yield lexBotES;
+                        }
                         default ->
                             lexBotEN;
                     };
