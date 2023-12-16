@@ -148,15 +148,17 @@ public class ChimeSMA extends AbstractFlow {
                     .withTextF(tf -> botResponse)
                     .withNextAction(hangup)
                     .build();
-                case "switch_language" ->
-                    switch (attrs.get("language")) {
-                        case "Spanish" -> {
-                            lexBotES.setContentF(f -> botResponse);
-                            yield lexBotES;
-                        }
+                case "switch_language" -> {
+                    StartBotConversationAction bot = switch (attrs.get("language")) {
+                        case "Spanish" ->
+                            lexBotES;
                         default ->
                             lexBotEN;
                     };
+                    // Switch bot Locales
+                    bot.setContentF(f -> botResponse);
+                    yield bot;
+                }
                 default ->
                     SpeakAction.builder()
                     .withText("A system error has occured, please call back and try again")
