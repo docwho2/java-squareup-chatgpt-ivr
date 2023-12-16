@@ -41,6 +41,16 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
 - Messages can be sent to via Email to any of the employees.
   - ChatGPT can compose some interesting emails, quite entertaining.
   - The calling number is included in the subject of the email to lend context.
+- Language Support
+  - When interacting via Text channels (Facebook and SMS via Twilio) any language ChatGPT knows about (over 100) is supported.
+    - ChatGPT detects your language and responds in that language.
+  - When interacting via Voice any [language Lex supports](https://docs.aws.amazon.com/lexv2/latest/dg/how-languages.html) is possible.
+    - This project is configured with English and Spanish.
+    - ChatGPT tries to detect (or you can ask of course) if you want to speak in Spanish.
+    - ChatGPT function calling is used to trigger a language context switch and then the call is moved from one Bot Locale to another at the Chime level.
+  - ChatGPT is instructed to translate request parameters into English so searching items in the Store works in any language.
+    - Do you have gummy bears?  in Spanish is "¿Tienes ositos de goma?".
+    - Sí, tenemos ositos de goma. Ofrecemos "Big Yummy Gummy Bear - 12 Ct.", "Snack Pack O'Gummy Bears Milk Chocolate", y "Triple-Decker Candy Sour Gummy Bears".
 - You can call into a test SandBox deployment via +1(612)254-0226 to try it out.
 
 ## High Level Components
