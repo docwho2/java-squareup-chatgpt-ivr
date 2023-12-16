@@ -74,7 +74,12 @@ public class ChatGPTSessionState {
         sb.append("Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
         sb.append("Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  ");
 
+        // Privacy
         sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ").append(System.getenv("MAIN_NUMBER")).append(".  ");
+        
+        // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
+        //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
+        sb.append("When calling any functions, the request parameters should be translated to English before calling the function.  ");
         
         // Mode specific prompting
         switch (lexRequest.getInputMode()) {

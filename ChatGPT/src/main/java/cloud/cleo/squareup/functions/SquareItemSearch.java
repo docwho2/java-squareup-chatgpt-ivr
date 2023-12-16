@@ -63,7 +63,7 @@ public class SquareItemSearch<Request> extends AbstractFunction {
 
     private static class Request {
 
-        @JsonPropertyDescription("the search text to search for items for sale (translated to English if necessary)")
+        @JsonPropertyDescription("the search text to search for items for sale in English language")
         @JsonProperty(required = true)
         public String search_text;
     }

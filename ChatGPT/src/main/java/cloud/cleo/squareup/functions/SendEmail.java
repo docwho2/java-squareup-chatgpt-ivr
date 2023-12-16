@@ -85,11 +85,11 @@ public class SendEmail<Request> extends AbstractFunction {
         @JsonProperty(required = true)
         public String employee_email;
 
-        @JsonPropertyDescription("Subject for the email message (translated to English if necessary)")
+        @JsonPropertyDescription("Subject for the email message in English Language")
         @JsonProperty(required = true)
         public String subject;
 
-        @JsonPropertyDescription("The message body to relay to the employee (translated to English if necessary)")
+        @JsonPropertyDescription("The message body to relay to the employee in English Language")
         @JsonProperty(required = true)
         public String message;
     }
