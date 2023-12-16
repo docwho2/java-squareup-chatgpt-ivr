@@ -103,7 +103,7 @@ public class ChatGPTSessionState {
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
                 // Language
-                sb.append("If the caller wants to interact or is speaking in another language, execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME).append(" function and then respond to all prompts in that language.  ");
+                sb.append("If the caller wants to interact in Spanish or the language appears to be in Spanish, execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME).append(" function and then respond to all future prompts in that language.  ");
                 
                 // Transferring
                 if (AbstractFunction.isSquareEnabled()) {
