@@ -1,9 +1,9 @@
 package cloud.cleo.squareup.functions;
 
-import static cloud.cleo.squareup.ChatGPTLambda.FACEBOOK_INBOX_FUNCTION_NAME;
 import static cloud.cleo.squareup.enums.ChannelPlatform.FACEBOOK;
 import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import java.util.function.Function;
+import static cloud.cleo.squareup.ChatGPTLambda.FACEBOOK_HANDOVER_FUNCTION_NAME;
 
 /**
  * End Bot session and pass control of messaging thread to Inbox.
@@ -12,11 +12,11 @@ import java.util.function.Function;
  * @author sjensen
  * @param <Request>
  */
-public class FacebookInbox<Request> extends AbstractFunction {
+public class FacebookHandover<Request> extends AbstractFunction {
 
     @Override
     public String getName() {
-        return FACEBOOK_INBOX_FUNCTION_NAME;
+        return FACEBOOK_HANDOVER_FUNCTION_NAME;
     }
 
     @Override

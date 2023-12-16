@@ -154,9 +154,9 @@ public abstract class AbstractFunction<T> implements Cloneable {
         final String callingNumber = lexRequest.getPhoneE164();
         final ChannelPlatform channelPlatform = lexRequest.getChannelPlatform();
 
-        final var inputMode = lexRequest.getInputMode();
         final var list = new LinkedList<AbstractFunction>();
         final var sessionId = lexRequest.getSessionId();
+        final var isText = lexRequest.isText();
 
         for (var f : functions.values()) {
             try {
@@ -164,16 +164,14 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 func.setCallingNumber(callingNumber);
                 func.setChannelPlatform(channelPlatform);
                 func.setSessionId(sessionId);
-                switch (inputMode) {
-                    case TEXT -> {
-                        if (func.isText()) {
-                            list.add(func);
-                        }
+                if (isText) {
+                    if (func.isText()) {
+                        list.add(func);
                     }
-                    case SPEECH, DTMF -> {
-                        if (func.isVoice()) {
-                            list.add(func);
-                        }
+                } else {
+                    // If not Text, then this is voice of course
+                    if (func.isVoice()) {
+                        list.add(func);
                     }
                 }
             } catch (CloneNotSupportedException ex) {
@@ -242,7 +240,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
      * @return
      */
     protected boolean hasValidUSE164Number() {
-        if (callingNumber == null || callingNumber.isEmpty()) {
+        if (callingNumber == null || callingNumber.isBlank()) {
             return false;
         }
         return US_E164_PATTERN.matcher(callingNumber).matches();
@@ -299,8 +297,11 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Override and return false to disable a particular function
-     *
+     * Override and return false to disable a particular function.  This is only checked at function initialization time.
+     * If you want to disable/enable at request time you can return false for both isVoice() and isText().  This is meant
+     * to disable a function and leave the code laying around, or based on static initialized data.
+     * @see isVoice()
+     * @see isText()
      * @return
      */
     protected boolean isEnabled() {

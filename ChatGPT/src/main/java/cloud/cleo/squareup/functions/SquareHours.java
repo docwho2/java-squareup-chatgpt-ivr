@@ -20,7 +20,8 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.function.Function;
-import lombok.Data;
+import lombok.AccessLevel;
+import lombok.Getter;
 
 /**
  * Return the store hours from Square API
@@ -116,7 +117,7 @@ public class SquareHours<Request> extends AbstractFunction {
         }
     }
 
-    @Data
+    @Getter(AccessLevel.PRIVATE)
     private static class OpenPeriod {
 
         final DayOfWeek dow;

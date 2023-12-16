@@ -380,18 +380,33 @@ Resources:
               ParentIntentSignature: "AMAZON.FallbackIntent"
               FulfillmentCodeHook:
                   Enabled: true
-              InitialResponseSetting:
-                  InitialResponse:
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
                       AllowInterrupt: false
-                      MessageGroupsList:
-                          - Message:
-                              PlainTextMessage:
-                                Value: Pensamiento
-                            Variations:
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Pensamiento
+                          Variations:
                               - PlainTextMessage:
-                                  Value: trabajador
+                                  Value: Trabajador
                               - PlainTextMessage:
-                                  Value: "la transformación"
+                                  Value: Procesando
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: "Sigue pensando"
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: "Aún trabajando"
+                              - PlainTextMessage:
+                                  Value: "Todavía procesando"
         
   BotVersionGPT:
     Type: AWS::Lex::BotVersion

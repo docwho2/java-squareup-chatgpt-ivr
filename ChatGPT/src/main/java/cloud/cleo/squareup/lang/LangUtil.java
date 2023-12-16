@@ -30,7 +30,7 @@ public class LangUtil {
      */
     public enum LanguageIds {
         /**
-         * Sorry, I'm having a problem fulfilling your request.  Chat GPT might be down, Please try again later.
+         * Sorry, I'm having a problem fulfilling your request. Please try again later.
          */
         UNHANDLED_EXCEPTION,
         /**
@@ -49,6 +49,10 @@ public class LangUtil {
          * Specify the Chat language response
          */
         CHATGPT_RESPONSE_LANGUAGE,
+        /**
+         * Thank you for calling, goodbye.
+         */
+        GOODBYE
        
     }
 

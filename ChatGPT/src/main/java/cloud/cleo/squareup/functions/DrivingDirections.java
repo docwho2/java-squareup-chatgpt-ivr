@@ -1,12 +1,12 @@
 package cloud.cleo.squareup.functions;
 
 /**
- * 
+ * Base class for Driving Directions.
  *
  * @author sjensen
  * @param <Request>
  */
-public abstract class AbstractDrivingDirections<Request> extends AbstractFunction {
+public abstract class DrivingDirections<Request> extends AbstractFunction {
 
     
      /**

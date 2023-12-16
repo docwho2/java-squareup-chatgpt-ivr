@@ -66,13 +66,14 @@ public class SchedulePrivateShopping<Request> extends AbstractFunction {
     }
 
     /**
-     * Square must be enabled or their won't be a way to get email addresses
+     * Square must be enabled or their won't be a way to schedule.
      *
      * @return
      */
     @Override
     protected boolean isEnabled() {
-        return isSquareEnabled();
+        //return isSquareEnabled();
+        return false; // Disable for now until square call is coded up
     }
 
 }

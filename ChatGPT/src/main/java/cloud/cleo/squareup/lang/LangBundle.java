@@ -17,8 +17,8 @@ import java.util.ListResourceBundle;
 public class LangBundle extends ListResourceBundle {
 
     private final static String[][] contents = {
-        // Sorry, I'm having a problem fulfilling your request.  Chat GPT might be down, Please try again later.
-        {UNHANDLED_EXCEPTION.toString(), "Sorry, I'm having a problem fulfilling your request.  Chat GPT might be down, Please try again later."},
+        // Sorry, I'm having a problem fulfilling your request. Please try again later.
+        {UNHANDLED_EXCEPTION.toString(), "Sorry, I'm having a problem fulfilling your request. Please try again later."},
         // I'm sorry, I didn't catch that, if your done, simply say good bye, otherwise tell me how I can help?
         {BLANK_RESPONSE.toString(), "I'm sorry, I didn't catch that, if your done, simply say good bye, otherwise tell me how I can help?"},
         // What else can I help you with?
@@ -26,8 +26,9 @@ public class LangBundle extends ListResourceBundle {
         // The operation timed out, please ask your question again
         {OPERATION_TIMED_OUT.toString(), "The operation timed out, please ask your question again"},
         // Response Language
-        {CHATGPT_RESPONSE_LANGUAGE.toString(), "Please respond to all prompts in English"},
-       
+        {CHATGPT_RESPONSE_LANGUAGE.toString(), "Please respond to all prompts in English.  "},
+        // Thank you for calling, goodbye.
+        {GOODBYE.toString(), "Thank you for calling, goodbye."},
     };
 
     @Override

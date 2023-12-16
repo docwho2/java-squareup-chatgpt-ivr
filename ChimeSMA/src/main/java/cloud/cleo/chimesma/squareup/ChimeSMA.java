@@ -28,7 +28,7 @@ public class ChimeSMA extends AbstractFlow {
     private final static String VC_ARN = System.getenv("VC_ARN");
 
     private final static Action MAIN_MENU = getMainMenu();
-    
+
     /**
      * Initial action is to play welcome message and whether store is open or closed
      *
@@ -79,16 +79,16 @@ public class ChimeSMA extends AbstractFlow {
                 .withLocale(english)
                 .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
                 // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("calling_number", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
-        // Will add Spanish later if needed
+        // Spanish, we always Start in English but if GPT detects caller wants to converse in spanish we will then move to this.
         final var lexBotES = StartBotConversationAction.builder()
                 .withDescription("ChatGPT Spanish")
                 .withLocale(spanish)
-                .withContent("¿En qué puede ayudarte Chat GPT?")
+                .withContent("Cuéntanos ¿cómo podemos ayudar hoy?") // Tell us how we can help today?
                 // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("calling_number", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
                 .build();
 
         //
@@ -101,7 +101,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withArn(VC_ARN)
                 .withNextLegBHangupAction(lexBotEN)
                 .build();
-        
+
         final var anyDigit = ReceiveDigitsAction.builder()
                 .withInputDigitsRegex("^([0-9]|#|\\*)$")
                 .withInBetweenDigitsDurationInMilliseconds(1000)
@@ -148,6 +148,13 @@ public class ChimeSMA extends AbstractFlow {
                     .withTextF(tf -> botResponse)
                     .withNextAction(hangup)
                     .build();
+                case "switch_language" ->
+                    switch (attrs.get("language")) {
+                        case "Spanish" ->
+                            lexBotES;
+                        default ->
+                            lexBotEN;
+                    };
                 default ->
                     SpeakAction.builder()
                     .withText("A system error has occured, please call back and try again")
@@ -169,6 +176,7 @@ public class ChimeSMA extends AbstractFlow {
      * @return the default error Action
      */
     @Override
+
     protected Action getErrorAction() {
         final var errMsg = SpeakAction.builder()
                 .withText("A system error has occured, please call back and try again")

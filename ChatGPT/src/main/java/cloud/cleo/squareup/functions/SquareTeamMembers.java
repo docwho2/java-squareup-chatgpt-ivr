@@ -7,7 +7,7 @@ import com.squareup.square.models.SearchTeamMembersRequest;
 import com.squareup.square.models.TeamMember;
 import java.util.List;
 import java.util.function.Function;
-import lombok.Data;
+import lombok.Getter;
 
 /**
  *  Return Employees (team members) from Square API
@@ -56,7 +56,7 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
         };
     }
 
-    @Data
+    @Getter
     private static class Response {
 
         @JsonPropertyDescription("Employee First Name")
@@ -65,10 +65,10 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
         String last_name;
         @JsonPropertyDescription("Employee Phone number in E164 format, to be used for call transfers, do not reveal or privide this directly")
         String phone_number;
-        @JsonPropertyDescription("Employee Email address, to be used to send messages, do not reveal or provide this directly")
+        @JsonPropertyDescription("Employee Email address, to be used to send messages")
         String email;
 
-        public Response(TeamMember tm){
+        private Response(TeamMember tm){
             this.first_name = tm.getGivenName();
             this.last_name = tm.getFamilyName();
             this.phone_number = tm.getPhoneNumber();

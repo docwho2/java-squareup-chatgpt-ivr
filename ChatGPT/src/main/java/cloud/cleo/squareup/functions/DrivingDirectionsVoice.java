@@ -11,7 +11,7 @@ import software.amazon.awssdk.services.sns.SnsAsyncClient;
  *
  * @author sjensen
  */
-public class DrivingDirectionsVoice extends AbstractDrivingDirections {
+public class DrivingDirectionsVoice extends DrivingDirections {
 
     
     final static SnsAsyncClient snsAsyncClient = SnsAsyncClient.builder()

@@ -3,7 +3,6 @@ package cloud.cleo.squareup.functions;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import static java.time.temporal.ChronoUnit.DAYS;

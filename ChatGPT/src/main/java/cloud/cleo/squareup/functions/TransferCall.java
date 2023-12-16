@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;

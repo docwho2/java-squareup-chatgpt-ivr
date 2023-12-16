@@ -2,6 +2,7 @@
 package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
+import static cloud.cleo.squareup.ChatGPTLambda.SWITCH_LANGUAGE_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -60,8 +61,11 @@ public class ChatGPTSessionState {
         final var sb = new StringBuilder();
 
         // General Prompting
-        sb.append("Please be a helpfull assistant for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
+        sb.append("Please be a helpfull assistant named \"Copper Bot\" for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
         sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
+        sb.append("The store opened in October of 2021 and moved to its larger location in May of 2023.  ");
+        
+
         // We need to tell GPT the date so it has a reference for Store hours, when calling via API it has no date knowledge
         sb.append("The current date is  ").append(date).append(".  ");
         sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
@@ -96,9 +100,12 @@ public class ChatGPTSessionState {
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
+                // Language
+                sb.append("If the caller wants to interact or is speaking in another language, execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME).append(" function and then respond to all prompts in that language.  ");
+                
                 // Transferring
                 if (AbstractFunction.isSquareEnabled()) {
-                    sb.append("To transfer or speak with a employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
+                    sb.append("To transfer or speak with an employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                     sb.append("Do not provide callers employee phone numbers, you can only use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 }
                 sb.append("If the caller wants to just speak to any person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");

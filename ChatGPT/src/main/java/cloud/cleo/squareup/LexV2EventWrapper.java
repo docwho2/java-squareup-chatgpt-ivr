@@ -6,10 +6,12 @@ package cloud.cleo.squareup;
 
 import cloud.cleo.squareup.enums.*;
 import static cloud.cleo.squareup.enums.ChannelPlatform.*;
+import cloud.cleo.squareup.lang.LangUtil;
+import cloud.cleo.squareup.lang.LangUtil.LanguageIds;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
+import java.util.Locale;
 import java.util.Map;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
@@ -17,14 +19,46 @@ import lombok.Getter;
  *
  * @author sjensen
  */
-@AllArgsConstructor
 public class LexV2EventWrapper {
 
-    /**
+     /**
      * The underlying Lex V2 Event.
      */
     @Getter(AccessLevel.PUBLIC)
     private final LexV2Event event;
+    
+    /**
+     * Language Support.
+     */
+    @Getter(AccessLevel.PUBLIC)
+    private final LangUtil lang;
+    
+    
+    public LexV2EventWrapper(LexV2Event event) {
+        this.event = event;
+        this.lang = new LangUtil(event.getBot().getLocaleId());
+    }
+
+    
+    /**
+     * The Java Locale for this Bot request.
+     * 
+     * @return 
+     */
+    public Locale getLocale() {
+        return lang.getLocale();
+    }
+    
+    /**
+     * Get a Language Specific String.
+     * 
+     * @param id
+     * @return 
+     */
+    public String getLangString(LanguageIds id) {
+        return lang.getString(id);
+    }
+    
 
     /**
      * Return Input Mode as Enumeration.
@@ -104,6 +138,14 @@ public class LexV2EventWrapper {
     public String getInputTranscript() {
         return event.getInputTranscript();
     }
+    
+    /**
+     * The Intent for this request.
+     * @return 
+     */
+    public String getIntent() {
+        return event.getSessionState().getIntent().getName();
+    }
 
     /**
      * Lex Session Attributes.
@@ -122,6 +164,7 @@ public class LexV2EventWrapper {
     public String getSessionId() {
         return event.getSessionId();
     }
+    
 
     /**
      * Is this request from the Facebook Channel.

@@ -11,6 +11,7 @@ import cloud.cleo.squareup.json.LocalTimeDeserializer;
 import cloud.cleo.squareup.json.LocalTimeSerializer;
 import cloud.cleo.squareup.json.ZoneIdDeserializer;
 import cloud.cleo.squareup.json.ZonedSerializer;
+import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
@@ -75,9 +76,9 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     public final static String TRANSFER_FUNCTION_NAME = "transfer_call";
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
-    public final static String FACEBOOK_INBOX_FUNCTION_NAME = "facebook_inbox";
+    public final static String FACEBOOK_HANDOVER_FUNCTION_NAME = "facebook_inbox";
+    public final static String SWITCH_LANGUAGE_FUNCTION_NAME = "switch_language";
 
-    public final static String GENERAL_ERROR_MESG = "Sorry, I'm having a problem fulfilling your request. Please try again later.";
 
     // Eveverything here will be done at SnapStart init
     static {
@@ -108,27 +109,28 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     @Override
     public LexV2Response handleRequest(LexV2Event lexRequest, Context cntxt) {
-
+         // Wrapped Event Class
+        final LexV2EventWrapper event = new LexV2EventWrapper(lexRequest);
         try {
             log.debug(mapper.valueToTree(lexRequest).toPrettyString());
-            final var intentName = lexRequest.getSessionState().getIntent().getName();
-            log.debug("Intent: " + intentName);
+            // Intent which doesn't matter for us
+            log.debug("Intent: " + event.getIntent());
 
             // For this use case, we only ever get the FallBack Intent, so the intent name means nothing here
             // We will process everythiung coming in as text to pass to GPT
             // IE, we are only using lex here to process speech and send it to us
-            return switch (intentName) {
+            return switch (event.getIntent()) {
                 default ->
-                    processGPT(new LexV2EventWrapper(lexRequest));
+                    processGPT(event);
             };
 
         } catch (CompletionException e) {
             log.error("Unhandled Future Exception", e.getCause());
-            return buildResponse(new LexV2EventWrapper(lexRequest), GENERAL_ERROR_MESG);
+            return buildResponse(new LexV2EventWrapper(lexRequest), event.getLangString(UNHANDLED_EXCEPTION));
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             // Unhandled Exception
-            return buildResponse(new LexV2EventWrapper(lexRequest), GENERAL_ERROR_MESG);
+            return buildResponse(new LexV2EventWrapper(lexRequest), event.getLangString(UNHANDLED_EXCEPTION));
         }
     }
 
@@ -138,14 +140,17 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
         final var session_id = lexRequest.getSessionId();
 
+        // For Voice we support 2 Locales, English and Spanish
+        log.debug("Java Locale is " + lexRequest.getLocale());
+        
         // Special Facebook Short Circut
-        if (attrs.containsKey(FACEBOOK_INBOX_FUNCTION_NAME)) {
+        if (attrs.containsKey(FACEBOOK_HANDOVER_FUNCTION_NAME)) {
             log.debug("Facebook Short Circut, calling FB API to move thread to FB Inbox");
             FaceBookOperations.transferToInbox(session_id);
             // Clear out all sessions Attributes
             attrs.clear();
             // Send a close indicating we are done with this Lex Session
-            return buildTerminatingResponse(lexRequest, FACEBOOK_INBOX_FUNCTION_NAME, Map.of(), "Thread moved to Facebook Inbox.");
+            return buildTerminatingResponse(lexRequest, FACEBOOK_HANDOVER_FUNCTION_NAME, Map.of(), "Thread moved to Facebook Inbox.");
         }
 
         if (input == null || input.isBlank()) {
@@ -157,11 +162,11 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             if (count > 2) {
                 log.debug("Two blank responses, sending to Quit Intent");
                 // Hang up on caller after 2 silience requests
-                return buildTerminatingResponse(lexRequest, "hangup_call", Map.of(), "Thank you for calling, goodbye.");
+                return buildTerminatingResponse(lexRequest, "hangup_call", Map.of(), lexRequest.getLangString(GOODBYE));
             } else {
                 attrs.put("blankCounter", count.toString());
                 // If we get slience (timeout without speech), then we get empty string on the transcript
-                return buildResponse(lexRequest, "I'm sorry, I didn't catch that, if your done, simply say good bye, otherwise tell me how I can help?");
+                return buildResponse(lexRequest, lexRequest.getLangString(BLANK_RESPONSE));
             }
         } else {
             // The Input is not blank, so always put the counter back to zero
@@ -247,7 +252,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         } catch (RuntimeException rte) {
             if (rte.getCause() != null && rte.getCause() instanceof SocketTimeoutException) {
                 log.error("Response timed out", rte);
-                botResponse = "The operation timed out, please ask your question again";
+                botResponse = lexRequest.getLangString(OPERATION_TIMED_OUT);
             } else {
                 throw rte;
             }
@@ -272,10 +277,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             }
 
             // Special Facebook handoff check
-            if (functionCallsMade.stream().anyMatch(f -> f.getName().equals(FACEBOOK_INBOX_FUNCTION_NAME))) {
+            if (functionCallsMade.stream().anyMatch(f -> f.getName().equals(FACEBOOK_HANDOVER_FUNCTION_NAME))) {
                 // Session needs to move to Inbox, but we can't do it now because then our response won't make it to end user
                 // Push this into the Lex Session so on the next incoming message we can short circuit and call FB API
-                attrs.put(FACEBOOK_INBOX_FUNCTION_NAME, "true");
+                attrs.put(FACEBOOK_HANDOVER_FUNCTION_NAME, "true");
                 // Ignore what GPT said and send back message with Card asking how the bot did.
                 return buildResponse(lexRequest, "ChatBot will be removed from this conversation after clicking below.", buildTransferCard());
             }
@@ -285,7 +290,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         //  For voice it just seems more natural to always end with a question.
         if (lexRequest.isVoice() && !botResponse.endsWith("?")) {
             // If ends with question, then we don't need to further append question
-            botResponse = botResponse + "  What else can I help you with?";
+            botResponse = botResponse + lexRequest.getLangString(ANYTHING_ELSE);
         }
 
         if (session_new && lexRequest.isFacebook()) {

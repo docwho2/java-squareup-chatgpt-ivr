@@ -7,7 +7,7 @@ import java.util.function.Function;
  * 
  * @author sjensen
  */
-public class DrivingDirectionsText extends AbstractDrivingDirections {
+public class DrivingDirectionsText extends DrivingDirections {
 
     
     @Override
