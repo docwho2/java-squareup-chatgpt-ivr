@@ -79,7 +79,9 @@ public class ChatGPTSessionState {
         
         // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
         //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
-        sb.append("When calling any functions, the request parameters should be translated to English before calling the function.  ");
+        sb.append("When executing send_email_message function, translate the subject to English and for the message translate to English and also provide the original language text as well for reference.  ");
+        sb.append("When executing store_product_categories function, translate the search_text to English.  ");
+        sb.append("When executing store_product_item function, translate the search_text to English.  ");
         
         // Mode specific prompting
         switch (lexRequest.getInputMode()) {
@@ -108,7 +110,7 @@ public class ChatGPTSessionState {
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
                 // Language
-                sb.append("If the caller wants to interact in Spanish or the language appears to be in Spanish, execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME).append(" function and then respond to all future prompts in that language.  ");
+                sb.append("If the caller wants to interact in Spanish, execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME).append(" function and then respond to all future prompts in that language.  ");
                 
                 // Transferring
                 if (AbstractFunction.isSquareEnabled()) {
