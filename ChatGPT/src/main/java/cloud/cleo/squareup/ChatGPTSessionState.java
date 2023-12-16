@@ -79,7 +79,8 @@ public class ChatGPTSessionState {
         
         // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
         //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
-        sb.append("When executing send_email_message function, translate the subject to English and for the message translate to English and also provide the original language text as well for reference.  ");
+        // General statement didn't work well, but calling the below out works great
+        sb.append("When executing send_email_message function, translate the subject and message to English. ");
         sb.append("When executing store_product_categories function, translate the search_text to English.  ");
         sb.append("When executing store_product_item function, translate the search_text to English.  ");
         
