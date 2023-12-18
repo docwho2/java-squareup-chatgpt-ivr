@@ -103,14 +103,6 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Sagen Sie uns, wie wir heute helfen können?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
-        // Japanese
-        botLangMap.put(Language.Japanese, StartBotConversationAction.builder()
-                .withDescription("ChatGPT Japanese")
-                .withLocale(Locale.forLanguageTag("ja-JP"))
-                .withContent("今日私たちがどのようにお手伝いできるか教えてください。") // Tell us how we can help today?
-                .withSessionAttributesF(attributesFunction)
-                .build());
 
         //
         // MOH Flow
@@ -223,8 +215,7 @@ public class ChimeSMA extends AbstractFlow {
     static enum Language {
         English,
         Spanish,
-        German,
-        Japanese;
+        German;
     }
 
 }

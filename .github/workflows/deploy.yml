@@ -50,7 +50,6 @@ env:
   VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
   VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
   VOICE_ID_DE: ${{ vars.VOICE_ID_DE  || 'Vicki' }}
-  VOICE_ID_JA: ${{ vars.VOICE_ID_JA  || 'Kazuha' }}
 
 
 jobs:
@@ -242,7 +241,6 @@ jobs:
         VOICEIDEN=${VOICE_ID_EN}
         VOICEIDES=${VOICE_ID_ES}
         VOICEIDDE=${VOICE_ID_DE}
-        VOICEIDJA=${VOICE_ID_JA}
     
     - name: Update SMA Endpoint 
       run: |

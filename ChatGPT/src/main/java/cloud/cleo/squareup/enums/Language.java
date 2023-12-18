@@ -12,6 +12,5 @@ package cloud.cleo.squareup.enums;
 public enum Language {
     English,
     Spanish,
-    German,
-    Japanese;
+    German;
 }

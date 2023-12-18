@@ -7,7 +7,6 @@ source config.sh
 VOICE_ID_EN=Joanna
 VOICE_ID_ES=Lupe
 VOICE_ID_DE=Vicki
-VOICE_ID_JA=Kazuha
 
 # If you have SIP PBX and want to send and receive calls via Voice Connector, uncomment below and set to IP Address
 # export PBX_HOSTNAME=54.54.54.54
@@ -154,8 +153,7 @@ TRANSFERNUMBER=${TRANSFER_NUMBER} \
 OPENAIMODEL=${OPENAI_MODEL} \
 VOICEIDEN=${VOICE_ID_EN} \
 VOICEIDES=${VOICE_ID_ES} \
-VOICEIDDE=${VOICE_ID_DE} \
-VOICEIDJA=${VOICE_ID_JA}"
+VOICEIDDE=${VOICE_ID_DE}"
 
 DUMMY_ENDPOINT=$(aws ssm get-parameter --region ${region} --name /${CDK_STACK_NAME}/LAMBDA_ARN --query Parameter.Value --output text)
 TARGET_ENDPOINT=arn:aws:lambda:${region}:${ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA:SNAPSTART
