@@ -514,7 +514,7 @@ Resources:
                               - PlainTextMessage:
                                   Value: "静止処理中"
         
-  BotVersionGPT:
+  BotVersionChatGPT:
     Type: AWS::Lex::BotVersion
     Properties:
       BotId: !Ref LexBotGPT
@@ -538,7 +538,7 @@ Resources:
     Properties:
       BotId: !Ref LexBotGPT
       BotAliasName: "Latest"
-      BotVersion: !GetAtt BotVersionGPT.BotVersion
+      BotVersion: !GetAtt BotVersionChatGPT.BotVersion
       SentimentAnalysisSettings:
         DetectSentiment: false
       BotAliasLocaleSettings:
