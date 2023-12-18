@@ -73,8 +73,6 @@ Parameters:
     Type: String
     Default: Lupe
     AllowedValues:
-        - Mia      # Female (Mexico)
-        - Andrés   # Male (Mexico)
         - Lupe     # Female (US, neural)
         - Pedro    # Male (US, neural)
   VOICEIDDE:
@@ -82,9 +80,7 @@ Parameters:
     Type: String
     Default: Vicki
     AllowedValues:
-        - Marlene  # Female
         - Vicki    # Female (neural)
-        - Hans     # Male
         - Daniel   # Male (neural)
   TRANSFERNUMBER:
     Description: The E164 Number to be used when transferring to main number
@@ -195,7 +191,7 @@ Resources:
         PromptName: welcome.wav
         PromptText: |
             <speak>
-            <break time="2s"/>Thank you for calling <emphasis>Copper Fox Gifts</emphasis>.
+            <break time="2s"/>Thank you for calling Copper Fox Gifts.
             </speak>
   
   
