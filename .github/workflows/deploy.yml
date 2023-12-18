@@ -46,9 +46,11 @@ env:
   # https://platform.openai.com/docs/models/overview (requres model with function calling)
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
   
-  # Polly voices to use for English and Spanish https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
+  # Polly voices to use https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
   VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
   VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
+  VOICE_ID_DE: ${{ vars.VOICE_ID_DE  || 'Vicki' }}
+  VOICE_ID_JA: ${{ vars.VOICE_ID_JA  || 'Kazuha' }}
 
 
 jobs:
@@ -239,6 +241,8 @@ jobs:
         OPENAIMODEL=${OPENAI_MODEL}
         VOICEIDEN=${VOICE_ID_EN}
         VOICEIDES=${VOICE_ID_ES}
+        VOICEIDDE=${VOICE_ID_DE}
+        VOICEIDJA=${VOICE_ID_JA}
     
     - name: Update SMA Endpoint 
       run: |

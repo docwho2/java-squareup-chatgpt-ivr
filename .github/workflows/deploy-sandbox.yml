@@ -193,6 +193,9 @@ jobs:
         OPENAIMODEL=${{ vars.OPENAI_MODEL }}
         VOICEIDEN=${{ vars.VOICE_ID_EN  || 'Joanna' }}
         VOICEIDES=${{ vars.VOICE_ID_ES  || 'Lupe' }}
+        VOICEIDDE=${{ vars.VOICE_ID_DE  || 'Vicki' }}
+        VOICEIDJA=${{ vars.VOICE_ID_JA  || 'Kazuha' }}
+        
     
     - name: Update SMA Endpoint 
       run: |

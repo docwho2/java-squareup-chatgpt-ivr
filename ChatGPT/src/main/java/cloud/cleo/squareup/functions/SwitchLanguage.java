@@ -3,6 +3,7 @@ package cloud.cleo.squareup.functions;
 
 
 import static cloud.cleo.squareup.ChatGPTLambda.SWITCH_LANGUAGE_FUNCTION_NAME;
+import cloud.cleo.squareup.enums.Language;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.function.Function;
@@ -48,10 +49,6 @@ public class SwitchLanguage<Request> extends AbstractFunction {
         public Language language;
     }
 
-    static enum Language {
-        English,
-        Spanish;
-    }
     
    /**
      * Language not applicable when using a text interface

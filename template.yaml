@@ -73,10 +73,28 @@ Parameters:
     Type: String
     Default: Lupe
     AllowedValues:
-        - Mia      # Female (Mexican)
-        - Andrés   # Male (Mexican)
-        - Lupe     # Female (US)
-        - Pedro    # Male (US)
+        - Mia      # Female (Mexico)
+        - Andrés   # Male (Mexico)
+        - Lupe     # Female (US, neural)
+        - Pedro    # Male (US, neural)
+  VOICEIDDE:
+    Description: The voice used for LEX and prompt generation for German
+    Type: String
+    Default: Vicki
+    AllowedValues:
+        - Marlene  # Female
+        - Vicki    # Female (neural)
+        - Hans     # Male
+        - Daniel   # Male (neural)
+  VOICEIDJA:
+    Description: The voice used for LEX and prompt generation for Japanese
+    Type: String
+    Default: Kazuha
+    AllowedValues:
+        - Mizuki   # Female 
+        - Takumi   # Male (neural)
+        - Kazuha   # Female (neural)
+        - Tomoko   # Female (neural)
   TRANSFERNUMBER:
     Description: The E164 Number to be used when transferring to main number
     Type: String
@@ -242,6 +260,8 @@ Resources:
       Handler: cloud.cleo.chimesma.squareup.ChimeSMA
       AutoPublishAlias: SNAPSTART
       CodeUri: ./ChimeSMA
+      SnapStart:
+        ApplyOn: PublishedVersions
       Environment: 
         Variables:
           PROMPT_BUCKET: !Ref PromptBucket
@@ -253,12 +273,14 @@ Resources:
           VC_ARN: !Ref VOICECONNECTORARN
           LANGUAGE_VOICE_MAP:
               Fn::ToJsonString:
-                  - Locale: en-US
-                    VoiceId: !Ref VOICEIDEN
-                  - Locale: es-US
-                    VoiceId: !Ref VOICEIDES
-      SnapStart:
-        ApplyOn: PublishedVersions
+                - Locale: en-US
+                  VoiceId: !Ref VOICEIDEN
+                - Locale: es-US
+                  VoiceId: !Ref VOICEIDES
+                - Locale: de-DE
+                  VoiceId: !Ref VOICEIDDE
+                - Locale: ja-JP
+                  VoiceId: !Ref VOICEIDJA
   
   ChimeSMALogGroup:
     Type: AWS::Logs::LogGroup
@@ -407,6 +429,90 @@ Resources:
                                   Value: "Aún trabajando"
                               - PlainTextMessage:
                                   Value: "Todavía procesando"
+        - LocaleId: de_DE
+          Description: ChatGPT Bot German
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDDE
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Denken
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Arbeiten
+                              - PlainTextMessage:
+                                  Value: "wird bearbeitet"
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: "Noch am überlegen"
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: "Immer noch am arbeiten"
+                              - PlainTextMessage:
+                                  Value: "Noch in Bearbeitung"
+        - LocaleId: ja_JP
+          Description: ChatGPT Bot Japanese
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDJA
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: "考え"
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: "働く"
+                              - PlainTextMessage:
+                                  Value: "処理"
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: "まだ考えています"
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: "まだ働いています"
+                              - PlainTextMessage:
+                                  Value: "静止処理中"
         
   BotVersionGPT:
     Type: AWS::Lex::BotVersion
@@ -417,6 +523,12 @@ Resources:
           BotVersionLocaleDetails:
             SourceBotVersion: DRAFT
         - LocaleId: es_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: de_DE
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: ja_JP
           BotVersionLocaleDetails:
             SourceBotVersion: DRAFT
       Description: ChatGPT Bot V1
@@ -438,6 +550,20 @@ Resources:
                 CodeHookInterfaceVersion: "1.0"
                 LambdaArn: !Ref ChatGPT.Alias
         - LocaleId: es_US
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: de_DE
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: ja_JP
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:

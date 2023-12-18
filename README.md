@@ -45,8 +45,8 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
   - When interacting via Text channels (Facebook and SMS via Twilio) any language ChatGPT knows about (over 100) is supported.
     - ChatGPT detects your language and responds in that language.
   - When interacting via Voice any [language Lex supports](https://docs.aws.amazon.com/lexv2/latest/dg/how-languages.html) is possible.
-    - This project is configured with English and Spanish.
-    - ChatGPT tries to detect (or you can ask of course) if you want to speak in Spanish.
+    - This project is configured with English, Spanish, German, and Japanese (languages I've spoken, so I can test easier).
+    - ChatGPT tries to detect (or you can ask of course) if you want to speak in another language.
     - ChatGPT function calling is used to trigger a language context switch and then the call is moved from one Bot Locale to another at the Chime level.
   - ChatGPT is instructed to translate request parameters into English so searching items in the Store works in any language.
     - Do you have gummy bears?  in Spanish is "¿Tienes ositos de goma?".

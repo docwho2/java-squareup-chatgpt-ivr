@@ -1,17 +1,19 @@
-
 package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.SWITCH_LANGUAGE_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
+import cloud.cleo.squareup.enums.Language;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.Data;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
@@ -29,10 +31,10 @@ public class ChatGPTSessionState {
      */
     private String sessionId;
     /**
-     * We qualify all sessions with today's date because channels like Twilio and Facebook have static sessionId's.
-     * If we didn't use date as a range key, then static ID's like SMS would have too much session data and accumulate
-     * day to day.  So essentially SMS and FB sessions will span one day.  Chime will generate a unique sessionId
-     * per call, so for voice calls, a session is a call.
+     * We qualify all sessions with today's date because channels like Twilio and Facebook have static sessionId's. If
+     * we didn't use date as a range key, then static ID's like SMS would have too much session data and accumulate day
+     * to day. So essentially SMS and FB sessions will span one day. Chime will generate a unique sessionId per call, so
+     * for voice calls, a session is a call.
      */
     private LocalDate date;
     /**
@@ -45,7 +47,8 @@ public class ChatGPTSessionState {
     private Long counter;
 
     /**
-     * Unix timestamp when this Dynamo record should be deleted.  We don't want session data hanging in the table forever.
+     * Unix timestamp when this Dynamo record should be deleted. We don't want session data hanging in the table
+     * forever.
      */
     private Long ttl;
 
@@ -64,11 +67,9 @@ public class ChatGPTSessionState {
         sb.append("Please be a helpfull assistant named \"Copper Bot\" for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
         sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
         sb.append("The store opened in October of 2021 and moved to its larger location in May of 2023.  ");
-        
 
-        // We need to tell GPT the date so it has a reference for Store hours, when calling via API it has no date knowledge
+        // We need to tell GPT the date so it has a reference, when calling via API it has no date knowledge
         sb.append("The current date is  ").append(date).append(".  ");
-        sb.append("Do not respond with the whole employee list.  You may confirm the existance of an employee and give the full name.  ");
 
         // Local Stuff to recommend
         sb.append("Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
@@ -76,18 +77,19 @@ public class ChatGPTSessionState {
 
         // Privacy
         sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ").append(System.getenv("MAIN_NUMBER")).append(".  ");
-        
+        sb.append("Do not give out the employee list.  You may confirm the existance of an employee and give the full name and email.  ");
+
         // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
         //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
         // General statement didn't work well, but calling the below out works great
         sb.append("When executing send_email_message function, translate the subject and message to English. ");
         sb.append("When executing store_product_categories function, translate the search_text to English.  ");
         sb.append("When executing store_product_item function, translate the search_text to English.  ");
-        
+
         // Mode specific prompting
         switch (lexRequest.getInputMode()) {
             case TEXT -> {
-                switch(lexRequest.getChannelPlatform()) {
+                switch (lexRequest.getChannelPlatform()) {
                     case FACEBOOK -> {
                         // Don't need very short or char limit, but we don't want to output a book either
                         sb.append("I am interacting via Facebook Messenger.  Please keep answers short and concise.  ");
@@ -110,15 +112,17 @@ public class ChatGPTSessionState {
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
-                // Language
-                sb.append("If the caller wants to interact in Spanish, execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME).append(" function and then respond to all future prompts in that language.  ");
-                
+                // Speech Languages
+                sb.append("If the caller wants to interact in ").append(Arrays.stream(Language.values()).map(Language::toString).collect(Collectors.joining(" or ")))
+                        .append(" execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME)
+                        .append(" function and then respond to all future prompts in that language.  ");
+
                 // Transferring
                 if (AbstractFunction.isSquareEnabled()) {
                     sb.append("To transfer or speak with an employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                     sb.append("Do not provide callers employee phone numbers, you can only use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 }
-                sb.append("If the caller wants to just speak to any person or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
+                sb.append("If the caller wants to just speak to a person in general or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
             }
         }
 

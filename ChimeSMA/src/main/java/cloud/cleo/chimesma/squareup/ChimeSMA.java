@@ -2,6 +2,7 @@ package cloud.cleo.chimesma.squareup;
 
 import cloud.cleo.chimesma.actions.*;
 import cloud.cleo.chimesma.model.ParticipantTag;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -62,9 +63,6 @@ public class ChimeSMA extends AbstractFlow {
      */
     public static Action getMainMenu() {
 
-        final var english = Locale.forLanguageTag("en-US");
-        final var spanish = Locale.forLanguageTag("es-US");
-
         final var hangup = HangupAction.builder()
                 .withDescription("This is my last step").build();
 
@@ -74,22 +72,45 @@ public class ChimeSMA extends AbstractFlow {
                 .withNextAction(hangup)
                 .build();
 
+        // Function that passes the Calling Number to Lex
+        Function<StartBotConversationAction, Map<String, String>> attributesFunction = (action) -> {
+            return Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom());
+        };
+
+        // Map to Hold all all our Bots by Language
+        Map<Language, StartBotConversationAction> botLangMap = new HashMap<>();
+
         final var lexBotEN = StartBotConversationAction.builder()
                 .withDescription("ChatGPT English")
-                .withLocale(english)
+                .withLocale(Locale.forLanguageTag("en-US"))
                 .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
-                // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
+                .withSessionAttributesF(attributesFunction)
                 .build();
+        botLangMap.put(Language.English, lexBotEN);
 
-        // Spanish, we always Start in English but if GPT detects caller wants to converse in spanish we will then move to this.
-        final var lexBotES = StartBotConversationAction.builder()
+        // Spanish
+        botLangMap.put(Language.Spanish, StartBotConversationAction.builder()
                 .withDescription("ChatGPT Spanish")
-                .withLocale(spanish)
+                .withLocale(Locale.forLanguageTag("es-US"))
                 .withContent("Cuéntanos ¿cómo podemos ayudar hoy?") // Tell us how we can help today?
-                // Send the calling number in so we can send texts if need be
-                .withSessionAttributesF(action -> Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom()))
-                .build();
+                .withSessionAttributesF(attributesFunction)
+                .build());
+
+        // German
+        botLangMap.put(Language.German, StartBotConversationAction.builder()
+                .withDescription("ChatGPT German")
+                .withLocale(Locale.forLanguageTag("de-DE"))
+                .withContent("Sagen Sie uns, wie wir heute helfen können?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
+        // Japanese
+        botLangMap.put(Language.Japanese, StartBotConversationAction.builder()
+                .withDescription("ChatGPT Japanese")
+                .withLocale(Locale.forLanguageTag("ja-JP"))
+                .withContent("今日私たちがどのようにお手伝いできるか教えてください。") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
 
         //
         // MOH Flow
@@ -111,7 +132,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withDigitsRecevedAction(HangupAction.builder().withParticipantTag(ParticipantTag.LEG_B).build())
                 .build();
 
-        // Two invocations of the bot, so create one function and use for both
+        // Create a Next Action handler to be shared by all the Bots
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
             final var botResponse = attrs.get("bot_response");  // When transferring or hanging up, play back GPT's last response
@@ -149,13 +170,9 @@ public class ChimeSMA extends AbstractFlow {
                     .withNextAction(hangup)
                     .build();
                 case "switch_language" -> {
-                    StartBotConversationAction bot = switch (attrs.get("language")) {
-                        case "Spanish" ->
-                            lexBotES;
-                        default ->
-                            lexBotEN;
-                    };
-                    // Switch bot Locales
+                    // Obtain the bot locale based on the language attribute from the session
+                    final var bot = botLangMap.getOrDefault(Language.valueOf(attrs.get("language")), lexBotEN);
+                    // Start bot in that language with GPT response (which will be in the target language)
                     bot.setContentF(f -> botResponse);
                     yield bot;
                 }
@@ -167,10 +184,10 @@ public class ChimeSMA extends AbstractFlow {
             };
         };
 
-        // Both bots are the same, so the handler is the same
-        lexBotEN.setNextActionF(botNextAction);
-        lexBotES.setNextActionF(botNextAction);
+        // All Bots regardless of language will use the next action handler above
+        botLangMap.values().forEach(bot -> bot.setNextActionF(botNextAction));
 
+        // We will start in English and GPT will detect and call back to us to switch languages as necessary
         return lexBotEN;
     }
 
@@ -198,6 +215,16 @@ public class ChimeSMA extends AbstractFlow {
     @Override
     protected void hangupHandler(Action action) {
         log.info("Hangup Handler Code Here");
+    }
+
+    /**
+     * Voice Languages we support (that are built out in Lex)
+     */
+    static enum Language {
+        English,
+        Spanish,
+        German,
+        Japanese;
     }
 
 }
