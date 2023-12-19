@@ -53,7 +53,7 @@ Parameters:
         - gpt-4-32k
         - gpt-4-1106-preview
   VOICEIDEN:
-    Description: The voice used for LEX and prompt generation for English
+    Description: The neural voice used for LEX and prompt generation for English
     Type: String
     Default: Joanna
     AllowedValues: # https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
@@ -69,14 +69,14 @@ Parameters:
         - Ruth     # Female
         - Stephen  # Male
   VOICEIDES:
-    Description: The voice used for LEX and prompt generation for Spanish
+    Description: The neural voice used for LEX and prompt generation for Spanish
     Type: String
     Default: Lupe
     AllowedValues:
         - Lupe     # Female (US, neural)
         - Pedro    # Male (US, neural)
   VOICEIDDE:
-    Description: The voice used for LEX and prompt generation for German
+    Description: The neural voice used for LEX and prompt generation for German
     Type: String
     Default: Vicki
     AllowedValues:
@@ -183,7 +183,7 @@ Resources:
     Properties:
         ServiceToken: !GetAtt PromptCopier.Arn
   
-  MainPromptEast:
+  MainPrompt:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
@@ -194,8 +194,7 @@ Resources:
             <break time="2s"/>Thank you for calling Copper Fox Gifts.
             </speak>
   
-  
-  OpenEN:
+  OpenPrompt:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
@@ -204,7 +203,7 @@ Resources:
         PromptText: |
             Our Store is currently open.
         
-  ClosedEN:
+  ClosedPrompt:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
@@ -212,16 +211,7 @@ Resources:
         PromptName: closed.wav
         PromptText: |
             Our store is currently closed.
-        
-  TransferEN:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: transfer.wav
-        PromptText: |
-            Your call will now be transferred.  Please be patient until the remote party answers.      
-        
+                
   GoodbyePromptEN:
     Type: Custom::PromptCreator
     Properties:
@@ -237,7 +227,15 @@ Resources:
         VoiceId: !Ref VOICEIDES
         PromptName: goodbye-es-US.wav
         PromptText: Gracias por llamar, adiós.
-                
+           
+  GoodbyePromptDE:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDDE
+        PromptName: goodbye-de-DE.wav
+        PromptText: Danke für Ihren Anruf, auf Wiedersehen.
+        
   ChimeSMA:
     Type: AWS::Serverless::Function
     DependsOn: ChimeSMALogGroup
@@ -332,9 +330,10 @@ Resources:
       BotLocales:
         - LocaleId: en_US
           Description: ChatGPT Bot English
-          NluConfidenceThreshold: 0.40
+          NluConfidenceThreshold: 1.00
           VoiceSettings:
             VoiceId: !Ref VOICEIDEN
+            Engine: neural
           Intents:
             - Name: "Bogus"
               Description: "Must have one other intent, but we never want it to match"
@@ -354,19 +353,19 @@ Resources:
                       MessageGroups:
                         - Message: 
                             PlainTextMessage:
-                              Value: Thinking
+                              Value: Checking
                           Variations:
                               - PlainTextMessage:
-                                  Value: Working
+                                  Value: Hold On
                               - PlainTextMessage:
-                                  Value: Processing
+                                  Value: One Moment
                     UpdateResponse:
                       AllowInterrupt: false
                       FrequencyInSeconds: 15
                       MessageGroups:
                         - Message: 
                             PlainTextMessage:
-                              Value: Still Thinking
+                              Value: Still Checking
                           Variations:
                               - PlainTextMessage:
                                   Value: Still Working
@@ -374,9 +373,10 @@ Resources:
                                   Value: Still Processing
         - LocaleId: es_US
           Description: ChatGPT Bot Spanish
-          NluConfidenceThreshold: 0.40
+          NluConfidenceThreshold: 1.00
           VoiceSettings:
             VoiceId: !Ref VOICEIDES
+            Engine: neural
           Intents:
             - Name: "Bogus"
               Description: "Must have one other intent, but we never want it to match"
@@ -416,9 +416,10 @@ Resources:
                                   Value: "Todavía procesando"
         - LocaleId: de_DE
           Description: ChatGPT Bot German
-          NluConfidenceThreshold: 0.40
+          NluConfidenceThreshold: 1.00
           VoiceSettings:
             VoiceId: !Ref VOICEIDDE
+            Engine: neural
           Intents:
             - Name: "Bogus"
               Description: "Must have one other intent, but we never want it to match"
@@ -457,7 +458,7 @@ Resources:
                               - PlainTextMessage:
                                   Value: "Noch in Bearbeitung"
         
-  BotVersionChatGPTV3:
+  BotVersionChatGPTV1:
     Type: AWS::Lex::BotVersion
     Properties:
       BotId: !Ref LexBotGPT
@@ -471,14 +472,14 @@ Resources:
         - LocaleId: de_DE
           BotVersionLocaleDetails:
             SourceBotVersion: DRAFT
-      Description: ChatGPT Bot V3
+      Description: ChatGPT Bot V1
       
   BotAliasGPT:
     Type: AWS::Lex::BotAlias
     Properties:
       BotId: !Ref LexBotGPT
       BotAliasName: "Latest"
-      BotVersion: !GetAtt BotVersionChatGPTV3.BotVersion
+      BotVersion: !GetAtt BotVersionChatGPTV1.BotVersion
       SentimentAnalysisSettings:
         DetectSentiment: false
       BotAliasLocaleSettings:
