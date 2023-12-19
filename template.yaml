@@ -148,7 +148,7 @@ Resources:
   PromptCreatorLogGroup:
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCreator'
       RetentionInDays: 30
@@ -173,7 +173,7 @@ Resources:
   PromptCopierLogGroup:
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCopier'
       RetentionInDays: 30
