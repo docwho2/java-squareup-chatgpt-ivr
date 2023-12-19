@@ -29,6 +29,8 @@ public class ChimeSMA extends AbstractFlow {
     private final static String VC_ARN = System.getenv("VC_ARN");
 
     private final static Action MAIN_MENU = getMainMenu();
+    
+    private final static Action ERROR_ACTION = getSystemErrorAction();
 
     /**
      * Initial action is to play welcome message and whether store is open or closed
@@ -64,13 +66,7 @@ public class ChimeSMA extends AbstractFlow {
     public static Action getMainMenu() {
 
         final var hangup = HangupAction.builder()
-                .withDescription("This is my last step").build();
-
-        final var goodbye = PlayAudioAction.builder()
-                .withDescription("Say Goodbye")
-                .withKeyLocale("goodbye")
-                .withNextAction(hangup)
-                .build();
+                .withDescription("Normal Hangup ").build();
 
         // Function that passes the Calling Number to Lex
         Function<StartBotConversationAction, Map<String, String>> attributesFunction = (action) -> {
@@ -105,10 +101,10 @@ public class ChimeSMA extends AbstractFlow {
                 .build());
 
         //
-        // MOH Flow
+        // MOH Flow TODO
         //
         final var moh = CallAndBridgeAction.builder()
-                .withDescription("Send Call to Music On Hold")
+                .withDescription("Park Call with Music On Hold at PBX")
                 .withCallTimeoutSeconds(10)
                 .withUri("+13204952401") // Goes to Park Ext on PBX which gets you Hold Music
                 .withArn(VC_ARN)
@@ -151,7 +147,7 @@ public class ChimeSMA extends AbstractFlow {
                 }
                 case "hold_call" ->
                     SpeakAction.builder()
-                    .withDescription("Indicate MOH and press any key to return")
+                    .withDescription("Indicate MOH and press any digit to return")
                     .withText(botResponse)
                     .withNextAction(anyDigit)
                     .build();
@@ -169,10 +165,7 @@ public class ChimeSMA extends AbstractFlow {
                     yield bot;
                 }
                 default ->
-                    SpeakAction.builder()
-                    .withText("A system error has occured, please call back and try again")
-                    .withNextAction(hangup)
-                    .build();
+                    ERROR_ACTION;
             };
         };
 
@@ -191,9 +184,23 @@ public class ChimeSMA extends AbstractFlow {
     @Override
 
     protected Action getErrorAction() {
-        final var errMsg = SpeakAction.builder()
-                .withText("A system error has occured, please call back and try again")
-                .withNextAction(new HangupAction())
+        return ERROR_ACTION;
+    }
+    
+    private static Action getSystemErrorAction() {
+        final var hangup = HangupAction.builder()
+                .withDescription("System error Hangup ").build();
+
+        final var goodbye = PlayAudioAction.builder()
+                .withDescription("System Error Say Goodbye")
+                .withKeyLocale("goodbye")
+                .withNextAction(hangup)
+                .build();
+        
+        final var errMsg = PlayAudioAction.builder()
+                .withDescription("System Error Message")
+                .withKeyLocale("error")
+                .withNextAction(goodbye)
                 .build();
 
         return errMsg;

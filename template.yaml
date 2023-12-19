@@ -235,6 +235,31 @@ Resources:
         VoiceId: !Ref VOICEIDDE
         PromptName: goodbye-de-DE.wav
         PromptText: Danke für Ihren Anruf, auf Wiedersehen.
+  
+  ErrorPromptEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: error-en-US.wav
+        PromptText: A system error has occured, please call back and try again.
+        
+  ErrorPromptES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: error-es-US.wav
+        PromptText: Se ha producido un error en el sistema, vuelva a llamar e inténtelo de nuevo.
+           
+  ErrorPromptDE:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDDE
+        PromptName: error-de-DE.wav
+        PromptText: Es ist ein Systemfehler aufgetreten. Bitte rufen Sie noch einmal an und versuchen Sie es erneut.      
+        
         
   ChimeSMA:
     Type: AWS::Serverless::Function
