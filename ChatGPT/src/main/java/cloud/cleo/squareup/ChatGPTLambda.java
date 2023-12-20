@@ -79,7 +79,6 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     public final static String FACEBOOK_HANDOVER_FUNCTION_NAME = "facebook_inbox";
     public final static String SWITCH_LANGUAGE_FUNCTION_NAME = "switch_language";
 
-
     // Eveverything here will be done at SnapStart init
     static {
         // Build up the mapper 
@@ -109,7 +108,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
     @Override
     public LexV2Response handleRequest(LexV2Event lexRequest, Context cntxt) {
-         // Wrapped Event Class
+        // Wrapped Event Class
         final LexV2EventWrapper event = new LexV2EventWrapper(lexRequest);
         try {
             log.debug(mapper.valueToTree(lexRequest).toPrettyString());
@@ -142,7 +141,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         // For Voice we support 2 Locales, English and Spanish
         log.debug("Java Locale is " + lexRequest.getLocale());
-        
+
         // Special Facebook Short Circut
         if (attrs.containsKey(FACEBOOK_HANDOVER_FUNCTION_NAME)) {
             log.debug("Facebook Short Circut, calling FB API to move thread to FB Inbox");
@@ -250,11 +249,15 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
             session.incrementCounter();
             sessionState.putItem(session).join();
         } catch (RuntimeException rte) {
-            if (rte.getCause() != null && rte.getCause() instanceof SocketTimeoutException) {
-                log.error("Response timed out", rte);
-                botResponse = lexRequest.getLangString(OPERATION_TIMED_OUT);
-            } else {
-                throw rte;
+            switch (rte.getCause()) {
+                case SocketTimeoutException ste -> {
+                    log.error("Response timed out", ste);
+                    botResponse = lexRequest.getLangString(OPERATION_TIMED_OUT);
+                }
+                case null ->
+                    throw rte;
+                default ->
+                    throw rte;
             }
         }
 
@@ -304,8 +307,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * Response that will tell Lex we are done so some action can be performed
-     * at the Chime Level (hang up, transfer, MOH, etc.)
+     * Response that will tell Lex we are done so some action can be performed at the Chime Level (hang up, transfer,
+     * MOH, etc.)
      *
      * @param lexRequest
      * @param transferNumber
@@ -339,9 +342,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at
-     * LEX. IE, we are sending back GPT response, and then waiting for Lex to
-     * collect speech and once again call us so we can send to GPT, effectively
+     * General Response used to send back a message and Elicit Intent again at LEX. IE, we are sending back GPT
+     * response, and then waiting for Lex to collect speech and once again call us so we can send to GPT, effectively
      * looping until we call a terminating event like Quit or Transfer.
      *
      * @param lexRequest

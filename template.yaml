@@ -91,6 +91,9 @@ Parameters:
 Globals:
   Function:
     Runtime: java17
+    Environment: 
+      Variables:
+        JAVA_TOOL_OPTIONS: --enable-preview
     Timeout: 30
     MemorySize: 3009
     Architectures:  # SnapStart on Java 17 requires x86
