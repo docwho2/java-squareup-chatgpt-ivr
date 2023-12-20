@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.squareup.square.models.SearchCatalogItemsRequest;
 import com.squareup.square.models.SearchCatalogItemsResponse;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -58,15 +57,15 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                 for (final var token : tokens) {
                     futures.add(getSquareClient().getCatalogApi()
                             .searchCatalogItemsAsync(new SearchCatalogItemsRequest.Builder().textFilter(token).limit(5).build()));
-                    log.debug("Launching Search on [{}]", token);
+                    log.debug("Launching Item Search on [{}]", token);
                 }
 
-                log.debug("Starting wait on {} futures",futures.size());
+                log.debug("Starting wait on {} futures", futures.size());
                 CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 log.debug("All Futures completed, processing results");
 
                 // Item names to return to GPT
-                final List<String> itemNames = new ArrayList<>(5);
+                final List<String> itemNames = new ArrayList<>();
 
                 // Process the results
                 for (final var future : futures) {
@@ -77,21 +76,16 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                                 // Just return item names 
                                 .map(l -> l.getName())
                                 .forEach(name -> {
-                                    if (itemNames.size() < 5) {
-                                        itemNames.add(name);
-                                    }
+                                    itemNames.add(name);
                                 });
-                    }
-                    // If we have 5 already don't need to process any more futures
-                    if (itemNames.size() >= 5) {
-                        break;
                     }
                 }
 
                 if (itemNames.isEmpty()) {
                     return mapper.createObjectNode().put("message", "No items match the search query");
                 } else {
-                    return itemNames;
+                    // return only 5 items (and remove dups of course)
+                    return itemNames.stream().distinct().limit(5).toList();
                 }
 
             } catch (CompletionException e) {
@@ -102,32 +96,6 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                 return mapper.createObjectNode().put("status", "FAILED").put("error_message", ex.getLocalizedMessage());
             }
         };
-    }
-
-    /**
-     * Given a String with several words, return all combinations of that in specific order for passing to searches.
-     *
-     * @param input
-     * @return
-     */
-    public static List<String> allCombinations(String input) {
-        String[] tokens = input.split(" ");
-
-        // Generate combinations of the tokens
-        List<String> combinations = new ArrayList<>();
-
-        // Start with the full search term
-        combinations.add(input);
-
-        // Generate combinations from longest to shortest
-        for (int length = tokens.length - 1; length > 0; length--) {
-            for (int start = 0; start + length <= tokens.length; start++) {
-                String combination = String.join(" ", Arrays.copyOfRange(tokens, start, start + length));
-                combinations.add(combination);
-            }
-        }
-
-        return combinations;
     }
 
     private static class Request {

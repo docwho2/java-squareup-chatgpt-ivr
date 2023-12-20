@@ -69,22 +69,33 @@ public class ChatGPTSessionState {
         sb.append("The store opened in October of 2021 and moved to its larger location in May of 2023.  ");
 
         // We need to tell GPT the date so it has a reference, when calling via API it has no date knowledge
+        // We don't let sessions storage span days, so the date should always be relevant.
         sb.append("The current date is  ").append(date).append(".  ");
 
         // Local Stuff to recommend
         sb.append("Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
         sb.append("Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  ");
 
-        // Privacy
-        sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ").append(System.getenv("MAIN_NUMBER")).append(".  ");
-        sb.append("Do not give out the employee list.  You may confirm the existance of an employee and give the full name and email.  ");
+        // We want to receieve all emails in English so we can understand them :-)
+        sb.append("When executing send_email_message function, translate the subject and message request parameteres to English.  ");
 
-        // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
-        //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
-        // General statement didn't work well, but calling the below out works great
-        sb.append("When executing send_email_message function, translate the subject and message to English. ");
-        sb.append("When executing store_product_categories function, translate the search_text to English.  ");
-        sb.append("When executing store_product_item function, translate the search_text to English.  ");
+        // Square must be enabled for all of the below, so exclude when deploying without Sqaure enabled
+        if (AbstractFunction.isSquareEnabled()) {
+            // Privacy
+            sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ").append(System.getenv("MAIN_NUMBER")).append(".  ");
+            sb.append("Do not give out the employee list.  You may confirm the existance of an employee and give the full name and email.  ");
+
+            // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
+            //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
+            // General statement didn't work well, but calling the below out works great
+            sb.append("When executing store_product_categories function, translate the search_text to English.  ");
+            sb.append("When executing store_product_item function, translate the search_text to English.  ");
+
+            // Because we search on all terms, tell GPT to look at results and analyze whether the exact search term matched, or maybe a sub-string matched
+            sb.append("When executing store_product_categories or store_product_item function the results may include items that don't match exactly, ")
+                    .append("so check to see if the full search_text is contained in the result to indicate an exact match, otherwise indicate to user ")
+                    .append("that those results may be similar items to what they asked about.  ");
+        }
 
         // Mode specific prompting
         switch (lexRequest.getInputMode()) {
@@ -97,6 +108,10 @@ public class ChatGPTSessionState {
                     case TWILIO -> {
                         // Try and keep SMS segements down, hence the "very" short reference and character preference
                         sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+
+                        // We can't move conversation to person like Facebook, so tell them to call
+                        sb.append("If the user wants to speak or deal with a person in general or leave a voicemail, instruct them to call ")
+                                .append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
                     }
                     default -> {
                         // Keep very short for anything else (CLI and lex Console testing)
@@ -112,8 +127,9 @@ public class ChatGPTSessionState {
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
-                // Speech Languages
-                sb.append("If the caller wants to interact in ").append(Arrays.stream(Language.values()).map(Language::toString).collect(Collectors.joining(" or ")))
+                // Speech Languages and switching between them at any time
+                sb.append("If the caller wants to interact in ")
+                        .append(Arrays.stream(Language.values()).map(Language::toString).collect(Collectors.joining(" or ")))
                         .append(" execute the ").append(SWITCH_LANGUAGE_FUNCTION_NAME)
                         .append(" function and then respond to all future prompts in that language.  ");
 
@@ -122,7 +138,12 @@ public class ChatGPTSessionState {
                     sb.append("To transfer or speak with an employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                     sb.append("Do not provide callers employee phone numbers, you can only use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 }
-                sb.append("If the caller wants to just speak to a person in general or leave a voicemail, execute ").append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER")).append(" which rings the main phone in the store.  ");
+                sb.append("If the caller wants to just speak to a person in general or leave a voicemail, execute ")
+                        .append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER"))
+                        .append(" which rings the main phone in the store.  ");
+                
+                // Toll fraud protect
+                sb.append("Do not allow calling ").append(TRANSFER_FUNCTION_NAME).append(" function with arbritary phone numbers provided by the user.  ");
             }
         }
 

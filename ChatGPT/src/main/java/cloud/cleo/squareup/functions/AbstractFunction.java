@@ -10,8 +10,11 @@ import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -294,6 +297,32 @@ public abstract class AbstractFunction<T> implements Cloneable {
 
     private String convertPinpointResposeToJson(NumberValidateResponse res) {
         return mapper.valueToTree(mapper.convertValue(res.toBuilder(), NumberValidateResponse.serializableBuilderClass())).toPrettyString();
+    }
+    
+    /**
+     * Given a String with several words, return all combinations of that in specific order for passing to searches.
+     *
+     * @param input
+     * @return
+     */
+    public static List<String> allCombinations(String input) {
+        String[] tokens = input.split(" ");
+
+        // Generate combinations of the tokens
+        List<String> combinations = new ArrayList<>();
+
+        // Start with the full search term
+        combinations.add(input);
+
+        // Generate combinations from longest to shortest
+        for (int length = tokens.length - 1; length > 0; length--) {
+            for (int start = 0; start + length <= tokens.length; start++) {
+                String combination = String.join(" ", Arrays.copyOfRange(tokens, start, start + length));
+                combinations.add(combination);
+            }
+        }
+
+        return combinations;
     }
 
     /**

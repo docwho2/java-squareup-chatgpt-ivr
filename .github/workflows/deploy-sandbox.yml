@@ -205,5 +205,7 @@ jobs:
         TARGET_ENDPOINT=arn:aws:lambda:${{ matrix.region }}:${AWS_ACCOUNT_ID}:function:${{ vars.STACK_NAME }}-ChimeSMA:SNAPSTART
         DUMMY_ENDPOINT=$(aws ssm get-parameter --name /${{ vars.CDK_STACK_NAME }}/LAMBDA_ARN --query Parameter.Value --output text)
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${DUMMY_ENDPOINT}
+        # Once and a while the second update will fail, likely because above update didn't complete immediately, so give a little time
+        sleep 5
         aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${SMA_ID} --endpoints LambdaArn=${TARGET_ENDPOINT}
   
