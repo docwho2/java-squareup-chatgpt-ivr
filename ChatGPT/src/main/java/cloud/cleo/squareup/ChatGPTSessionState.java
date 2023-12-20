@@ -90,7 +90,8 @@ public class ChatGPTSessionState {
             // General statement didn't work well, but calling the below out works great
             sb.append("When executing store_product_categories function, translate the search_text to English.  ");
             sb.append("When executing store_product_item function, translate the search_text to English.  ");
-
+            sb.append("Execute store_product_categories for more general search_text and store_product_item for more specific search_text inputs or execute both functions if needed.  ");
+            
             // Because we search on all terms, tell GPT to look at results and analyze whether the exact search term matched, or maybe a sub-string matched
             sb.append("When executing store_product_categories or store_product_item function the results may include items that don't match exactly, ")
                     .append("so check to see if the full search_text is contained in the result to indicate an exact match, otherwise indicate to user ")

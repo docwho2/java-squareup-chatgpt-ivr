@@ -40,9 +40,9 @@ runs:
     - name: Gummy Bear Test
       shell: bash
       run: |
-        RESULT=$(aws lexv2-runtime recognize-text --text 'If you have gummy bears, respond with exactly "AFFIRMATIVE"' --output text --query 'messages[0].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${{ inputs.session-id }})
+        RESULT=$(aws lexv2-runtime recognize-text --text 'Do you have gummy bears?' --output text --query 'messages[0].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${{ inputs.session-id }})
         echo "Result is [${RESULT}]"
-        if [[ $RESULT != *"AFFIRMATIVE"* ]]; then
+        if [[ $RESULT != *"Yes"* ]]; then
           echo "Did not pass gummy bear test"
           exit 1
         fi
