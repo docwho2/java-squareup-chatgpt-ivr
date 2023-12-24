@@ -238,7 +238,55 @@ Resources:
         VoiceId: !Ref VOICEIDDE
         PromptName: goodbye-de-DE.wav
         PromptText: Danke für Ihren Anruf, auf Wiedersehen.
-  
+
+  GoodbyePromptFI:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Suvi
+        PromptName: goodbye-fi-FI.wav
+        PromptText: Kiitos soitosta, näkemiin.
+
+  GoodbyePromptFR:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Gabrielle
+        PromptName: goodbye-fr-CA.wav
+        PromptText: Merci d'avoir appelé, au revoir.
+
+  GoodbyePromptNL:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Laura
+        PromptName: goodbye-nl-NL.wav
+        PromptText: Bedankt voor het bellen, tot ziens.
+        
+  GoodbyePromptNO:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Ida
+        PromptName: goodbye-no-NO.wav
+        PromptText: Takk for at du ringte, farvel.
+
+  GoodbyePromptPL:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Ola
+        PromptName: goodbye-pl-PL.wav
+        PromptText: Dziękuję za telefon, do widzenia.
+
+  GoodbyePromptSV:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Elin
+        PromptName: goodbye-sv-SE.wav
+        PromptText: Tack för att du ringde, hejdå.
+
   ErrorPromptEN:
     Type: Custom::PromptCreator
     Properties:
@@ -262,7 +310,55 @@ Resources:
         VoiceId: !Ref VOICEIDDE
         PromptName: error-de-DE.wav
         PromptText: Es ist ein Systemfehler aufgetreten. Bitte rufen Sie noch einmal an und versuchen Sie es erneut.      
-        
+
+  ErrorPromptFI:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Suvi
+        PromptName: error-fi-FI.wav
+        PromptText: Tapahtui järjestelmävirhe, soita takaisin ja yritä uudelleen.      
+ 
+  ErrorPromptFR:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Gabrielle
+        PromptName: error-fr-CA.wav
+        PromptText: Une erreur système s'est produite, veuillez rappeler et réessayer.      
+ 
+  ErrorPromptNL:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Laura
+        PromptName: error-nl-NL.wav
+        PromptText: Er is een systeemfout opgetreden. Bel terug en probeer het opnieuw.      
+ 
+  ErrorPromptNO:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Ida
+        PromptName: error-no-NO.wav
+        PromptText: Det har oppstått en systemfeil. Ring tilbake og prøv igjen.      
+ 
+  ErrorPromptPL:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Ola
+        PromptName: error-pl-PL.wav
+        PromptText: Wystąpił błąd systemowy. Oddzwoń i spróbuj ponownie.      
+ 
+  ErrorPromptSV:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: Elin
+        PromptName: error-sv-SE.wav
+        PromptText: Ett systemfel har uppstått, ring tillbaka och försök igen.      
+ 
         
   ChimeSMA:
     Type: AWS::Serverless::Function
@@ -298,7 +394,7 @@ Resources:
                   VoiceId: Gabrielle
                 - Locale: nl-NL
                   VoiceId: Laura
-                - Locale: nb-NO
+                - Locale: no-NO
                   VoiceId: Ida
                 - Locale: pl-PL
                   VoiceId: Ola

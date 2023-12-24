@@ -127,7 +127,7 @@ public class ChimeSMA extends AbstractFlow {
         // Norwegian
         botLangMap.put(Language.Norwegian, StartBotConversationAction.builder()
                 .withDescription("ChatGPT Norwegian")
-                .withLocale(Locale.forLanguageTag("nb-NO"))
+                .withLocale(Locale.forLanguageTag("no-NO"))
                 .withContent("Fortell oss hvordan vi kan hjelpe i dag?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
