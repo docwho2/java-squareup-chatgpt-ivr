@@ -1,25 +1,25 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.squareup.enums;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * The Lex Channel Platform.  Where the lex Input came from.  If you are using
- * the console or CLI to post text to Lex then this is not set.
- * 
+ * The Lex Channel Platform. Where the lex Input came from. If you are using the console or CLI to post text to Lex then
+ * this is not set.
+ *
  * https://docs.aws.amazon.com/lexv2/latest/dg/deploying-messaging-platform.html
  * https://docs.aws.amazon.com/lexv2/latest/dg/contact-center-chime.html
  * https://docs.aws.amazon.com/lexv2/latest/dg/contact-center-connect.html
  * https://docs.aws.amazon.com/lexv2/latest/dg/contact-center-genesys.html
+ *
  * @author sjensen
  */
 @AllArgsConstructor
 public enum ChannelPlatform {
-    CHIME("Chime"),
+    CHIME("Amazon Chime SDK PSTN Audio"),
     TWILIO("Twilio"),
     FACEBOOK("Facebook"),
     SLACK("Slack"),
@@ -28,28 +28,18 @@ public enum ChannelPlatform {
     GENESYS_CLOUD("Genesys Cloud"),
     UNKNOWN("No Platform Provided");
 
+    private static final Map<String, ChannelPlatform> map = Stream.of(values())
+            .collect(Collectors.toMap(ChannelPlatform::getChannel, e -> e));
+
     @Getter
     private final String channel;
 
     public static ChannelPlatform fromString(String channel) {
-        return switch (channel) {
-            case "Chime" ->
-                CHIME;
-            case "Twilio" ->
-                TWILIO;
-            case "Facebook" ->
-                FACEBOOK;
-            case "Slack" ->
-                SLACK;
-            case "Connect" ->
-                CONNECT;
-            case "Connect Chat" ->
-                CONNECT_CHAT;
-            case "Genesys Cloud" ->
-                GENESYS_CLOUD;
-            default ->
-                UNKNOWN;
-        };
+        // Check if the input is null or the map doesn't contain the channelString
+        if (channel == null || !map.containsKey(channel)) {
+            return UNKNOWN;
+        }
+        return map.get(channel);
     }
 
 }
