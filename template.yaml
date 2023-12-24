@@ -292,6 +292,18 @@ Resources:
                   VoiceId: !Ref VOICEIDES
                 - Locale: de-DE
                   VoiceId: !Ref VOICEIDDE
+                - Locale: fi-FI
+                  VoiceId: Suvi
+                - Locale: fr-CA
+                  VoiceId: Gabrielle
+                - Locale: nl-NL
+                  VoiceId: Laura
+                - Locale: nb-NO
+                  VoiceId: Ida
+                - Locale: pl-PL
+                  VoiceId: Ola
+                - Locale: sv-SE
+                  VoiceId: Elin
   
   ChimeSMALogGroup:
     Type: AWS::Logs::LogGroup
@@ -485,8 +497,266 @@ Resources:
                                   Value: "Immer noch am arbeiten"
                               - PlainTextMessage:
                                   Value: "Noch in Bearbeitung"
-        
-  BotVersionChatGPTV1:
+        - LocaleId: fi_FI
+          Description: ChatGPT Bot Finnish
+          NluConfidenceThreshold: 1.00
+          VoiceSettings:
+            VoiceId: Suvi
+            Engine: neural
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Tarkistetaan
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: pidä kiinni
+                              - PlainTextMessage:
+                                  Value: hetkinen
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Tarkistaa edelleen
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Yhä työskentelemässä
+                              - PlainTextMessage:
+                                  Value: Käsitellään edelleen
+        - LocaleId: fr_CA
+          Description: ChatGPT Bot French (Canada)
+          NluConfidenceThreshold: 1.00
+          VoiceSettings:
+            VoiceId: Gabrielle
+            Engine: neural
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Vérification
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Attendez
+                              - PlainTextMessage:
+                                  Value: Un moment
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Vrification en cours
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Je travaille encore
+                              - PlainTextMessage:
+                                  Value: Toujours en cours de traitement
+        - LocaleId: nl_NL
+          Description: ChatGPT Bot Dutch
+          NluConfidenceThreshold: 1.00
+          VoiceSettings:
+            VoiceId: Laura
+            Engine: neural
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Controleren
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Hou vol
+                              - PlainTextMessage:
+                                  Value: Een moment
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Nog steeds aan het controleren
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Werkt nog steeds
+                              - PlainTextMessage:
+                                  Value: Nog steeds aan het verwerken
+        - LocaleId: no_NO
+          Description: ChatGPT Bot Norwegian
+          NluConfidenceThreshold: 1.00
+          VoiceSettings:
+            VoiceId: Ida
+            Engine: neural
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Sjekker
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Vent litt
+                              - PlainTextMessage:
+                                  Value: Et øyeblikk
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Sjekker fortsatt
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Jobber fortsatt
+                              - PlainTextMessage:
+                                  Value: Behandler fortsatt
+        - LocaleId: pl_PL
+          Description: ChatGPT Bot Polish
+          NluConfidenceThreshold: 1.00
+          VoiceSettings:
+            VoiceId: Ola
+            Engine: neural
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Kontrola
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Trzymać się
+                              - PlainTextMessage:
+                                  Value: Jeden moment
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Wciąż sprawdzam
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Wciąż pracuje
+                              - PlainTextMessage:
+                                  Value: Nadal przetwarzam
+        - LocaleId: sv_SE
+          Description: ChatGPT Bot Swedish
+          NluConfidenceThreshold: 1.00
+          VoiceSettings:
+            VoiceId: Elin
+            Engine: neural
+          Intents:
+            - Name: "Bogus"
+              Description: "Must have one other intent, but we never want it to match"
+              SampleUtterances:
+                - Utterance: "null"
+            - Name: "FallbackIntent"
+              Description: "Default intent, send to GPT, which should be everything"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+                  FulfillmentUpdatesSpecification: 
+                    Active: true
+                    TimeoutInSeconds: 60
+                    StartResponse: 
+                      AllowInterrupt: false
+                      DelayInSeconds: 3
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Kontroll
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Vänta
+                              - PlainTextMessage:
+                                  Value: Ett ögonblick
+                    UpdateResponse:
+                      AllowInterrupt: false
+                      FrequencyInSeconds: 15
+                      MessageGroups:
+                        - Message: 
+                            PlainTextMessage:
+                              Value: Kollar fortfarande
+                          Variations:
+                              - PlainTextMessage:
+                                  Value: Jobbar fortfarande
+                              - PlainTextMessage:
+                                  Value: Bearbetar fortfarande                                 
+                                  
+  BotVersionChatGPTV2:
     Type: AWS::Lex::BotVersion
     Properties:
       BotId: !Ref LexBotGPT
@@ -500,14 +770,32 @@ Resources:
         - LocaleId: de_DE
           BotVersionLocaleDetails:
             SourceBotVersion: DRAFT
-      Description: ChatGPT Bot V1
+        - LocaleId: fi_FI
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: fr_CA
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: nl_NL
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: no_NO
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: pl_PL
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: sv_SE
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+      Description: ChatGPT Bot V2
       
   BotAliasGPT:
     Type: AWS::Lex::BotAlias
     Properties:
       BotId: !Ref LexBotGPT
       BotAliasName: "Latest"
-      BotVersion: !GetAtt BotVersionChatGPTV1.BotVersion
+      BotVersion: !GetAtt BotVersionChatGPTV2.BotVersion
       SentimentAnalysisSettings:
         DetectSentiment: false
       BotAliasLocaleSettings:
@@ -526,6 +814,48 @@ Resources:
                 CodeHookInterfaceVersion: "1.0"
                 LambdaArn: !Ref ChatGPT.Alias
         - LocaleId: de_DE
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: fi_FI
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: fr_CA
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: nl_NL
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: no_NO
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: pl_PL
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: sv_SE
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:

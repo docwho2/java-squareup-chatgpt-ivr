@@ -100,6 +100,54 @@ public class ChimeSMA extends AbstractFlow {
                 .withSessionAttributesF(attributesFunction)
                 .build());
 
+        // Finnish
+        botLangMap.put(Language.Finnish, StartBotConversationAction.builder()
+                .withDescription("ChatGPT Finnish")
+                .withLocale(Locale.forLanguageTag("fi-FI"))
+                .withContent("Kerro meille, kuinka voimme auttaa tänään?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
+        // French
+        botLangMap.put(Language.French, StartBotConversationAction.builder()
+                .withDescription("ChatGPT French")
+                .withLocale(Locale.forLanguageTag("fr-CA"))
+                .withContent("Dites-nous comment nous pouvons vous aider aujourd'hui ?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
+        // Dutch
+        botLangMap.put(Language.Dutch, StartBotConversationAction.builder()
+                .withDescription("ChatGPT Dutch")
+                .withLocale(Locale.forLanguageTag("nl-NL"))
+                .withContent("Vertel ons hoe we vandaag kunnen helpen?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
+        // Norwegian
+        botLangMap.put(Language.Norwegian, StartBotConversationAction.builder()
+                .withDescription("ChatGPT Norwegian")
+                .withLocale(Locale.forLanguageTag("nb-NO"))
+                .withContent("Fortell oss hvordan vi kan hjelpe i dag?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
+        // Polish
+        botLangMap.put(Language.Polish, StartBotConversationAction.builder()
+                .withDescription("ChatGPT Polish")
+                .withLocale(Locale.forLanguageTag("pl-PL"))
+                .withContent("Powiedz nam, jak możemy dziś pomóc?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
+        // Swedish
+        botLangMap.put(Language.Swedish, StartBotConversationAction.builder()
+                .withDescription("ChatGPT Swedish")
+                .withLocale(Locale.forLanguageTag("sv-SE"))
+                .withContent("Berätta för oss hur vi kan hjälpa till idag?") // Tell us how we can help today?
+                .withSessionAttributesF(attributesFunction)
+                .build());
+        
         //
         // MOH Flow TODO
         //
@@ -222,7 +270,13 @@ public class ChimeSMA extends AbstractFlow {
     static enum Language {
         English,
         Spanish,
-        German;
+        German,
+        Finnish,
+        French,
+        Dutch,
+        Norwegian,
+        Polish,
+        Swedish;
     }
 
 }
