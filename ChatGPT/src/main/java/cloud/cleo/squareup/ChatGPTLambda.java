@@ -134,7 +134,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
     }
 
     private LexV2Response processGPT(LexV2EventWrapper lexRequest) {
-        final var input = lexRequest.getInputTranscript();
+        var input = lexRequest.getInputTranscript();
         final var attrs = lexRequest.getSessionAttributes();
         // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
         final var session_id = lexRequest.getSessionId();
@@ -164,8 +164,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
                 return buildTerminatingResponse(lexRequest, "hangup_call", Map.of(), lexRequest.getLangString(GOODBYE));
             } else {
                 attrs.put("blankCounter", count.toString());
-                // If we get slience (timeout without speech), then we get empty string on the transcript
-                return buildResponse(lexRequest, lexRequest.getLangString(BLANK_RESPONSE));
+                // set the input as "blank" so GPT knows caller said nothing and may need suggestions
+                input = "blank";
             }
         } else {
             // The Input is not blank, so always put the counter back to zero
@@ -291,10 +291,10 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
 
         // Since we have a general response, add message asking if there is anything else
         //  For voice it just seems more natural to always end with a question.
-        if (lexRequest.isVoice() && !botResponse.endsWith("?")) {
+        //if (lexRequest.isVoice() && !botResponse.endsWith("?")) {
             // If ends with question, then we don't need to further append question
-            botResponse = botResponse + lexRequest.getLangString(ANYTHING_ELSE);
-        }
+            //botResponse = botResponse + lexRequest.getLangString(ANYTHING_ELSE);
+        //}
 
         if (session_new && lexRequest.isFacebook()) {
             // If this a new Session send back a Welcome card for Facebook Channel

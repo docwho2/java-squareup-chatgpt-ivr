@@ -104,7 +104,7 @@ public class ChatGPTSessionState {
                 switch (lexRequest.getChannelPlatform()) {
                     case FACEBOOK -> {
                         // Don't need very short or char limit, but we don't want to output a book either
-                        sb.append("I am interacting via Facebook Messenger.  Please keep answers short and concise.  ");
+                        sb.append("I am interacting via Facebook Messenger.  Please keep answers concise.  ");
                     }
                     case TWILIO -> {
                         // Try and keep SMS segements down, hence the "very" short reference and character preference
@@ -125,9 +125,16 @@ public class ChatGPTSessionState {
             case SPEECH, DTMF -> {
                 sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");
 
+                // Blank input, meaning silienece timeout which is a speech only thing
+                sb.append("When the prompt is exactly blank, this means the caller did not say anything, so try and engage in conversation and also suggest ")
+                        .append("queries the caller might be interested in (Hours,Location,Product Search,Language Chnage, etc.).  ");
+                
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
+                // Always answer with a question to illicit the next repsonse, this makes the voice interaction more natural
+                sb.append("When responding always end the response with a question to illicit the next input since we are interacting via telephone.  ");
+                
                 // Speech Languages and switching between them at any time
                 sb.append("If the caller wants to interact in ")
                         .append(Arrays.stream(Language.values()).map(Language::toString).collect(Collectors.joining(" or ")))

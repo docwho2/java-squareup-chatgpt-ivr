@@ -79,7 +79,7 @@ public class ChimeSMA extends AbstractFlow {
         final var lexBotEN = StartBotConversationAction.builder()
                 .withDescription("ChatGPT English")
                 .withLocale(Locale.forLanguageTag("en-US"))
-                .withContent("You can ask about our products, hours, location, or speak to one of our team members. Tell us how we can help today?")
+                .withContent("Tell us how we can help today?")
                 .withSessionAttributesF(attributesFunction)
                 .build();
         botLangMap.put(Language.English, lexBotEN);
