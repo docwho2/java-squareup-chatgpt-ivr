@@ -92,7 +92,7 @@ public class SendEmail<Request> extends AbstractFunction {
 
                 if (customer != null) {
                     // Append Square Customer record to email for reference
-                    final var myMapper = mapper.copy().setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+                    final var myMapper = mapper.copy().setSerializationInclusion(JsonInclude.Include.NON_NULL);
                     ObjectNode custJson = myMapper.valueToTree(customer);
                     // Remove any card info if it exists
                     custJson.remove("cards");
