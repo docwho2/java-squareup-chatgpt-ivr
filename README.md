@@ -54,6 +54,13 @@ The goal is to introduce a "Store Virtual Assistant" powered by [OpenAI ChatGPT]
     - Sí, tenemos ositos de goma. Ofrecemos "Big Yummy Gummy Bear - 12 Ct.", "Snack Pack O'Gummy Bears Milk Chocolate", y "Triple-Decker Candy Sour Gummy Bears".
 - You can call into a test SandBox deployment via +1(612)254-0226 to try it out.
 
+## Demonstration Videos
+
+[Video Playlist of all Demos](https://www.youtube.com/playlist?list=PLd4zA87i_34RG3u4pmvKE9Ms-Qi-7eW9H)
+
+[![Facebook Channel Demo](https://img.youtube.com/vi/VEw1YAZZssU/0.jpg)](https://youtu.be/2DNpgT-o_XA)
+
+
 ## High Level Components
 
 ![Architecture Diagram](assets/ChimeSMA-Square-IVR.png)
