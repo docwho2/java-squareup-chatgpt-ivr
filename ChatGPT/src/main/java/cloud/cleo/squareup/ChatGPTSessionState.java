@@ -104,11 +104,17 @@ public class ChatGPTSessionState {
                 switch (lexRequest.getChannelPlatform()) {
                     case FACEBOOK -> {
                         // Don't need very short or char limit, but we don't want to output a book either
-                        sb.append("I am interacting via Facebook Messenger.  Please keep answers concise.  ");
+                        sb.append("The user is interacting via Facebook Messenger.  Please keep answers concise.  ");
+                        
+                        // Personalize with Name
+                        final var name = FaceBookOperations.getFacebookName(lexRequest.getSessionId());
+                        if ( ! "Unknown".equalsIgnoreCase(name) ) {
+                            sb.append("The user's name is ").append(name).append(".  Please greet the user by name and personalize responses when appropiate.  ");
+                        }
                     }
                     case TWILIO -> {
                         // Try and keep SMS segements down, hence the "very" short reference and character preference
-                        sb.append("I am interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
+                        sb.append("The user is interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
 
                         // We can't move conversation to person like Facebook, so tell them to call
                         sb.append("If the user wants to speak or deal with a person in general or leave a voicemail, instruct them to call ")
@@ -123,7 +129,7 @@ public class ChatGPTSessionState {
                 sb.append("Detect the language of the prompt and respond in that language.  ");
             }
             case SPEECH, DTMF -> {
-                sb.append("I am interacting with speech via a telephone interface.  please keep answers short and concise.  ");
+                sb.append("The user is interacting with speech via a telephone interface.  please keep answers short and concise.  ");
 
                 // Blank input, meaning silienece timeout which is a speech only thing
                 sb.append("When the prompt is exactly blank, this means the caller did not say anything, so try and engage in conversation and also suggest ")
