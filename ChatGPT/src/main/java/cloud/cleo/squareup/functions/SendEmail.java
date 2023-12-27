@@ -2,8 +2,10 @@ package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.FaceBookOperations;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.squareup.square.models.Customer;
 import com.squareup.square.models.CustomerFilter;
 import com.squareup.square.models.CustomerQuery;
@@ -90,7 +92,11 @@ public class SendEmail<Request> extends AbstractFunction {
 
                 if (customer != null) {
                     // Append Square Customer record to email for reference
-                    r.message = r.message.concat("\n\n").concat(mapper.valueToTree(customer).toPrettyString());
+                    final var myMapper = mapper.copy().setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+                    ObjectNode custJson = myMapper.valueToTree(customer);
+                    // Remove any card info if it exists
+                    custJson.remove("cards");
+                    r.message = r.message.concat("\n\n--\n\nSquare Customer Record:\n\n").concat(custJson.toPrettyString());
                 }
 
                 final var requestB = SendEmailRequest.builder()
