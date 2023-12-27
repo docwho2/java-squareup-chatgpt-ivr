@@ -104,7 +104,7 @@ public class ChatGPTSessionState {
                 switch (lexRequest.getChannelPlatform()) {
                     case FACEBOOK -> {
                         // Don't need very short or char limit, but we don't want to output a book either
-                        sb.append("The user is interacting via Facebook Messenger.  Please keep answers concise.  ");
+                        sb.append("The user is interacting via Facebook Messenger.  Please keep answers concise.  Use emoji in responses when appropiate.  ");
                         
                         // Personalize with Name
                         final var name = FaceBookOperations.getFacebookName(lexRequest.getSessionId());
