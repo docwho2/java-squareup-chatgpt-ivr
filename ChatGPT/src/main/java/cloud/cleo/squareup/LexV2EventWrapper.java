@@ -4,11 +4,13 @@
  */
 package cloud.cleo.squareup;
 
+import cloud.cleo.squareup.ChatGPTLambdaPinpoint.PinpointEvent;
 import cloud.cleo.squareup.enums.*;
 import static cloud.cleo.squareup.enums.ChannelPlatform.*;
 import cloud.cleo.squareup.lang.LangUtil;
 import cloud.cleo.squareup.lang.LangUtil.LanguageIds;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
+import com.amazonaws.services.lambda.runtime.events.LexV2Event.Bot;
 import java.util.Locale;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -21,44 +23,65 @@ import lombok.Getter;
  */
 public class LexV2EventWrapper {
 
-     /**
+    /**
      * The underlying Lex V2 Event.
      */
     @Getter(AccessLevel.PUBLIC)
     private final LexV2Event event;
-    
+
     /**
      * Language Support.
      */
     @Getter(AccessLevel.PUBLIC)
     private final LangUtil lang;
-    
-    
+
+    /**
+     * Wrap a Normal LexV2Event.
+     * 
+     * @param event 
+     */
     public LexV2EventWrapper(LexV2Event event) {
         this.event = event;
         this.lang = new LangUtil(event.getBot().getLocaleId());
     }
 
-    
+    /**
+     * Turn a Pinpoint Event into a Wrapped LexEvent.
+     *
+     * @param ppe
+     */
+    public LexV2EventWrapper(PinpointEvent ppe) {
+        this(LexV2Event.builder()
+                .withInputMode(LexInputMode.TEXT.getMode())
+                // Exclude + from the E164 to be consistant with Twilio (shouldn't use + in sessionID)
+                .withSessionId(ppe.getOriginationNumber().substring(1))
+                // Mimic Platform input type of Pinpoint
+                .withRequestAttributes(Map.of("x-amz-lex:channels:platform", ChannelPlatform.PINPOINT.getChannel()))
+                // The incoming SMS body will be in the input Transcript
+                .withInputTranscript(ppe.getMessageBody())
+                // SMS has no locale target, just use en_US
+                .withBot(Bot.builder().withLocaleId("en_US").build())
+                .build());
+    }
+
     /**
      * The Java Locale for this Bot request.
-     * 
-     * @return 
+     *
+     * @return
      */
     public Locale getLocale() {
         return lang.getLocale();
     }
-    
+
     /**
      * Get a Language Specific String.
-     * 
+     *
      * @param id
-     * @return 
+     * @return
      */
     public String getLangString(LanguageIds id) {
         return lang.getString(id);
     }
-    
 
     /**
      * Return Input Mode as Enumeration.
@@ -111,8 +134,8 @@ public class LexV2EventWrapper {
     }
 
     /**
-     * Get the calling (or SMS originating) number for the session. For Channels
-     * like Facebook or CLI testing, this will not be available and null.
+     * Get the calling (or SMS originating) number for the session. For Channels like Facebook or CLI testing, this will
+     * not be available and null.
      *
      * @return E164 number or null if not applicable to channel.
      */
@@ -122,7 +145,7 @@ public class LexV2EventWrapper {
                 // For Chime we will pass in the calling number as Session Attribute callingNumber
                 event.getSessionState().getSessionAttributes() != null
                 ? event.getSessionState().getSessionAttributes().get("callingNumber") : null;
-            case TWILIO ->
+            case TWILIO, PINPOINT ->
                 // Twilio channel will use sessiond ID, however without +, so prepend to make it full E164
                 "+".concat(event.getSessionId());
             default ->
@@ -138,10 +161,11 @@ public class LexV2EventWrapper {
     public String getInputTranscript() {
         return event.getInputTranscript();
     }
-    
+
     /**
      * The Intent for this request.
-     * @return 
+     *
+     * @return
      */
     public String getIntent() {
         return event.getSessionState().getIntent().getName();
@@ -164,7 +188,6 @@ public class LexV2EventWrapper {
     public String getSessionId() {
         return event.getSessionId();
     }
-    
 
     /**
      * Is this request from the Facebook Channel.

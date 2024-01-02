@@ -112,7 +112,7 @@ public class ChatGPTSessionState {
                             sb.append("The user's name is ").append(name).append(".  Please greet the user by name and personalize responses when appropiate.  ");
                         }
                     }
-                    case TWILIO -> {
+                    case TWILIO,PINPOINT -> {
                         // Try and keep SMS segements down, hence the "very" short reference and character preference
                         sb.append("The user is interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
 

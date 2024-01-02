@@ -14,6 +14,7 @@ import lombok.Getter;
  * https://docs.aws.amazon.com/lexv2/latest/dg/contact-center-chime.html
  * https://docs.aws.amazon.com/lexv2/latest/dg/contact-center-connect.html
  * https://docs.aws.amazon.com/lexv2/latest/dg/contact-center-genesys.html
+ * https://docs.aws.amazon.com/sms-voice/latest/userguide/phone-numbers-two-way-sms.html
  *
  * @author sjensen
  */
@@ -26,6 +27,7 @@ public enum ChannelPlatform {
     CONNECT("Connect"),
     CONNECT_CHAT("Connect Chat"),
     GENESYS_CLOUD("Genesys Cloud"),
+    PINPOINT("Pinpoint SMS"),
     UNKNOWN("No Platform Provided");
 
     private static final Map<String, ChannelPlatform> map = Stream.of(values())

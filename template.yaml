@@ -901,63 +901,63 @@ Resources:
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: es_US
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: de_DE
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: fi_FI
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: fr_CA
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: nl_NL
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: no_NO
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: pl_PL
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
         - LocaleId: sv_SE
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:
               LambdaCodeHook:
                 CodeHookInterfaceVersion: "1.0"
-                LambdaArn: !Ref ChatGPT.Alias
+                LambdaArn: !Ref ChatGPTLex.Alias
   
   BotIdParam:
     Type: AWS::SSM::Parameter
@@ -979,13 +979,13 @@ Resources:
       Value: !GetAtt BotAliasGPT.BotAliasId
       
                 
-  ChatGPT:
+  ChatGPTLex:
     Type: AWS::Serverless::Function
     DependsOn: ChatGPTLogGroup
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-ChatGPT
+      FunctionName: !Sub ${AWS::StackName}-ChatGPTLex
       Description: Lex fullfilment that talks to ChatGPT service
-      Handler: cloud.cleo.squareup.ChatGPTLambda
+      Handler: cloud.cleo.squareup.ChatGPTLambdaLex
       AutoPublishAlias: SNAPSTART
       CodeUri: ./ChatGPT
       Timeout: 60
@@ -1027,13 +1027,13 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChatGPT'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChatGPTLex'
       RetentionInDays: 90
         
   LexToChatGPTPerm:
       Type: AWS::Lambda::Permission
       Properties:
-        FunctionName: !Ref ChatGPT
+        FunctionName: !Ref ChatGPTLex
         Action: lambda:InvokeFunction
         Principal: lexv2.amazonaws.com
         SourceAccount: !Ref 'AWS::AccountId'
@@ -1041,10 +1041,93 @@ Resources:
   LexToChatGPTSnapPerm:
       Type: AWS::Lambda::Permission
       Properties:
-        FunctionName: !Ref ChatGPT.Alias
+        FunctionName: !Ref ChatGPTLex.Alias
         Action: lambda:InvokeFunction
         Principal: lexv2.amazonaws.com
         SourceAccount: !Ref 'AWS::AccountId'
+  
+  PinpointInboundTopic:
+        Type: AWS::SNS::Topic
+        Properties:
+            DisplayName: InboundSMS
+            TopicName: !Sub ${AWS::StackName}-SMSInbound
+            
+  PinpointPublishRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sms-voice.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Sub ${AWS::AccountId}
+      Path: "/"
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-${AWS::Region}-Pinpoint-Role-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sns:Publish"
+                Resource: !Ref PinpointInboundTopic
+                Condition:
+                  StringEquals:
+                    AWS:ResourceAccount: !Sub ${AWS::AccountId}
+  
+  ChatGPTPinpoint:
+    Type: AWS::Serverless::Function
+    DependsOn: ChatGPTLogGroupPinpoint
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ChatGPTPinpoint
+      Description: Pinpoint SMS fullfilment that talks to ChatGPT service
+      Handler: cloud.cleo.squareup.ChatGPTLambdaPinpoint
+      CodeUri: ./ChatGPT
+      Timeout: 60
+      Environment: 
+        Variables:
+          OPENAI_MODEL: !Ref OPENAIMODEL
+          OPENAI_API_KEY: !Ref OPENAIAPIKEY
+          SQUARE_API_KEY: !Ref SQUAREAPIKEY
+          SQUARE_LOCATION_ID: !Ref SQUARELOCATIONID
+          SQUARE_ENVIRONMENT: !Ref SQUAREENVIRONMENT
+          SESSION_TABLE_NAME: !Ref SessionTable
+          MAIN_NUMBER: !Ref TRANSFERNUMBER
+      Policies: 
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref SessionTable
+        - Version: '2012-10-17' 
+          Statement:
+            - Effect: Allow
+              Action:
+                # Allow send of SMS messages via SNS
+                - sns:Publish
+                # Send Emails 
+                - ses:SendEmail
+                # AWS Cost forecast
+                - ce:GetCostForecast
+              Resource: '*'
+      Events:
+        SNSSub:
+          Type: SNS
+          Properties:
+            Topic: !Ref PinpointInboundTopic
+  
+  ChatGPTLogGroupPinpoint:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChatGPTPinpoint'
+      RetentionInDays: 90  
   
   SessionTable:
     Type: AWS::DynamoDB::Table

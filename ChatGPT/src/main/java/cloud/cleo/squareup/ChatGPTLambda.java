@@ -12,9 +12,6 @@ import cloud.cleo.squareup.json.LocalTimeSerializer;
 import cloud.cleo.squareup.json.ZoneIdDeserializer;
 import cloud.cleo.squareup.json.ZonedSerializer;
 import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.Intent;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.SessionState;
 import com.amazonaws.services.lambda.runtime.events.LexV2Response;
@@ -38,7 +35,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
@@ -53,7 +49,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
  *
  * @author sjensen
  */
-public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> {
+public abstract class ChatGPTLambda  {
 
     // Initialize the Log4j logger.
     Logger log = LogManager.getLogger(ChatGPTLambda.class);
@@ -106,34 +102,8 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
         new FaceBookOperations();
     }
 
-    @Override
-    public LexV2Response handleRequest(LexV2Event lexRequest, Context cntxt) {
-        // Wrapped Event Class
-        final LexV2EventWrapper event = new LexV2EventWrapper(lexRequest);
-        try {
-            log.debug(mapper.valueToTree(lexRequest).toPrettyString());
-            // Intent which doesn't matter for us
-            log.debug("Intent: " + event.getIntent());
 
-            // For this use case, we only ever get the FallBack Intent, so the intent name means nothing here
-            // We will process everythiung coming in as text to pass to GPT
-            // IE, we are only using lex here to process speech and send it to us
-            return switch (event.getIntent()) {
-                default ->
-                    processGPT(event);
-            };
-
-        } catch (CompletionException e) {
-            log.error("Unhandled Future Exception", e.getCause());
-            return buildResponse(new LexV2EventWrapper(lexRequest), event.getLangString(UNHANDLED_EXCEPTION));
-        } catch (Exception e) {
-            log.error("Unhandled Exception", e);
-            // Unhandled Exception
-            return buildResponse(new LexV2EventWrapper(lexRequest), event.getLangString(UNHANDLED_EXCEPTION));
-        }
-    }
-
-    private LexV2Response processGPT(LexV2EventWrapper lexRequest) {
+    protected LexV2Response processGPT(LexV2EventWrapper lexRequest) {
         var input = lexRequest.getInputTranscript();
         final var attrs = lexRequest.getSessionAttributes();
         // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
@@ -393,7 +363,7 @@ public class ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> 
      * @param response
      * @return
      */
-    private LexV2Response buildResponse(LexV2EventWrapper lexRequest, String response) {
+    protected LexV2Response buildResponse(LexV2EventWrapper lexRequest, String response) {
         return buildResponse(lexRequest, response, null);
     }
 
