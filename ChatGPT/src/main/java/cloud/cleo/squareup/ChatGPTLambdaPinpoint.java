@@ -40,7 +40,7 @@ public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandl
         log.debug("Recieved SNS Event" + snsEvent);
 
         // Convert payload to Pinpoint Event
-        final var ppe = mapper.convertValue(snsEvent, PinpointEvent.class);
+        final var ppe = mapper.convertValue(snsEvent.getMessage(), PinpointEvent.class);
 
         // Wrapped Event Class
         final LexV2EventWrapper event = new LexV2EventWrapper(ppe);
