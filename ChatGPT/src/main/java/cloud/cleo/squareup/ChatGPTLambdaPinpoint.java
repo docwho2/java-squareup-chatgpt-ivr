@@ -7,7 +7,9 @@ import com.amazonaws.services.lambda.runtime.events.LexV2Response;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.concurrent.CompletionException;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -71,6 +73,8 @@ public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandl
      *
      */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class PinpointEvent {
 
         /**
