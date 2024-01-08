@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.LexV2Response;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.concurrent.CompletionException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,8 +43,14 @@ public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandl
         log.debug("Recieved SNS Event" + snsEvent);
 
         // Convert payload to Pinpoint Event
-        final var ppe = mapper.convertValue(snsEvent.getMessage(), PinpointEvent.class);
-
+        PinpointEvent ppe;
+        try {
+            ppe = mapper.readValue(snsEvent.getMessage(), PinpointEvent.class);
+        } catch( JsonProcessingException jpe ) {
+            log.error("Cannot convert Pintpoint JSON to Object, processing aborted and returning null",jpe);
+            return null;
+        }
+        
         // Wrapped Event Class
         final LexV2EventWrapper event = new LexV2EventWrapper(ppe);
         LexV2Response response;
