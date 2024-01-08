@@ -11,6 +11,7 @@ import cloud.cleo.squareup.lang.LangUtil;
 import cloud.cleo.squareup.lang.LangUtil.LanguageIds;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event;
 import com.amazonaws.services.lambda.runtime.events.LexV2Event.Bot;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -61,6 +62,8 @@ public class LexV2EventWrapper {
                 .withInputTranscript(ppe.getMessageBody())
                 // SMS has no locale target, just use en_US
                 .withBot(Bot.builder().withLocaleId("en_US").build())
+                // Need a Blank Session attributes
+                .withSessionState(LexV2Event.SessionState.builder().withSessionAttributes(new HashMap<>()).build())
                 .build());
     }
 
