@@ -24,7 +24,7 @@ public class DrivingDirectionsVoice extends DrivingDirections {
     
     @Override
     protected String getDescription() {
-        return "Sends the caller a URL with directions to the store direct to their mobile device. Confirm they are calling from a mobile device before calling this function.";
+        return "Sends the caller a URL with dirivng directions to the store.";
     }
 
     @Override
