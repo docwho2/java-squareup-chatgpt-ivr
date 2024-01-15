@@ -28,7 +28,7 @@ public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandl
     // Initialize the Log4j logger.
     Logger log = LogManager.getLogger(ChatGPTLambdaPinpoint.class);
 
-    final static SnsAsyncClient snsAsyncClient = SnsAsyncClient.builder()
+    static final SnsAsyncClient snsAsyncClient = SnsAsyncClient.builder()
             // Force SMS sending to east because that's where all the 10DLC and campaign crap setup is done
             // Otherwise have to pay for registrations and numbers in 2 regions, HUGE HASSLE (and more monthly cost)
             // Also then all texts are sourced from the same phone number for consistancy
@@ -40,7 +40,7 @@ public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandl
     public Void handleRequest(SNSEvent input, Context cntxt) {
         // Only 1 record is every presented
         SNSEvent.SNS snsEvent = input.getRecords().get(0).getSns();
-        log.debug("Recieved SNS Event" + snsEvent);
+        log.debug("Recieved SNS Event {}",snsEvent);
 
         // Convert payload to Pinpoint Event
         PinpointEvent ppe;

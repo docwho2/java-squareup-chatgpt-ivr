@@ -17,20 +17,20 @@ public class ChimeSMA extends AbstractFlow {
     /**
      * Simple Object that caches Square data about hours to determine whether store is open or closed
      */
-    private final static SquareHours squareHours = SquareHours.getInstance();
+    private static final SquareHours squareHours = SquareHours.getInstance();
 
     /**
      * Main Transfer number used
      */
-    private final static String MAIN_NUMBER = System.getenv("MAIN_NUMBER");
+    private static final String MAIN_NUMBER = System.getenv("MAIN_NUMBER");
     /**
      * Voice Connector ARN so calls to main number will go SIP to PBX
      */
-    private final static String VC_ARN = System.getenv("VC_ARN");
+    private static final String VC_ARN = System.getenv("VC_ARN");
 
-    private final static Action MAIN_MENU = getMainMenu();
+    private static final Action MAIN_MENU = getMainMenu();
     
-    private final static Action ERROR_ACTION = getSystemErrorAction();
+    private static final Action ERROR_ACTION = getSystemErrorAction();
 
     /**
      * Initial action is to play welcome message and whether store is open or closed
@@ -48,13 +48,11 @@ public class ChimeSMA extends AbstractFlow {
                 .build();
 
         // Start with a welcome message
-        final var welcome = PlayAudioAction.builder()
+        return PlayAudioAction.builder()
                 .withKey("welcome.wav") // This is always in english
                 .withNextAction(openClosed)
                 .withErrorAction(openClosed)
                 .build();
-
-        return welcome;
     }
 
     /**
@@ -69,12 +67,12 @@ public class ChimeSMA extends AbstractFlow {
                 .withDescription("Normal Hangup ").build();
 
         // Function that passes the Calling Number to Lex
-        Function<StartBotConversationAction, Map<String, String>> attributesFunction = (action) -> {
-            return Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom());
-        };
+        Function<StartBotConversationAction, Map<String, String>> attributesFunction = action -> 
+            Map.of("callingNumber", action.getEvent().getCallDetails().getParticipants().get(0).getFrom());
+        
 
         // Map to Hold all all our Bots by Language
-        Map<Language, StartBotConversationAction> botLangMap = new HashMap<>();
+        Map<Language, StartBotConversationAction> botLangMap = new EnumMap<>();
 
         final var lexBotEN = StartBotConversationAction.builder()
                 .withDescription("ChatGPT English")
@@ -169,7 +167,7 @@ public class ChimeSMA extends AbstractFlow {
                 .build();
 
         // Create a Next Action handler to be shared by all the Bots
-        Function<StartBotConversationAction, Action> botNextAction = (a) -> {
+        Function<StartBotConversationAction, Action> botNextAction = a -> {
             final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
             final var botResponse = attrs.get("bot_response");  // When transferring or hanging up, play back GPT's last response
             final var action = attrs.get("action");  // We don't need or want real intents, so the action when exiting the Bot will be set
@@ -245,13 +243,11 @@ public class ChimeSMA extends AbstractFlow {
                 .withNextAction(hangup)
                 .build();
         
-        final var errMsg = PlayAudioAction.builder()
+        return PlayAudioAction.builder()
                 .withDescription("System Error Message")
                 .withKeyLocale("error")
                 .withNextAction(goodbye)
                 .build();
-
-        return errMsg;
     }
 
     @Override
@@ -267,7 +263,7 @@ public class ChimeSMA extends AbstractFlow {
     /**
      * Voice Languages we support (that are built out in Lex)
      */
-    static enum Language {
+    enum Language {
         English,
         Spanish,
         German,
