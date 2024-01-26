@@ -45,13 +45,16 @@ Parameters:
   OPENAIMODEL:
     Description: OpenAI ChatGPT Model that has function calling enabled
     Type: String
-    Default: gpt-3.5-turbo-1106
+    Default: gpt-3.5-turbo
     AllowedValues: # https://platform.openai.com/docs/models/overview (requres model with function calling)
         - gpt-3.5-turbo
         - gpt-3.5-turbo-1106
+        - gpt-3.5-turbo-0125
         - gpt-4
         - gpt-4-32k
         - gpt-4-1106-preview
+        - gpt-4-0125-preview
+        - gpt-4-turbo-preview
   VOICEIDEN:
     Description: The neural voice used for LEX and prompt generation for English
     Type: String
