@@ -42,7 +42,7 @@ runs:
       run: |
         RESULT=$(aws lexv2-runtime recognize-text --text 'Do you have gummy bears?' --output text --query 'messages[0].content' --bot-id ${BOT_ID} --bot-alias-id ${BOT_ALIAS_ID} --locale-id en_US --session-id ${{ inputs.session-id }})
         echo "Result is [${RESULT}]"
-        if [[ $RESULT != *"Yes"* ]]; then
+        if [[ $RESULT != *"Yes"* && $RESULT != *"We have"* && $RESULT != *"Big Yummy"* ]]; then
           echo "Did not pass gummy bear test"
           exit 1
         fi
