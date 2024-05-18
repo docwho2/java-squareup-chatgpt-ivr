@@ -6,6 +6,7 @@ import cloud.cleo.squareup.LexV2EventWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
+import com.squareup.square.authentication.BearerAuthModel;
 import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
@@ -83,7 +84,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
         // If square enabled, then configure the client
         if (squareEnabled) {
             squareClient = new SquareClient.Builder()
-                    .accessToken(key)
+                    .bearerAuthCredentials( new BearerAuthModel.Builder(key).build())
                     .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
                     .build();
         } else {

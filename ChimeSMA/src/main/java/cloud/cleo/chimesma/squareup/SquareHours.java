@@ -3,6 +3,7 @@ package cloud.cleo.chimesma.squareup;
 import com.squareup.square.Environment;
 import com.squareup.square.SquareClient;
 import com.squareup.square.api.LocationsApi;
+import com.squareup.square.authentication.BearerAuthModel;
 import com.squareup.square.models.BusinessHoursPeriod;
 import com.squareup.square.models.Location;
 import java.time.DayOfWeek;
@@ -28,7 +29,7 @@ public class SquareHours {
     private final static String SQUARE_API_KEY = System.getenv("SQUARE_API_KEY");
 
     private final static SquareClient client = new SquareClient.Builder()
-            .accessToken(SQUARE_API_KEY)
+            .bearerAuthCredentials( new BearerAuthModel.Builder(SQUARE_API_KEY).build())
             .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
             .build();
 
