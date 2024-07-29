@@ -416,7 +416,7 @@ To deploy this project via CLI, you need the following tools.
 * AWS CLI - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 * AWS SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 * AWS CDK - [Instal CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
-* Java 17 - [Install Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
+* Java 21 - [Install Java 21](https://docs.aws.amazon.com/corretto/latest/corretto-121-ug/downloads-list.html)
 * Maven - [Install Maven](https://maven.apache.org/install.html)
 
 If you have [brew](https://brew.sh) installed (highly recommended) then:
@@ -424,7 +424,7 @@ If you have [brew](https://brew.sh) installed (highly recommended) then:
 brew install awscli
 brew install aws-sam-cli
 brew install aws-cdk
-brew install corretto17
+brew install corretto21
 brew install maven
 
 ```
