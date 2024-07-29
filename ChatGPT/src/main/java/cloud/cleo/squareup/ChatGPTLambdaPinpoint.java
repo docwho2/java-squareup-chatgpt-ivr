@@ -3,7 +3,6 @@ package cloud.cleo.squareup;
 import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.UNHANDLED_EXCEPTION;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.runtime.events.LexV2Response;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,7 +38,7 @@ public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandl
     @Override
     public Void handleRequest(SNSEvent input, Context cntxt) {
         // Only 1 record is every presented
-        SNSEvent.SNS snsEvent = input.getRecords().get(0).getSns();
+        SNSEvent.SNS snsEvent = input.getRecords().get(0).getSNS();
         log.debug("Recieved SNS Event" + snsEvent);
 
         // Convert payload to Pinpoint Event

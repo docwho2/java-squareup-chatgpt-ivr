@@ -5,12 +5,11 @@
 package cloud.cleo.squareup;
 
 import cloud.cleo.squareup.ChatGPTLambdaPinpoint.PinpointEvent;
+import cloud.cleo.squareup.LexV2Event.Bot;
 import cloud.cleo.squareup.enums.*;
 import static cloud.cleo.squareup.enums.ChannelPlatform.*;
 import cloud.cleo.squareup.lang.LangUtil;
 import cloud.cleo.squareup.lang.LangUtil.LanguageIds;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event.Bot;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;

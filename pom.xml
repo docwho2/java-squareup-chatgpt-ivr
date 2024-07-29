@@ -24,14 +24,12 @@
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
     </properties>
     
     <modules>
-        <!-- These are needed for lex events (bots) and JSON processing from the Library Project -->
-        <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-serialization</module>
-        <module>ChimeSMALibrary/LambdaEventsV4/aws-lambda-java-events</module>
+        <!-- We need flow and event libraries -->
         <module>ChimeSMALibrary/ChimeSMAEvent</module>
         <module>ChimeSMALibrary/ChimeSMAFlow</module>
         <!-- We are creating prompts as well, so pull in Prompt Creation -->
@@ -71,27 +69,12 @@
                 <version>1.2.3</version>
             </dependency>
             
-            
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-lambda-java-serialization</artifactId>
-                <version>2.0.0</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.gson</groupId>
-                        <artifactId>gson</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            
-            <!-- 4.0 Lib that is not released yet on maven central --> 
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-lambda-java-events</artifactId>
-                <version>4.0.0</version>
+                <version>3.12.0</version>
             </dependency>
-            
-            
+                      
             <!-- Lambda Logging --> 
             <dependency>
                 <groupId>com.amazonaws</groupId>
@@ -162,15 +145,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.13.0</version>
-                    <configuration>
-                        <release>17</release> <!-- Set Java version -->
-                        <compilerArgs>
-                            <arg>--enable-preview</arg>
-                        </compilerArgs>
-                        <testCompilerArgs>
-                            <arg>--enable-preview</arg>
-                        </testCompilerArgs>
-                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

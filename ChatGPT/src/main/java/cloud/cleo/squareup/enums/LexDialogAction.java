@@ -4,8 +4,9 @@
  */
 package cloud.cleo.squareup.enums;
 
-import com.amazonaws.services.lambda.runtime.events.LexV2Event;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event.DialogAction;
+import cloud.cleo.squareup.LexV2Event;
+import cloud.cleo.squareup.LexV2Event.DialogAction;
+
 
 /**
  *

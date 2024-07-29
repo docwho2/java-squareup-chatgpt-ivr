@@ -45,7 +45,7 @@ Parameters:
   OPENAIMODEL:
     Description: OpenAI ChatGPT Model that has function calling enabled
     Type: String
-    Default: gpt-3.5-turbo
+    Default: gpt-4o-mini
     AllowedValues: # https://platform.openai.com/docs/models/overview (requres model with function calling)
         - gpt-3.5-turbo
         - gpt-3.5-turbo-1106
@@ -94,15 +94,10 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: java17
-    Environment: 
-      Variables:
-        JAVA_TOOL_OPTIONS: --enable-preview
+    Runtime: java21
     Timeout: 30
     MemorySize: 3009
-    Architectures:  # SnapStart on Java 17 requires x86
-        - x86_64
-
+    
 Resources:
     
   PromptBucket:
@@ -137,6 +132,8 @@ Resources:
       Description: Creates Static prompts to be used in Chime Voice SDK
       Handler: cloud.cleo.chimesma.PollyPromptGenerator
       CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      Architectures:  # requires x86 due to naitive SOX libraries
+        - x86_64
       SnapStart:
            ApplyOn: None
       Environment: 
@@ -168,6 +165,8 @@ Resources:
       Description: Copy Static prompts in repo to S3 to be used in Chime SMA
       Handler: cloud.cleo.chimesma.PromptCopier
       CodeUri: ./ChimeSMALibrary/PollyPromptCreation
+      Architectures:  # SnapStart now supports ARM
+        - arm64
       SnapStart:
            ApplyOn: None
       Environment: 
@@ -373,6 +372,8 @@ Resources:
       Handler: cloud.cleo.chimesma.squareup.ChimeSMA
       AutoPublishAlias: SNAPSTART
       CodeUri: ./ChimeSMA
+      Architectures:  # SnapStart now supports ARM
+        - arm64
       SnapStart:
         ApplyOn: PublishedVersions
       Environment: 
@@ -992,6 +993,8 @@ Resources:
       Handler: cloud.cleo.squareup.ChatGPTLambdaLex
       AutoPublishAlias: SNAPSTART
       CodeUri: ./ChatGPT
+      Architectures:  # SnapStart now supports ARM
+        - arm64
       Timeout: 60
       Environment: 
         Variables:
@@ -1093,6 +1096,8 @@ Resources:
       Description: Pinpoint SMS fullfilment that talks to ChatGPT service
       Handler: cloud.cleo.squareup.ChatGPTLambdaPinpoint
       CodeUri: ./ChatGPT
+      Architectures:
+        - arm64
       Timeout: 60
       Environment: 
         Variables:

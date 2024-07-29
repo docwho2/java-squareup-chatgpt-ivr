@@ -1,5 +1,9 @@
 package cloud.cleo.squareup;
 
+import cloud.cleo.squareup.LexV2Event.Intent;
+import cloud.cleo.squareup.LexV2Event.SessionState;
+import cloud.cleo.squareup.LexV2Response.Button;
+import cloud.cleo.squareup.LexV2Response.ImageResponseCard;
 import static cloud.cleo.squareup.enums.LexDialogAction.*;
 import static cloud.cleo.squareup.enums.LexMessageContentType.*;
 import cloud.cleo.squareup.functions.AbstractFunction;
@@ -12,11 +16,6 @@ import cloud.cleo.squareup.json.LocalTimeSerializer;
 import cloud.cleo.squareup.json.ZoneIdDeserializer;
 import cloud.cleo.squareup.json.ZonedSerializer;
 import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event.Intent;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event.SessionState;
-import com.amazonaws.services.lambda.runtime.events.LexV2Response;
-import com.amazonaws.services.lambda.runtime.events.LexV2Response.Button;
-import com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -373,7 +372,7 @@ public abstract class ChatGPTLambda  {
      * @return
      */
     private ImageResponseCard buildWelcomeCard() {
-        return com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard.builder()
+        return LexV2Response.ImageResponseCard.builder()
                 .withTitle("Welcome to Copper Fox Gifts")
                 .withImageUrl("https://www.copperfoxgifts.com/logo.png")
                 .withSubtitle("Ask us anything or use a quick action below")
@@ -391,7 +390,7 @@ public abstract class ChatGPTLambda  {
      * @return
      */
     private ImageResponseCard buildTransferCard() {
-        return com.amazonaws.services.lambda.runtime.events.LexV2Response.ImageResponseCard.builder()
+        return LexV2Response.ImageResponseCard.builder()
                 .withTitle("Conversation will move to Inbox")
                 .withImageUrl("https://www.copperfoxgifts.com/logo.png")
                 .withSubtitle("Please tell us how our AI ChatBot did?")

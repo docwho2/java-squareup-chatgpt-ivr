@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * IVR for Square Retail using Lex Bot backed by ChatGPT.
@@ -13,6 +15,9 @@ import java.util.function.Function;
  * @author sjensen
  */
 public class ChimeSMA extends AbstractFlow {
+    
+     // Initialize the Log4j logger.
+    protected final static Logger log = LogManager.getLogger(ChimeSMA.class);
 
     /**
      * Simple Object that caches Square data about hours to determine whether store is open or closed
