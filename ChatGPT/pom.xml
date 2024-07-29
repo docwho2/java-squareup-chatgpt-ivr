@@ -73,7 +73,7 @@
             <artifactId>ses</artifactId>
         </dependency>
         
-         <dependency>
+        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>costexplorer</artifactId>
         </dependency>
@@ -107,6 +107,23 @@
             <artifactId>okhttp</artifactId>
             <version>4.12.0</version>
         </dependency>
+        
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+            
     </dependencies>
     
     
