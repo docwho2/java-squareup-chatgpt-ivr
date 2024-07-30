@@ -22,6 +22,7 @@ import java.util.function.Function;
  * @author sjensen
  * @param <Request>
  */
+@Deprecated
 public class SquareCategories<Request> extends AbstractFunction {
 
     @Override
@@ -109,7 +110,8 @@ public class SquareCategories<Request> extends AbstractFunction {
 
     @Override
     protected boolean isEnabled() {
-        return isSquareEnabled();
+        return false;  // Not using categories anymore, didn't seem to help much
+        //return isSquareEnabled();
     }
 
 }

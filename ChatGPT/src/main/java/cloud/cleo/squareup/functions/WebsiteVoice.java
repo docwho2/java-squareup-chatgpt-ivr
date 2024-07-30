@@ -1,19 +1,22 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
+import static cloud.cleo.squareup.functions.AbstractFunction.log;
+import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 
 /**
- * Driving Directions when user is interacting via Voice interface.
  *
  * @author sjensen
  */
-public class DrivingDirectionsVoice extends DrivingDirections {
-
-    
+public class WebsiteVoice extends Website {
     final static SnsAsyncClient snsAsyncClient = SnsAsyncClient.builder()
                         // Force SMS sending to east because that's where all the 10DLC and campaign crap setup is done
                         // Otherwise have to pay for registrations and numbers in 2 regions, HUGE HASSLE (and more monthly cost)
@@ -24,7 +27,7 @@ public class DrivingDirectionsVoice extends DrivingDirections {
     
     @Override
     protected String getDescription() {
-        return "Sends the caller a URL with driving directions to the store via SMS.";
+        return "Sends the caller the store website address/url via SMS.";
     }
 
     @Override
@@ -43,14 +46,14 @@ public class DrivingDirectionsVoice extends DrivingDirections {
                     return mapper.createObjectNode().put("status","FAILED").put("message", "Caller is not calling from a mobile device");
                 }
                 
-                final var result = snsAsyncClient.publish(b -> b.phoneNumber(callingNumber).message(DRIVING_DIRECTIONS_URL) ).join();
-                log.info("SMS Directions sent to " + callingNumber + " with SNS id of " + result.messageId());
+                final var result = snsAsyncClient.publish(b -> b.phoneNumber(callingNumber).message(WEBSITE_URL) ).join();
+                log.info("SMS Store Website URL sent to " + callingNumber + " with SNS id of " + result.messageId());
                 return mapper.createObjectNode().put("status","SUCCESS").put("message", "The directions have been sent");
             } catch (CompletionException e) {
-               log.error("Could not send Directions via SMS to caller",e.getCause());
+               log.error("Could not send Store Website URL via SMS to caller",e.getCause());
                 return mapper.createObjectNode().put("status","FAILED").put("message", "An error has occurred, this function may be down");
             } catch (Exception e) {
-                log.error("Could not send Directions via SMS to caller",e);
+                log.error("Could not send Store Website URL via SMS to caller",e);
                 return mapper.createObjectNode().put("status","FAILED").put("message", "An error has occurred, this function may be down");
             }
         };
@@ -68,5 +71,4 @@ public class DrivingDirectionsVoice extends DrivingDirections {
     protected boolean isText() {
         return false;
     }
-
 }
