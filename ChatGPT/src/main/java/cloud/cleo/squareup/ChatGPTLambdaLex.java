@@ -5,8 +5,6 @@ import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.UNHANDLED_EXCEPTION;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import java.util.concurrent.CompletionException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 
 
@@ -20,8 +18,6 @@ import org.apache.logging.log4j.Logger;
  */
 public class ChatGPTLambdaLex extends ChatGPTLambda implements RequestHandler<LexV2Event, LexV2Response> {
 
-      // Initialize the Log4j logger.
-    Logger log = LogManager.getLogger(ChatGPTLambdaLex.class);
     
     @Override
     public LexV2Response handleRequest(LexV2Event lexRequest, Context cntxt) {

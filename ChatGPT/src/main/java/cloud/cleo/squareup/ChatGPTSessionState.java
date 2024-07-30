@@ -64,17 +64,28 @@ public class ChatGPTSessionState {
         final var sb = new StringBuilder();
 
         // General Prompting
-        sb.append("Please be a helpfull assistant named \"Copper Bot\" for a retail store named \"Copper Fox Gifts\", which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  ");
-        sb.append("The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.  ");
-        sb.append("The store opened in October of 2021 and moved to its larger location in May of 2023.  ");
+        sb.append("""
+                  Please be a helpfull assistant named "Copper Bot" for a retail store named "Copper Fox Gifts", 
+                  which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  
+                  The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs. 
+                  The website url for the store is "copperfoxgifts.com".
+                  Outside normal business hours, we offer a "Private Shopping Experience" where a staff member will open 
+                  the store outside normal hours, and this can be scheduled on our website from one of the top level menu choices.
+                  We have a one hour lead time on appointments so if we're closed, they could be shopping privately within one hour! 
+                  Do mention how great it would be to have the store all to themselves and how we try to accomodate all requests ASAP. 
+                  The store opened in October of 2021 and moved to its larger location in May of 2023.
+                  """);
 
         // We need to tell GPT the date so it has a reference, when calling via API it has no date knowledge
         // We don't let sessions storage span days, so the date should always be relevant.
         sb.append("The current date is  ").append(date).append(".  ");
 
         // Local Stuff to recommend
-        sb.append("Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers in the lake area and has a large selection draft beers and great pub fare.  ");
-        sb.append("Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  ");
+        sb.append("""
+                  Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers 
+                  in the lake area and has a large selection draft beers and great pub fare. 
+                  Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices. 
+                  """);
 
         // We want to receieve all emails in English so we can understand them :-)
         sb.append("When executing send_email_message function, translate the subject and message request parameteres to English.  ");
@@ -82,18 +93,17 @@ public class ChatGPTSessionState {
         // Square must be enabled for all of the below, so exclude when deploying without Sqaure enabled
         if (AbstractFunction.isSquareEnabled()) {
             // Privacy
-            sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ").append(System.getenv("MAIN_NUMBER")).append(".  ");
+            sb.append("Do not give out employee phone numbers, only email addresses.  You can give out the main store phone number which is ")
+                    .append(System.getenv("MAIN_NUMBER")).append(".  ");
             sb.append("Do not give out the employee list.  You may confirm the existance of an employee and give the full name and email.  ");
 
             // We need GPT to call any functions with translated values, because for example "ositos de goma" is "gummy bears" in Spanish,
             //  However that won't match when doing a Square Item search, it needs to be translated to gummy bears for the search to work.
             // General statement didn't work well, but calling the below out works great
-            sb.append("When executing store_product_categories function, translate the search_text to English.  ");
             sb.append("When executing store_product_item function, translate the search_text to English.  ");
-            sb.append("Execute store_product_categories for more general search_text and store_product_item for more specific search_text inputs or execute both functions if needed.  ");
-            
+
             // Because we search on all terms, tell GPT to look at results and analyze whether the exact search term matched, or maybe a sub-string matched
-            sb.append("When executing store_product_categories or store_product_item function the results may include items that don't match exactly, ")
+            sb.append("When executing store_product_item function the results may include items that don't match exactly, ")
                     .append("so check to see if the full search_text is contained in the result to indicate an exact match, otherwise indicate to user ")
                     .append("that those results may be similar items to what they asked about.  ");
         }
@@ -104,15 +114,15 @@ public class ChatGPTSessionState {
                 switch (lexRequest.getChannelPlatform()) {
                     case FACEBOOK -> {
                         // Don't need very short or char limit, but we don't want to output a book either
-                        sb.append("The user is interacting via Facebook Messenger.  Please keep answers concise.  Use emoji in responses when appropiate.  ");
-                        
+                        sb.append("The user is interacting via Facebook Messenger.  Use emoji in responses when appropiate.  ");
+
                         // Personalize with Name
                         final var name = FaceBookOperations.getFacebookName(lexRequest.getSessionId());
-                        if ( ! "Unknown".equalsIgnoreCase(name) ) {
+                        if (!"Unknown".equalsIgnoreCase(name)) {
                             sb.append("The user's name is ").append(name).append(".  Please greet the user by name and personalize responses when appropiate.  ");
                         }
                     }
-                    case TWILIO,PINPOINT -> {
+                    case TWILIO, PINPOINT -> {
                         // Try and keep SMS segements down, hence the "very" short reference and character preference
                         sb.append("The user is interacting via SMS.  Please keep answers very short and concise, preferably under 180 characters.  ");
 
@@ -129,18 +139,18 @@ public class ChatGPTSessionState {
                 sb.append("Detect the language of the prompt and respond in that language.  ");
             }
             case SPEECH, DTMF -> {
-                sb.append("The user is interacting with speech via a telephone interface.  please keep answers short and concise.  ");
+                sb.append("The user is interacting with speech via a telephone call.  please keep answers short and concise.  ");
 
                 // Blank input, meaning silienece timeout which is a speech only thing
                 sb.append("When the prompt is exactly blank, this means the caller did not say anything, so try and engage in conversation and also suggest ")
-                        .append("queries the caller might be interested in (Hours,Location,Product Search,Language Chnage, etc.).  ");
-                
+                        .append("queries the caller might be interested in (Hours,Location,Product Search,Private Shopping, Language Change, etc.).  ");
+
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
                 // Always answer with a question to illicit the next repsonse, this makes the voice interaction more natural
                 sb.append("When responding always end the response with a question to illicit the next input since we are interacting via telephone.  ");
-                
+
                 // Speech Languages and switching between them at any time
                 sb.append("If the caller wants to interact in ")
                         .append(Arrays.stream(Language.values()).map(Language::toString).collect(Collectors.joining(" or ")))
@@ -155,7 +165,7 @@ public class ChatGPTSessionState {
                 sb.append("If the caller wants to just speak to a person in general or leave a voicemail, execute ")
                         .append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER"))
                         .append(" which rings the main phone in the store.  ");
-                
+
                 // Toll fraud protect
                 sb.append("Do not allow calling ").append(TRANSFER_FUNCTION_NAME).append(" function with arbritary phone numbers provided by the user.  ");
             }

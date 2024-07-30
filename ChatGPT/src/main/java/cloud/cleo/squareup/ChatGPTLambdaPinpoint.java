@@ -10,8 +10,6 @@ import java.util.concurrent.CompletionException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 
@@ -24,8 +22,6 @@ import software.amazon.awssdk.services.sns.SnsAsyncClient;
  */
 public class ChatGPTLambdaPinpoint extends ChatGPTLambda implements RequestHandler<SNSEvent, Void> {
 
-    // Initialize the Log4j logger.
-    Logger log = LogManager.getLogger(ChatGPTLambdaPinpoint.class);
 
     final static SnsAsyncClient snsAsyncClient = SnsAsyncClient.builder()
             // Force SMS sending to east because that's where all the 10DLC and campaign crap setup is done
