@@ -30,7 +30,9 @@ public class PrivateShoppingLinkText extends PrivateShoppingLink {
         return (var r) -> {
             
             if (getChannelPlatform().equals(FACEBOOK)) {
-                FaceBookOperations.sendPrivateBookingURL(getSessionId());
+                if ( FaceBookOperations.sendPrivateBookingURL(getSessionId()) ) {
+                    return mapper.createObjectNode().put("message", "URL was just sent out of band successfully as a Messenger Button, so just make reference to the URL button above as part of your response");
+                }
             }
             return mapper.createObjectNode().put("url", PRIVATE_SHOPPING_URL);
         };

@@ -2,6 +2,7 @@ package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.ChatGPTLambda.mapper;
 import static cloud.cleo.squareup.functions.PrivateShoppingLink.PRIVATE_SHOPPING_URL;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -72,8 +73,9 @@ public class FaceBookOperations {
      * Send our private Shopping URL as a Messenger Button
      * 
      * @param id of the recipient
+     * @return true if successfully sent
      */
-    public static void sendPrivateBookingURL(String id) {
+    public static boolean sendPrivateBookingURL(String id) {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) getFaceBookURL(null, "me/messages").openConnection();
@@ -91,12 +93,13 @@ public class FaceBookOperations {
             json.putObject("message").putObject("attachment")
                     .put("type", "template").putObject("payload")
                     .put("template_type", "button")
-                    .put("text", "Book Private Shopping")
+                    .put("text", "Book Your Private Shopping Experience")
                     .putArray("buttons")
                     .addObject()
                     .put("type", "web_url")
+                    .put("messenger_extensions", true)
                     .put("url", "https://" + PRIVATE_SHOPPING_URL)
-                    .put("title", "Book Private Shopping")
+                    .put("title", "Book Now!")
                     .put("webview_height_ratio", "full");
 
             log.debug("Post Payload for URL push" + json.toPrettyString());
@@ -110,6 +113,7 @@ public class FaceBookOperations {
 
             if (result.findValue("message_id") != null) {
                 log.debug("Call Succeeded in sending URL in FB Messenger");
+                return true;
             } else {
                 log.debug("Call FAILED to send URL in FB Messenger");
             }
@@ -121,6 +125,7 @@ public class FaceBookOperations {
                 connection.disconnect();
             }
         }
+        return false;
     }
 
     /**
