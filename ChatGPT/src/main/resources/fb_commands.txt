@@ -1,0 +1,26 @@
+
+curl -X POST -H "Content-Type: application/json" -d '{
+    "commands": [
+        {
+            "locale": "default",
+            "commands": [
+                {
+                    "name": "Hours",
+                    "description": "When our store is open/closed"
+                },
+                {
+                    "name": "Location",
+                    "description": "Our business address"
+                },
+                {
+                    "name": "Person",
+                    "description": "Transfer conversation to a real person (store staff)"
+                },
+                {
+                    "name": "Personal-Shopping",
+                    "description": "Infomation about booking a personal shopping experience"
+                }
+            ]
+        }
+    ]
+}' "https://graph.facebook.com/v20.0/me/messenger_profile?access_token="

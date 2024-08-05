@@ -2,7 +2,6 @@ package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.ChatGPTLambda.mapper;
 import static cloud.cleo.squareup.functions.PrivateShoppingLink.PRIVATE_SHOPPING_URL;
-import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -69,9 +68,66 @@ public class FaceBookOperations {
         }
     }
 
+    
+    /**
+     * Adds a static menu button, so when bot calls for the URL, will persist as menu item.
+     * https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu/
+     * @param id
+     * @return 
+     */
+    public static void addPrivateShoppingMenu(String id) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) getFaceBookURL(null, "me/custom_user_settings").openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json; utf-8");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setDoOutput(true);
+
+            // Construct the payload
+            var json = mapper.createObjectNode();
+
+            // The page scoped user ID of the person chatting with us
+            json.put("psid", id);
+
+            json.putArray("persistent_menu")
+                    .addObject()
+                    .put("locale", "default")
+                    .put("composer_input_disabled", false)
+                    .putArray("call_to_actions")
+                    .addObject()
+                    .put("type", "web_url")
+                    .put("url", "https://" + PRIVATE_SHOPPING_URL)
+                    .put("title", "Book Appointment Now!")
+                    .put("webview_height_ratio", "full");
+
+            log.debug("Post Payload for Private Shopping Menu" + json.toPrettyString());
+            mapper.writeValue(connection.getOutputStream(), json);
+
+            final int responseCode = connection.getResponseCode();
+            log.debug("Facebook Call Response Code: " + responseCode);
+
+            final var result = mapper.readTree(connection.getInputStream());
+            log.debug("FB Private Shopping Menu send result is " + result.toPrettyString());
+
+            if (result.findValue("message_id") != null) {
+                log.debug("Call Succeeded in sending Private Shopping Menu");
+            } else {
+                log.debug("Call FAILED to send Private Shopping Menu");
+            }
+
+        } catch (Exception e) {
+            log.error("Facebook Messenger Private Shopping Menu send failed", e);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
     /**
      * Send our private Shopping URL as a Messenger Button
-     * 
+     *
      * @param id of the recipient
      * @return true if successfully sent
      */
@@ -97,7 +153,7 @@ public class FaceBookOperations {
                     .putArray("buttons")
                     .addObject()
                     .put("type", "web_url")
-                    .put("messenger_extensions", "true")
+                    //.put("messenger_extensions", true)
                     .put("url", "https://" + PRIVATE_SHOPPING_URL)
                     .put("title", "Book Now!")
                     .put("webview_height_ratio", "full");
@@ -180,11 +236,11 @@ public class FaceBookOperations {
         final var sb = new StringBuilder("https://graph.facebook.com/");
 
         // Version of API we are calling
-        sb.append("v18.0/");
+        sb.append("v18.0");
 
         // ID for the entity we are using (Page ID, or Page scoped User ID)
         if (id != null) {
-            sb.append(id);
+            sb.append('/').append(id);
         }
 
         // Optional operation

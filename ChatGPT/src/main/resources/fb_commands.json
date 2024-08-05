@@ -1,0 +1,25 @@
+{
+    "commands": [
+        {
+            "locale": "default",
+            "commands": [
+                {
+                    "name": "Hours",
+                    "description": "When our store is open/closed"
+                },
+                {
+                    "name": "Location",
+                    "description": "Our business address"
+                },
+                {
+                    "name": "Person",
+                    "description": "Transfer conversation to a real person (store staff)"
+                },
+                {
+                    "name": "Personl Shopping",
+                    "description": "Infomation about booking a personal shopping experience"
+                }
+            ]
+        }
+    ]
+}
