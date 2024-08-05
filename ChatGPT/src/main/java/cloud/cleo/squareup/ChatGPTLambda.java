@@ -378,9 +378,10 @@ public abstract class ChatGPTLambda  {
                 .withTitle("Welcome to Copper Fox Gifts")
                 .withImageUrl("https://www.copperfoxgifts.com/logo.png")
                 .withSubtitle("Ask us anything or use a quick action below")
+                // Messenger will only display 3 buttons
                 .withButtons(List.of(
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
-                        Button.builder().withText("Location").withValue("What is your address and driving directions?").build(),
+                        //Button.builder().withText("Location").withValue("What is your address and driving directions?").build(),
                         Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build(),
                         Button.builder().withText("Private Shopping").withValue("Info about Private Shopping and link").build()
                 ).toArray(Button[]::new))
