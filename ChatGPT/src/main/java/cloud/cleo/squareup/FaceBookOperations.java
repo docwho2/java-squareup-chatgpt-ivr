@@ -97,7 +97,7 @@ public class FaceBookOperations {
                     .putArray("buttons")
                     .addObject()
                     .put("type", "web_url")
-                    .put("messenger_extensions", true)
+                    .put("messenger_extensions", "true")
                     .put("url", "https://" + PRIVATE_SHOPPING_URL)
                     .put("title", "Book Now!")
                     .put("webview_height_ratio", "full");
