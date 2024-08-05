@@ -4,6 +4,7 @@
  */
 package cloud.cleo.squareup.functions;
 
+import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOPPING_VOICE_FUNCTION_NAME;
 import java.util.function.Function;
 
 /**
@@ -12,6 +13,11 @@ import java.util.function.Function;
  */
 public class PrivateShoppingLinkVoice extends PrivateShoppingLink implements SendSMS {
 
+    @Override
+    public final String getName() {
+        return PRIVATE_SHOPPING_VOICE_FUNCTION_NAME;
+    }
+    
     @Override
     protected String getDescription() {
         return "Sends the caller the direct URL to book private shopping";

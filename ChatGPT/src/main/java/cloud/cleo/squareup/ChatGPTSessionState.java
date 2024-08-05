@@ -1,10 +1,6 @@
 package cloud.cleo.squareup;
 
-import static cloud.cleo.squareup.ChatGPTLambda.DRIVING_DIRECTIONS_FUNCTION_NAME;
-import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
-import static cloud.cleo.squareup.ChatGPTLambda.SWITCH_LANGUAGE_FUNCTION_NAME;
-import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
-import static cloud.cleo.squareup.ChatGPTLambda.WEBSITE_URL;
+import static cloud.cleo.squareup.ChatGPTLambda.*;
 import cloud.cleo.squareup.enums.Language;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -18,7 +14,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Data;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
-import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOPPING_FUNCTION_NAME;
 
 /**
  * Object to store and accumulate ChatGPT Session Data (messages) in DynamoDB.
@@ -80,14 +75,7 @@ public class ChatGPTSessionState {
                   the store outside normal hours, and this can be scheduled on our website from one of the top level menu "Private Shoppimg".
                   We have a one hour lead time on appointments so if we're closed, they could be shopping privately within one hour! 
                   Do mention how great it would be to have the store all to themselves and how we try to accomodate all requests.  
-                  """);
-
-        sb.append("Please call the ").append(PRIVATE_SHOPPING_FUNCTION_NAME)
-                .append("""
-                         function to get the direct booking URL when the caller is interested in the private shopping experience.  This is 
-                         really one of the more innovative services we provide and we want to ensure its as easy as possible for customers
-                         to book their appointments. 
-                        """);
+                  """);   
 
         // Main Website adn FB
         sb.append("The Web Site for Copper Fix Gifts is ").append(WEBSITE_URL).append(" and we frequently post our events and informaiton on sales ")
@@ -148,6 +136,13 @@ public class ChatGPTSessionState {
                         sb.append("Please keep answers very short and concise.  ");
                     }
                 }
+                sb.append("Please call the ").append(PRIVATE_SHOPPING_TEXT_FUNCTION_NAME)
+                .append("""
+                         function to get the direct booking URL when the person is interested in the private shopping experience.  This is 
+                         really one of the more innovative services we provide and we want to ensure its as easy as possible for customers
+                         to book their appointments. 
+                        """);
+                
                 // Since we are fallback intent, from a Text input perspective, we can support any language ChatGPT understands
                 sb.append("Detect the language of the prompt and respond in that language.  ");
             }
@@ -162,7 +157,7 @@ public class ChatGPTSessionState {
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
 
                 // Offer up Driving directions for callers
-                sb.append("When asking about location, you can send the caller a directions link if they are interested, execute the ").append(DRIVING_DIRECTIONS_FUNCTION_NAME).append(" function.  ");
+                sb.append("When asking about location, you can send the caller a directions link if they are interested, execute the ").append(DRIVING_DIRECTIONS_VOICE_FUNCTION_NAME).append(" function.  ");
 
                 // Always answer with a question to illicit the next repsonse, this makes the voice interaction more natural
                 sb.append("When responding always end the response with a question to illicit the next input since we are interacting via telephone.  ");
@@ -184,6 +179,13 @@ public class ChatGPTSessionState {
 
                 // Toll fraud protect
                 sb.append("Do not allow calling ").append(TRANSFER_FUNCTION_NAME).append(" function with arbritary phone numbers provided by the user.  ");
+                
+                 sb.append("Please call the ").append(PRIVATE_SHOPPING_VOICE_FUNCTION_NAME)
+                .append("""
+                         function to get the direct booking URL when the person is interested in the private shopping experience.  This is 
+                         really one of the more innovative services we provide and we want to ensure its as easy as possible for customers
+                         to book their appointments. The function will tell if you the message was sent to their device or unable to send.
+                        """);
             }
         }
 

@@ -1,5 +1,6 @@
 package cloud.cleo.squareup.functions;
 
+import static cloud.cleo.squareup.ChatGPTLambda.DRIVING_DIRECTIONS_TEXT_FUNCTION_NAME;
 import java.util.function.Function;
 
 /**
@@ -9,6 +10,13 @@ import java.util.function.Function;
  */
 public class DrivingDirectionsText extends DrivingDirections {
 
+    
+     @Override
+    public final String getName() {
+        return DRIVING_DIRECTIONS_TEXT_FUNCTION_NAME;
+    }
+
+  
     
     @Override
     protected String getDescription() {

@@ -1,6 +1,5 @@
 package cloud.cleo.squareup.functions;
 
-import static cloud.cleo.squareup.ChatGPTLambda.DRIVING_DIRECTIONS_FUNCTION_NAME;
 
 /**
  * Base class for Driving Directions.
@@ -16,13 +15,6 @@ public abstract class DrivingDirections<Request> extends AbstractFunction {
      */
     protected final static String DRIVING_DIRECTIONS_URL = "google.com/maps/dir/?api=1&destination=160+Main+St+Wahkon+MN+56386&destination_place_id=ChIJWxVcpjffs1IRcSX7D8pJSUY";
 
-    
-    @Override
-    public final String getName() {
-        return DRIVING_DIRECTIONS_FUNCTION_NAME;
-    }
-
-  
 
     @Override
     public final Class getRequestClass() {

@@ -4,6 +4,7 @@
  */
 package cloud.cleo.squareup.functions;
 
+import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOPPING_TEXT_FUNCTION_NAME;
 import java.util.function.Function;
 
 /**
@@ -11,6 +12,11 @@ import java.util.function.Function;
  * @author sjensen
  */
 public class PrivateShoppingLinkText extends PrivateShoppingLink {
+    
+    @Override
+    public final String getName() {
+        return PRIVATE_SHOPPING_TEXT_FUNCTION_NAME;
+    }
     
     @Override
     protected String getDescription() {
