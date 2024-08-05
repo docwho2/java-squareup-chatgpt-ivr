@@ -98,7 +98,7 @@ public class FaceBookOperations {
                     .addObject()
                     .put("type", "web_url")
                     .put("url", "https://" + PRIVATE_SHOPPING_URL)
-                    .put("title", "Book Appointment Now!")
+                    .put("title", "Book Shopping Appointment Now!")
                     .put("webview_height_ratio", "full");
 
             log.debug("Post Payload for Private Shopping Menu" + json.toPrettyString());
@@ -126,11 +126,13 @@ public class FaceBookOperations {
     }
 
     /**
-     * Send our private Shopping URL as a Messenger Button
+     * Send our private Shopping URL as a Messenger Button.  Leave here for now,
+     * seems cleaner to let Bot send the URL instead of a button.
      *
      * @param id of the recipient
      * @return true if successfully sent
      */
+    @Deprecated
     public static boolean sendPrivateBookingURL(String id) {
         HttpURLConnection connection = null;
         try {

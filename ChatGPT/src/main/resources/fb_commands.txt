@@ -24,3 +24,13 @@ curl -X POST -H "Content-Type: application/json" -d '{
         }
     ]
 }' "https://graph.facebook.com/v20.0/me/messenger_profile?access_token="
+
+
+curl -X POST -H "Content-Type: application/json" -d '{
+  "greeting": [
+    {
+      "locale":"default",
+      "text":"Hello {{user_first_name}}, Copper Bot is here to assist you with product and store questions and you can always ask for Person" 
+    }
+  ]
+}' "https://graph.facebook.com/v2.6/me/messenger_profile?access_token=
