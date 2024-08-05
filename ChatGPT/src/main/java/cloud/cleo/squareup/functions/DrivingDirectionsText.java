@@ -30,5 +30,10 @@ public class DrivingDirectionsText extends DrivingDirections {
     protected boolean isVoice() {
         return false;
     }
+    
+    @Override
+    protected boolean isText() {
+        return true;
+    }
 
 }

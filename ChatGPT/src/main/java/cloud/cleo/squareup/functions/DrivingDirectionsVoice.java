@@ -47,5 +47,10 @@ public class DrivingDirectionsVoice extends DrivingDirections implements SendSMS
     protected boolean isText() {
         return false;
     }
+    
+     @Override
+    protected boolean isVoice() {
+        return true;
+    }
 
 }

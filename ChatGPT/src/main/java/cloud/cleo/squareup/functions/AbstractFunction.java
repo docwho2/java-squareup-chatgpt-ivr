@@ -168,21 +168,28 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 func.setCallingNumber(callingNumber);
                 func.setChannelPlatform(channelPlatform);
                 func.setSessionId(sessionId);
+                
                 if (isText) {
                     if (func.isText()) {
+                        log.debug("TEXT MODE Adding: " + func);
                         list.add(func);
+                    } else {
+                        log.debug("TEXT MODE Excluding: " + func);
                     }
                 } else {
                     // If not Text, then this is voice of course
                     if (func.isVoice()) {
+                        log.debug("VOICE MODE Adding: " + func);
                         list.add(func);
+                    } else {
+                        log.debug("VOICE MODE Excluding: " + func);
                     }
                 }
             } catch (CloneNotSupportedException ex) {
                 log.error("Error cloning Functions", ex);
             }
         }
-        return new FunctionExecutor(list.stream().map(f -> f.getChatFunction()).toList());
+        return new FunctionExecutor(list.stream().map(AbstractFunction::getChatFunction).toList());
     }
 
     /**

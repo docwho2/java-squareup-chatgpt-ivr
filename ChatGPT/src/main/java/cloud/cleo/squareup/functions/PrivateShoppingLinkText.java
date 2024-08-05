@@ -32,4 +32,14 @@ public class PrivateShoppingLinkText extends PrivateShoppingLink {
     protected boolean isVoice() {
         return false;
     }
+    
+    /**
+     * 
+     *
+     * @return
+     */
+    @Override
+    protected boolean isText() {
+        return true;
+    }
 }

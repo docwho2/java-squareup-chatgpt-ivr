@@ -45,4 +45,9 @@ public class PrivateShoppingLinkVoice extends PrivateShoppingLink implements Sen
     protected boolean isText() {
         return false;
     }
+    
+     @Override
+    protected boolean isVoice() {
+        return true;
+    }
 }
