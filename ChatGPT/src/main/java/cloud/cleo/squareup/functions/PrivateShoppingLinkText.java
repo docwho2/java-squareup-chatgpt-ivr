@@ -11,16 +11,16 @@ import java.util.function.Function;
  *
  * @author sjensen
  */
-public class WebsiteText extends Website {
+public class PrivateShoppingLinkText extends PrivateShoppingLink {
     @Override
     protected String getDescription() {
-        return "Returns a URL for Driving directions to the Store";
+        return "Returns a URL for direct booking of Private Shopping";
     }
 
     @Override
     protected Function getExecutor() {
         return (var r) -> {
-            return mapper.createObjectNode().put("url", WEBSITE_URL);
+            return mapper.createObjectNode().put("url", PRIVATE_SHOPPING_URL);
         };
     }
 

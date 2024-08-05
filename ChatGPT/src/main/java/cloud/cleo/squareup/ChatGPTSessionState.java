@@ -1,8 +1,11 @@
 package cloud.cleo.squareup;
 
+import static cloud.cleo.squareup.ChatGPTLambda.DRIVING_DIRECTIONS_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
+import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOOPING_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.SWITCH_LANGUAGE_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
+import static cloud.cleo.squareup.ChatGPTLambda.WEBSITE_URL;
 import cloud.cleo.squareup.enums.Language;
 import cloud.cleo.squareup.functions.AbstractFunction;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -63,28 +66,38 @@ public class ChatGPTSessionState {
 
         final var sb = new StringBuilder();
 
+        // We need to tell GPT the date so it has a reference, when calling via API it has no date knowledge
+        // We don't let sessions storage span days, so the date should always be relevant.
+        sb.append("The current date is  ").append(date).append(".  ");
+
         // General Prompting
         sb.append("""
                   Please be a helpfull assistant named "Copper Bot" for a retail store named "Copper Fox Gifts", 
                   which has clothing items, home decor, gifts of all kinds, speciality foods, and much more.  
-                  The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs. 
-                  The website url for the store is "copperfoxgifts.com".
-                  Outside normal business hours, we offer a "Private Shopping Experience" where a staff member will open 
-                  the store outside normal hours, and this can be scheduled on our website from one of the top level menu choices.
-                  We have a one hour lead time on appointments so if we're closed, they could be shopping privately within one hour! 
-                  Do mention how great it would be to have the store all to themselves and how we try to accomodate all requests ASAP. 
+                  The store is located at 160 Main Street, Wahkon Minnesota, near Lake Mille Lacs.
                   The store opened in October of 2021 and moved to its larger location in May of 2023.
+                  Outside normal business hours, we offer a "Private Shopping Experience" where a staff member will open 
+                  the store outside normal hours, and this can be scheduled on our website from one of the top level menu "Private Shoppimg".
+                  We have a one hour lead time on appointments so if we're closed, they could be shopping privately within one hour! 
+                  Do mention how great it would be to have the store all to themselves and how we try to accomodate all requests.  
                   """);
 
-        // We need to tell GPT the date so it has a reference, when calling via API it has no date knowledge
-        // We don't let sessions storage span days, so the date should always be relevant.
-        sb.append("The current date is  ").append(date).append(".  ");
+        sb.append("Please call the ").append(PRIVATE_SHOOPING_FUNCTION_NAME)
+                .append("""
+                         function to get the direct booking URL when the caller is interested in the private shopping experience.  This is 
+                         really one of the more innovative services we provide and we want to ensure its as easy as possible for customers
+                         to book their appointments. 
+                        """);
+
+        // Main Website adn FB
+        sb.append("The Web Site for Copper Fix Gifts is ").append(WEBSITE_URL).append(" and we frequently post our events and informaiton on sales ")
+                .append(" on our Facebook Page which is also linked at top level menu on our website.  ");
 
         // Local Stuff to recommend
         sb.append("""
                   Muggs of Mille Lacs is a great restaurant next door that serves some on the best burgers 
                   in the lake area and has a large selection draft beers and great pub fare. 
-                  Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices. 
+                  Tulibee Tavern is another great restaurant across the street that serves more home cooked type meals at reasonable prices.  
                   """);
 
         // We want to receieve all emails in English so we can understand them :-)
@@ -143,10 +156,13 @@ public class ChatGPTSessionState {
 
                 // Blank input, meaning silienece timeout which is a speech only thing
                 sb.append("When the prompt is exactly blank, this means the caller did not say anything, so try and engage in conversation and also suggest ")
-                        .append("queries the caller might be interested in (Hours,Location,Product Search,Private Shopping, Language Change, etc.).  ");
+                        .append("queries the caller might be interested in (Hours, Private Shopping, Location, Product Search, Language Change, etc.).  ");
 
                 // Hangup
                 sb.append("When the caller indicates they are done with the conversation, execute the ").append(HANGUP_FUNCTION_NAME).append(" function.  ");
+
+                // Offer up Driving directions for callers
+                sb.append("When asking about location, you can send the caller a directions link if they are interested, execute the ").append(DRIVING_DIRECTIONS_FUNCTION_NAME).append(" function.  ");
 
                 // Always answer with a question to illicit the next repsonse, this makes the voice interaction more natural
                 sb.append("When responding always end the response with a question to illicit the next input since we are interacting via telephone.  ");
@@ -162,7 +178,7 @@ public class ChatGPTSessionState {
                     sb.append("To transfer or speak with an employee that has a phone number, execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                     sb.append("Do not provide callers employee phone numbers, you can only use the phone numbers to execute the ").append(TRANSFER_FUNCTION_NAME).append(" function.  ");
                 }
-                sb.append("If the caller wants to just speak to a person in general or leave a voicemail, execute ")
+                sb.append("If the caller wants to just speak to any person in general or leave a voicemail, execute ")
                         .append(TRANSFER_FUNCTION_NAME).append(" with ").append(System.getenv("MAIN_NUMBER"))
                         .append(" which rings the main phone in the store.  ");
 

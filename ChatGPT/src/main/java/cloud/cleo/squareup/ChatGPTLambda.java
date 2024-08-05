@@ -73,6 +73,11 @@ public abstract class ChatGPTLambda  {
     public final static String HANGUP_FUNCTION_NAME = "hangup_call";
     public final static String FACEBOOK_HANDOVER_FUNCTION_NAME = "facebook_inbox";
     public final static String SWITCH_LANGUAGE_FUNCTION_NAME = "switch_language";
+    public final static String DRIVING_DIRECTIONS_FUNCTION_NAME = "driving_directions";
+    public final static String PRIVATE_SHOOPING_FUNCTION_NAME = "private_shopping_url";
+    
+    
+    public final static String WEBSITE_URL = "CopperFoxGifts.com";
 
     // Eveverything here will be done at SnapStart init
     static {
@@ -108,7 +113,7 @@ public abstract class ChatGPTLambda  {
         // Will be phone if from SMS, Facebook the Page Scoped userID, Chime unique generated ID
         final var session_id = lexRequest.getSessionId();
 
-        // For Voice we support 2 Locales, English and Spanish
+        // For Voice we support 9 Locales
         log.debug("Java Locale is " + lexRequest.getLocale());
 
         // Special Facebook Short Circut
@@ -170,9 +175,9 @@ public abstract class ChatGPTLambda  {
                 ChatCompletionRequest request = ChatCompletionRequest.builder()
                         .messages(chatMessages)
                         .model(OPENAI_MODEL)
-                        .maxTokens(500)
-                        .temperature(0.2) // More focused
-                        .n(1) // Only return 1 completion
+                        .maxTokens(500)     // Limit the response tokens to something reasonable
+                        .temperature(0.2)   // More focused
+                        .n(1)               // Only return 1 completion
                         .functions(functionExecutor.getFunctions())
                         .functionCall(ChatCompletionRequest.ChatCompletionRequestFunctionCall.of("auto"))
                         .build();
@@ -240,12 +245,12 @@ public abstract class ChatGPTLambda  {
                     .findAny()
                     .orElse(null);
             if (termCalled != null) {
-                log.debug("A termianting function was called = [" + termCalled.getName() + "]");
+                log.debug("A terminating function was called = [" + termCalled.getName() + "]");
                 final ChatFunctionCall gptFunCall = functionCallsMade.stream().filter(f -> f.getName().equals(termCalled.getName())).findAny().get();
                 final var args = mapper.convertValue(gptFunCall.getArguments(), Map.class);
                 return buildTerminatingResponse(lexRequest, gptFunCall.getName(), args, botResponse);
             } else {
-                log.debug("The following funtion calls were made " + functionCallsMade + " but none are terminating");
+                log.debug("The following function calls were made " + functionCallsMade + " but none are terminating");
             }
 
             // Special Facebook handoff check
@@ -257,13 +262,6 @@ public abstract class ChatGPTLambda  {
                 return buildResponse(lexRequest, "ChatBot will be removed from this conversation after clicking below.", buildTransferCard());
             }
         }
-
-        // Since we have a general response, add message asking if there is anything else
-        //  For voice it just seems more natural to always end with a question.
-        //if (lexRequest.isVoice() && !botResponse.endsWith("?")) {
-            // If ends with question, then we don't need to further append question
-            //botResponse = botResponse + lexRequest.getLangString(ANYTHING_ELSE);
-        //}
 
         if (session_new && lexRequest.isFacebook()) {
             // If this a new Session send back a Welcome card for Facebook Channel
@@ -379,7 +377,8 @@ public abstract class ChatGPTLambda  {
                 .withButtons(List.of(
                         Button.builder().withText("Hours").withValue("What are you business hours?").build(),
                         Button.builder().withText("Location").withValue("What is your address and driving directions?").build(),
-                        Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build()
+                        Button.builder().withText("Person").withValue("Please hand this conversation over to a person").build(),
+                        Button.builder().withText("Private Shopping").withValue("Info about Private Shopping and link").build()
                 ).toArray(Button[]::new))
                 .build();
     }
@@ -393,7 +392,7 @@ public abstract class ChatGPTLambda  {
         return LexV2Response.ImageResponseCard.builder()
                 .withTitle("Conversation will move to Inbox")
                 .withImageUrl("https://www.copperfoxgifts.com/logo.png")
-                .withSubtitle("Please tell us how our AI ChatBot did?")
+                .withSubtitle("Please tell us how Copper Bot did?")
                 .withButtons(List.of(
                         Button.builder().withText("Epic Fail").withValue("Chatbot was not Helpful.").build(),
                         Button.builder().withText("Needs Work").withValue("Chatbot needs some work.").build(),

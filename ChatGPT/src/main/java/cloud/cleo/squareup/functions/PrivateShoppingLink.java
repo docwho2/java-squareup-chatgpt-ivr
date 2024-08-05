@@ -4,18 +4,21 @@
  */
 package cloud.cleo.squareup.functions;
 
+import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOOPING_FUNCTION_NAME;
+import static cloud.cleo.squareup.ChatGPTLambda.WEBSITE_URL;
+
 /**
  *
  * @author sjensen
  * @param <Request>
  */
-public abstract class Website<Request> extends AbstractFunction {
+public abstract class PrivateShoppingLink<Request> extends AbstractFunction {
     
-    protected final static String WEBSITE_URL = "www.CopperFoxGifts.com";
+    protected final static String PRIVATE_SHOPPING_URL = WEBSITE_URL + "/book";
     
     @Override
     public final String getName() {
-        return "store_website";
+        return PRIVATE_SHOOPING_FUNCTION_NAME;
     }
 
   

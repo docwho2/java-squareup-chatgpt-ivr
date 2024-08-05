@@ -1,26 +1,14 @@
 package cloud.cleo.squareup.functions;
 
-import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
-import java.util.concurrent.CompletionException;
 import java.util.function.Function;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.sns.SnsAsyncClient;
 
 /**
  * Driving Directions when user is interacting via Voice interface.
  *
  * @author sjensen
  */
-public class DrivingDirectionsVoice extends DrivingDirections {
+public class DrivingDirectionsVoice extends DrivingDirections implements SendSMS {
 
-    
-    final static SnsAsyncClient snsAsyncClient = SnsAsyncClient.builder()
-                        // Force SMS sending to east because that's where all the 10DLC and campaign crap setup is done
-                        // Otherwise have to pay for registrations and numbers in 2 regions, HUGE HASSLE (and more monthly cost)
-                        // Also then all texts are sourced from the same phone number for consistancy
-                        .region(Region.US_EAST_1)
-                        .httpClient(crtAsyncHttpClient)
-                        .build();
     
     @Override
     protected String getDescription() {
@@ -30,7 +18,7 @@ public class DrivingDirectionsVoice extends DrivingDirections {
     @Override
     protected Function getExecutor() {
         return (var r) -> {
-            try {
+
                 final var callingNumber = getCallingNumber();
                 
                 // Only send SMS to validated US Phone Numbers (in case callerID block, or some weird deal)
@@ -43,16 +31,7 @@ public class DrivingDirectionsVoice extends DrivingDirections {
                     return mapper.createObjectNode().put("status","FAILED").put("message", "Caller is not calling from a mobile device");
                 }
                 
-                final var result = snsAsyncClient.publish(b -> b.phoneNumber(callingNumber).message(DRIVING_DIRECTIONS_URL) ).join();
-                log.info("SMS Directions sent to " + callingNumber + " with SNS id of " + result.messageId());
-                return mapper.createObjectNode().put("status","SUCCESS").put("message", "The directions have been sent");
-            } catch (CompletionException e) {
-               log.error("Could not send Directions via SMS to caller",e.getCause());
-                return mapper.createObjectNode().put("status","FAILED").put("message", "An error has occurred, this function may be down");
-            } catch (Exception e) {
-                log.error("Could not send Directions via SMS to caller",e);
-                return mapper.createObjectNode().put("status","FAILED").put("message", "An error has occurred, this function may be down");
-            }
+                return SendSMS.sendSMS(callingNumber,DRIVING_DIRECTIONS_URL);
         };
     }
     

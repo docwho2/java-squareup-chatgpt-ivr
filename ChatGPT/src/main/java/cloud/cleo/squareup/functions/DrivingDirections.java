@@ -1,5 +1,7 @@
 package cloud.cleo.squareup.functions;
 
+import static cloud.cleo.squareup.ChatGPTLambda.DRIVING_DIRECTIONS_FUNCTION_NAME;
+
 /**
  * Base class for Driving Directions.
  *
@@ -17,7 +19,7 @@ public abstract class DrivingDirections<Request> extends AbstractFunction {
     
     @Override
     public final String getName() {
-        return "driving_directions";
+        return DRIVING_DIRECTIONS_FUNCTION_NAME;
     }
 
   

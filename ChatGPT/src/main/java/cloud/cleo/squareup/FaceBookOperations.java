@@ -1,6 +1,6 @@
 package cloud.cleo.squareup;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static cloud.cleo.squareup.ChatGPTLambda.mapper;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -20,7 +20,6 @@ public class FaceBookOperations {
     // Initialize the Log4j logger.
     private static final Logger log = LogManager.getLogger(FaceBookOperations.class);
 
-    private final static ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Transfer control of Messenger Thread Session from Bot control to the
