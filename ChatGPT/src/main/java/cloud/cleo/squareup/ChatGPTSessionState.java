@@ -2,7 +2,6 @@ package cloud.cleo.squareup;
 
 import static cloud.cleo.squareup.ChatGPTLambda.DRIVING_DIRECTIONS_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.HANGUP_FUNCTION_NAME;
-import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOOPING_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.SWITCH_LANGUAGE_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.TRANSFER_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.WEBSITE_URL;
@@ -19,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Data;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOPPING_FUNCTION_NAME;
 
 /**
  * Object to store and accumulate ChatGPT Session Data (messages) in DynamoDB.
@@ -82,7 +82,7 @@ public class ChatGPTSessionState {
                   Do mention how great it would be to have the store all to themselves and how we try to accomodate all requests.  
                   """);
 
-        sb.append("Please call the ").append(PRIVATE_SHOOPING_FUNCTION_NAME)
+        sb.append("Please call the ").append(PRIVATE_SHOPPING_FUNCTION_NAME)
                 .append("""
                          function to get the direct booking URL when the caller is interested in the private shopping experience.  This is 
                          really one of the more innovative services we provide and we want to ensure its as easy as possible for customers

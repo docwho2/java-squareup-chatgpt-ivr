@@ -4,8 +4,8 @@
  */
 package cloud.cleo.squareup.functions;
 
-import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOOPING_FUNCTION_NAME;
 import static cloud.cleo.squareup.ChatGPTLambda.WEBSITE_URL;
+import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOPPING_FUNCTION_NAME;
 
 /**
  *
@@ -18,7 +18,7 @@ public abstract class PrivateShoppingLink<Request> extends AbstractFunction {
     
     @Override
     public final String getName() {
-        return PRIVATE_SHOOPING_FUNCTION_NAME;
+        return PRIVATE_SHOPPING_FUNCTION_NAME;
     }
 
   

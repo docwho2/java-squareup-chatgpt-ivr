@@ -4,7 +4,6 @@
  */
 package cloud.cleo.squareup.functions;
 
-import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import java.util.function.Function;
 
 /**
@@ -12,6 +11,7 @@ import java.util.function.Function;
  * @author sjensen
  */
 public class PrivateShoppingLinkText extends PrivateShoppingLink {
+    
     @Override
     protected String getDescription() {
         return "Returns a URL for direct booking of Private Shopping";

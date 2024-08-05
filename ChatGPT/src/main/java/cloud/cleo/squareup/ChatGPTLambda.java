@@ -74,7 +74,7 @@ public abstract class ChatGPTLambda  {
     public final static String FACEBOOK_HANDOVER_FUNCTION_NAME = "facebook_inbox";
     public final static String SWITCH_LANGUAGE_FUNCTION_NAME = "switch_language";
     public final static String DRIVING_DIRECTIONS_FUNCTION_NAME = "driving_directions";
-    public final static String PRIVATE_SHOOPING_FUNCTION_NAME = "private_shopping_url";
+    public final static String PRIVATE_SHOPPING_FUNCTION_NAME = "private_shopping_url";
     
     
     public final static String WEBSITE_URL = "CopperFoxGifts.com";
@@ -170,6 +170,8 @@ public abstract class ChatGPTLambda  {
             FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
             functionExecutor.setObjectMapper(mapper);
 
+            functionExecutor.getFunctions().forEach(f -> log.debug(f));
+            
             while (true) {
                 final var chatMessages = session.getChatMessages();
                 ChatCompletionRequest request = ChatCompletionRequest.builder()

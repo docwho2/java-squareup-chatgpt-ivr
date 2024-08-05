@@ -4,7 +4,6 @@
  */
 package cloud.cleo.squareup.functions;
 
-import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import java.util.function.Function;
 
 /**
