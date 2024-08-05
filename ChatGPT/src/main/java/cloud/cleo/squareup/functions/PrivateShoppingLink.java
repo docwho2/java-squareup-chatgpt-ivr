@@ -14,7 +14,7 @@ import static cloud.cleo.squareup.ChatGPTLambda.WEBSITE_URL;
  */
 public abstract class PrivateShoppingLink<Request> extends AbstractFunction {
     
-    protected final static String PRIVATE_SHOPPING_URL = WEBSITE_URL + "/book";
+    public final static String PRIVATE_SHOPPING_URL = WEBSITE_URL + "/book";
 
   
 

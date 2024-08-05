@@ -5,6 +5,8 @@
 package cloud.cleo.squareup.functions;
 
 import static cloud.cleo.squareup.ChatGPTLambda.PRIVATE_SHOPPING_TEXT_FUNCTION_NAME;
+import cloud.cleo.squareup.FaceBookOperations;
+import static cloud.cleo.squareup.enums.ChannelPlatform.FACEBOOK;
 import java.util.function.Function;
 
 /**
@@ -22,25 +24,30 @@ public class PrivateShoppingLinkText extends PrivateShoppingLink {
     protected String getDescription() {
         return "Returns a URL for direct booking of Private Shopping";
     }
-
+    
     @Override
     protected Function getExecutor() {
         return (var r) -> {
+            
+            if (getChannelPlatform().equals(FACEBOOK)) {
+                FaceBookOperations.sendPrivateBookingURL(getSessionId());
+            }
             return mapper.createObjectNode().put("url", PRIVATE_SHOPPING_URL);
         };
     }
 
     /**
      * This function is Text only
-     * @return 
+     *
+     * @return
      */
     @Override
     protected boolean isVoice() {
         return false;
     }
-    
+
     /**
-     * 
+     *
      *
      * @return
      */
