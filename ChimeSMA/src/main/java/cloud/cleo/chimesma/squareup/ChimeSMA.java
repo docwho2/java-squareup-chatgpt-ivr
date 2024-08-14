@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * IVR for Square Retail using Lex Bot backed by ChatGPT.
@@ -15,9 +13,6 @@ import org.apache.logging.log4j.Logger;
  * @author sjensen
  */
 public class ChimeSMA extends AbstractFlow {
-    
-     // Initialize the Log4j logger.
-    protected final static Logger log = LogManager.getLogger(ChimeSMA.class);
 
     /**
      * Simple Object that caches Square data about hours to determine whether store is open or closed
@@ -34,7 +29,7 @@ public class ChimeSMA extends AbstractFlow {
     private final static String VC_ARN = System.getenv("VC_ARN");
 
     private final static Action MAIN_MENU = getMainMenu();
-    
+
     private final static Action ERROR_ACTION = getSystemErrorAction();
 
     /**
@@ -63,8 +58,7 @@ public class ChimeSMA extends AbstractFlow {
     }
 
     /**
-     * Main menu is just a LexBox, and the only outputs are Quit and Transfer. Quit - hang up the call Transfer. -
-     * transfer the call to another number.
+     * Main menu is just a LexBox.
      *
      * @return
      */
@@ -112,7 +106,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Kerro meille, kuinka voimme auttaa tänään?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
+
         // French
         botLangMap.put(Language.French, StartBotConversationAction.builder()
                 .withDescription("ChatGPT French")
@@ -120,7 +114,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Dites-nous comment nous pouvons vous aider aujourd'hui ?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
+
         // Dutch
         botLangMap.put(Language.Dutch, StartBotConversationAction.builder()
                 .withDescription("ChatGPT Dutch")
@@ -128,7 +122,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Vertel ons hoe we vandaag kunnen helpen?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
+
         // Norwegian
         botLangMap.put(Language.Norwegian, StartBotConversationAction.builder()
                 .withDescription("ChatGPT Norwegian")
@@ -136,7 +130,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Fortell oss hvordan vi kan hjelpe i dag?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
+
         // Polish
         botLangMap.put(Language.Polish, StartBotConversationAction.builder()
                 .withDescription("ChatGPT Polish")
@@ -144,7 +138,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Powiedz nam, jak możemy dziś pomóc?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
+
         // Swedish
         botLangMap.put(Language.Swedish, StartBotConversationAction.builder()
                 .withDescription("ChatGPT Swedish")
@@ -152,7 +146,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withContent("Berätta för oss hur vi kan hjälpa till idag?") // Tell us how we can help today?
                 .withSessionAttributesF(attributesFunction)
                 .build());
-        
+
         //
         // MOH Flow TODO
         //
@@ -177,9 +171,9 @@ public class ChimeSMA extends AbstractFlow {
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
             final var attrs = a.getActionData().getIntentResult().getSessionState().getSessionAttributes();
             final var botResponse = attrs.get("bot_response");  // When transferring or hanging up, play back GPT's last response
-            final var action = attrs.get("action");  // We don't need or want real intents, so the action when exiting the Bot will be set
+            final var action = BotActions.fromString(attrs.get("action"));  // We don't need or want real intents, so the action when exiting the Bot will be set
             return switch (action) {
-                case "transfer_call" -> {
+                case transfer_call -> {
                     final var phone = attrs.get("transfer_number");
                     final var transfer = CallAndBridgeAction.builder()
                             .withDescription("Send Call to Team Member")
@@ -198,26 +192,26 @@ public class ChimeSMA extends AbstractFlow {
                     .withNextAction(transfer)
                     .build();
                 }
-                case "hold_call" ->
+                case hold_call ->
                     SpeakAction.builder()
                     .withDescription("Indicate MOH and press any digit to return")
                     .withText(botResponse)
                     .withNextAction(anyDigit)
                     .build();
-                case "hangup_call" ->
+                case hangup_call ->
                     SpeakAction.builder()
                     .withDescription("Saying Good Bye")
                     .withTextF(tf -> botResponse)
                     .withNextAction(hangup)
                     .build();
-                case "switch_language" -> {
+                case switch_language -> {
                     // Obtain the bot locale based on the language attribute from the session
                     final var bot = botLangMap.getOrDefault(Language.valueOf(attrs.get("language")), lexBotEN);
                     // Start bot in that language with GPT response (which will be in the target language)
                     bot.setContentF(f -> botResponse);
                     yield bot;
                 }
-                default ->
+                case unknown ->
                     ERROR_ACTION;
             };
         };
@@ -239,7 +233,7 @@ public class ChimeSMA extends AbstractFlow {
     protected Action getErrorAction() {
         return ERROR_ACTION;
     }
-    
+
     private static Action getSystemErrorAction() {
         final var hangup = HangupAction.builder()
                 .withDescription("System error Hangup ").build();
@@ -249,7 +243,7 @@ public class ChimeSMA extends AbstractFlow {
                 .withKeyLocale("goodbye")
                 .withNextAction(hangup)
                 .build();
-        
+
         final var errMsg = PlayAudioAction.builder()
                 .withDescription("System Error Message")
                 .withKeyLocale("error")
@@ -261,12 +255,36 @@ public class ChimeSMA extends AbstractFlow {
 
     @Override
     protected void newCallHandler(Action action) {
-        log.info("New Call Handler Code Here");
+        log.info("Call Started with " + action);
     }
 
     @Override
     protected void hangupHandler(Action action) {
-        log.info("Hangup Handler Code Here");
+        log.info("Call Ended with " + action);
+    }
+
+    /**
+     * Actions we can perform when Bot returns control to Chime SMA.
+     *
+     */
+    static enum BotActions {
+        transfer_call,
+        hold_call,
+        hangup_call,
+        switch_language,
+        unknown; // Not matched case
+
+        public static BotActions fromString(String action) {
+            if (action == null || action.trim().isEmpty()) {
+                return unknown;
+            }
+
+            try {
+                return BotActions.valueOf(action.toLowerCase());
+            } catch (IllegalArgumentException e) {
+                return unknown;
+            }
+        }
     }
 
     /**
