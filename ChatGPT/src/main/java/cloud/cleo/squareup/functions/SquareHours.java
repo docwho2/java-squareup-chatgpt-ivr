@@ -11,7 +11,6 @@ import static java.time.DayOfWeek.SUNDAY;
 import static java.time.DayOfWeek.THURSDAY;
 import static java.time.DayOfWeek.TUESDAY;
 import static java.time.DayOfWeek.WEDNESDAY;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -30,6 +29,8 @@ import lombok.Getter;
  * @param <Request>
  */
 public class SquareHours<Request> extends AbstractFunction {
+
+    private static volatile Location cachedLocation; // Cache for the last successful location data
 
     @Override
     public String getName() {
@@ -54,28 +55,28 @@ public class SquareHours<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                final var loc = getSquareClient().getLocationsApi().retrieveLocation(System.getenv("SQUARE_LOCATION_ID")).getLocation();
+                final Location loc = getLocation();
                 final var bh = new BusinessHours(loc);
-                
+
                 final var tz = ZoneId.of(loc.getTimezone());
                 final var now = ZonedDateTime.now(tz);
                 final var dow = now.getDayOfWeek();
 
                 /**
-                 * GPT gives wrong information sometimes saying its open when store is closed.
-                 * Giving it the concrete status of OPEN or CLOSED seems to help with a timestamp.
-                 * Sometimes even though it knows the date, it says the wrong day of week too, so added that as well
-                 * returning all this info vs just the periods seems to fix everything and I can't get it to return wrong answer anymore
+                 * GPT gives wrong information sometimes saying its open when store is closed. Giving it the concrete
+                 * status of OPEN or CLOSED seems to help with a timestamp. Sometimes even though it knows the date, it
+                 * says the wrong day of week too, so added that as well returning all this info vs just the periods
+                 * seems to fix everything and I can't get it to return wrong answer anymore
                  */
                 final ObjectNode json = mapper.createObjectNode();
                 json.put("open_closed_status", bh.isOpen() ? "OPEN" : "CLOSED");
                 json.put("current_date_time", now.toString());
                 json.put("current_day_of_week", now.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.US).toUpperCase());
                 json.putPOJO("open_hours", loc.getBusinessHours().getPeriods());
-                
+
                 return json;
             } catch (Exception ex) {
-                log.error("Unhandled Error",ex);
+                log.error("Unhandled Error", ex);
                 return mapper.createObjectNode().put("error_message", ex.getLocalizedMessage());
             }
         };
@@ -83,6 +84,28 @@ public class SquareHours<Request> extends AbstractFunction {
 
     private static class Request {
     }
+
+    /**
+     * Gets the location data, using cache if the Square API call fails.
+     *
+     * @return the Location object
+     * @throws Exception if an error occurs and no cached data is available
+     */
+    private Location getLocation() throws Exception {
+        try {
+            Location loc = getSquareClient().getLocationsApi().retrieveLocation(System.getenv("SQUARE_LOCATION_ID")).getLocation();
+            cachedLocation = loc;
+            return loc;
+        } catch (Exception ex) {
+            log.error("Failed to retrieve location from Square API, using cached data if available", ex);
+            if (cachedLocation != null) {
+                return cachedLocation;
+            } else {
+                throw new Exception("No cached data available and failed to retrieve from Square API", ex);
+            }
+        }
+    }
+
 
     private static class BusinessHours extends ArrayList<OpenPeriod> {
 
@@ -94,26 +117,18 @@ public class SquareHours<Request> extends AbstractFunction {
         }
 
         public boolean isOpen() {
-            final var tz = ZoneId.of(loc.getTimezone());
             // The current time in the TZ
+            final var tz = ZoneId.of(loc.getTimezone());
             final var now = ZonedDateTime.now(tz);
-            final var today = LocalDate.now(tz);
+            final var today = now.toLocalDate();
 
-            // The Day of Week
-            final var dow = now.getDayOfWeek();
-
-            final var matched = stream().filter(p -> p.getDow().equals(dow)).toList();
-
-            if (!matched.isEmpty()) {
-                // There is something matched for this dow of week
-                return matched.stream().anyMatch(p -> {
-                    final var start = LocalDateTime.of(today, p.getStart()).atZone(tz);
-                    final var end = LocalDateTime.of(today, p.getEnd()).atZone(tz);
-                    return now.isAfter(start) && now.isBefore(end);
-                });
-            }
-            // We don't have any entries for today, so definitely closed
-            return false;
+            return stream()
+                    .filter(p -> p.getDow().equals(now.getDayOfWeek()))
+                    .anyMatch(p -> {
+                        final var start = LocalDateTime.of(today, p.getStart()).atZone(tz);
+                        final var end = LocalDateTime.of(today, p.getEnd()).atZone(tz);
+                        return now.isAfter(start) && now.isBefore(end);
+                    });
         }
     }
 
@@ -149,7 +164,6 @@ public class SquareHours<Request> extends AbstractFunction {
         }
     }
 
-    
     @Override
     protected boolean isEnabled() {
         return isSquareEnabled();
