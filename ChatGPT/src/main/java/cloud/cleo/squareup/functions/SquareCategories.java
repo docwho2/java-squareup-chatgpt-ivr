@@ -12,15 +12,16 @@ import com.squareup.square.models.SearchCatalogObjectsRequest;
 import com.squareup.square.models.SearchCatalogObjectsResponse;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * Provide the categories, so callers know if we carry those types of products
+ * Provide the categories, so callers know if we carry those types of products.
+ * Uses Virtual Threads instead of CompletableFuture.
  *
  * @author sjensen
- * @param <Request>
  */
 @Deprecated
 public class SquareCategories<Request> extends AbstractFunction {
@@ -41,69 +42,62 @@ public class SquareCategories<Request> extends AbstractFunction {
     }
 
     /**
+     * Executes the category search using virtual threads.
      *
-     * @return
+     * @return Function<Request, Object>
      */
     @Override
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
-            try {
+            List<String> tokens = allCombinations(r.search_text);
+            List<String> catNames = new ArrayList<>();
 
-                // Generate a list of search tokens with every combination of the words
-                final List<String> tokens = allCombinations(r.search_text);
+            log.debug("Launching {} category searches in parallel using virtual threads", tokens.size());
 
-                // List to hold all the search futures
-                final List<CompletableFuture<SearchCatalogObjectsResponse>> futures = new ArrayList<>(tokens.size());
+            try (ExecutorService executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+                List<Future<SearchCatalogObjectsResponse>> futures = tokens.stream()
+                        .map(token -> executor.submit(() -> {
+                            log.debug("Executing category search for [{}]", token);
+                            return getSquareClient().getCatalogApi()
+                                    .searchCatalogObjectsAsync(new SearchCatalogObjectsRequest.Builder()
+                                            .includeDeletedObjects(false)
+                                            .objectTypes(List.of("CATEGORY"))
+                                            .query(new CatalogQuery.Builder()
+                                                    .textQuery(new CatalogQueryText(List.of(r.search_text)))
+                                                    .build())
+                                            .build())
+                                    .join(); // Block only inside the virtual thread
+                        }))
+                        .collect(Collectors.toList());
 
-                // Launch all the searches
-                for (final var token : tokens) {
-                    futures.add(getSquareClient().getCatalogApi()
-                            // Only retrieve Category objects
-                            .searchCatalogObjectsAsync(new SearchCatalogObjectsRequest.Builder()
-                                    .includeDeletedObjects(false)
-                                    .objectTypes(List.of("CATEGORY"))
-                                    .query(new CatalogQuery.Builder().textQuery(new CatalogQueryText(List.of(r.search_text))).build())
-                                    .build()));
-                    log.debug("Launching Category Search on [{}]", token);
-                }
-
-                log.debug("Starting wait on {} futures", futures.size());
-                CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-                log.debug("All Futures completed, processing results");
-
-                // Category names to return to GPT
-                final List<String> catNames = new ArrayList<>();
-
-                // Process the results
-                for (final var future : futures) {
-                    final var cats = future.getNow(null).getObjects();
-                    if (cats != null && !cats.isEmpty()) {
-                        cats.stream()
-                                .map(item -> item.getCategoryData().getName())
-                                .forEach(name -> {
-                                    catNames.add(name);
-                                });
+                // Collect results
+                for (Future<SearchCatalogObjectsResponse> future : futures) {
+                    try {
+                        SearchCatalogObjectsResponse response = future.get(); // Blocking only inside virtual threads
+                        if (response.getObjects() != null) {
+                            response.getObjects().stream()
+                                    .map(item -> item.getCategoryData().getName())
+                                    .forEach(catNames::add);
+                        }
+                    } catch (Exception e) {
+                        log.error("Error processing category search request", e);
                     }
                 }
-
-                if (!catNames.isEmpty()) {
-                    return catNames.stream().distinct().limit(5).toList();
-                } else {
-                    return mapper.createObjectNode().put("message", "No categories match the search query");
-                }
-            } catch (CompletionException e) {
-                log.error("Async Completion Error", e.getCause());
-                return mapper.createObjectNode().put("status", "FAILED").put("error_message", e.getLocalizedMessage());
             } catch (Exception ex) {
                 log.error("Unhandled Error", ex);
                 return mapper.createObjectNode().put("status", "FAILED").put("error_message", ex.getLocalizedMessage());
+            }
+
+            if (!catNames.isEmpty()) {
+                return catNames.stream().distinct().limit(5).toList();
+            } else {
+                return mapper.createObjectNode().put("message", "No categories match the search query");
             }
         };
     }
 
     private static class Request {
-
-        @JsonPropertyDescription("the search text to search for item categories in English Language")
+        @JsonPropertyDescription("The search text to search for item categories in English Language")
         @JsonProperty(required = true)
         public String search_text;
     }
@@ -111,7 +105,5 @@ public class SquareCategories<Request> extends AbstractFunction {
     @Override
     protected boolean isEnabled() {
         return false;  // Not using categories anymore, didn't seem to help much
-        //return isSquareEnabled();
     }
-
 }
