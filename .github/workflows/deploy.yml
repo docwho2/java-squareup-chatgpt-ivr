@@ -100,7 +100,7 @@ jobs:
       run: |
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-east-1
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-west-2
-        ls
+        ls -l
       
     - name: Deploy Stack with CDK 
       working-directory: ./ChimeCDKProvision
