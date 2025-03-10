@@ -24,7 +24,7 @@ jobs:
         cache: maven
     
     - name: Install ChimeSMALibrary Parent POM
-      working-directory: ChimeSMALibrary
+      working-directory: ./ChimeSMALibrary
       run: mvn -N install --no-transfer-progress
       
     - name: Build up all the libraries
