@@ -63,6 +63,9 @@ jobs:
       with:
         submodules: recursive
     
+    - name: Initialize Submodules
+      run: git submodule update --init --recursive
+  
     - name: Setup AWS Credentials
       id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
@@ -97,9 +100,10 @@ jobs:
       run: |
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-east-1
         cdk bootstrap --ci=true -c accountId=${AWS_ACCOUNT_ID} aws://${AWS_ACCOUNT_ID}/us-west-2
+        ls
       
     - name: Deploy Stack with CDK 
-      working-directory: ../ChimeCDKProvision
+      working-directory: ./ChimeCDKProvision
       run: |
         # Deploy to both regions in parallel
         cdk deploy -c accountId=${AWS_ACCOUNT_ID} -c stackName=${CDK_STACK_NAME} -c regionEast=us-east-1 -c regionWest=us-west-2 --concurrency=4 --all --require-approval=never --ci=true
