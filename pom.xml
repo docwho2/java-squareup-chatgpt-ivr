@@ -103,7 +103,7 @@
             <dependency>
                 <groupId>software.amazon.lambda</groupId>
                 <artifactId>powertools-cloudformation</artifactId>
-                <version>1.18.0</version>
+                <version>1.19.0</version>
             </dependency>
             
             <!-- OpenAI ChatGPT Lib --> 
