@@ -4,9 +4,8 @@ import cloud.cleo.squareup.enums.ChannelPlatform;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.LexV2EventWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.squareup.square.Environment;
-import com.squareup.square.SquareClient;
-import com.squareup.square.authentication.BearerAuthModel;
+import com.squareup.square.AsyncSquareClient;
+import com.squareup.square.core.Environment;
 import com.theokanning.openai.completion.chat.ChatFunction;
 import com.theokanning.openai.service.FunctionExecutor;
 import java.lang.reflect.InvocationTargetException;
@@ -18,6 +17,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
@@ -48,6 +49,8 @@ public abstract class AbstractFunction<T> implements Cloneable {
     private final static PinpointAsyncClient pinpointAsyncClient = PinpointAsyncClient.builder()
             .httpClient(crtAsyncHttpClient)
             .build();
+    
+    protected static final ExecutorService VIRTUAL_THREAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
      * When user is interacting via Voice, we need the calling number to send SMS to them.
@@ -72,21 +75,26 @@ public abstract class AbstractFunction<T> implements Cloneable {
     private String sessionId;
 
     private final static boolean squareEnabled;
-    private final static SquareClient squareClient;
+    private final static AsyncSquareClient squareClient;
 
     static {
         final var key = System.getenv("SQUARE_API_KEY");
         final var loc = System.getenv("SQUARE_LOCATION_ID");
+        final var senv = System.getenv("SQUARE_ENVIRONMENT");
 
         squareEnabled = !((loc == null || loc.isBlank() || loc.equalsIgnoreCase("DISABLED")) || (key == null || key.isBlank() || key.equalsIgnoreCase("DISABLED")));
         log.debug("Square Enabled = " + squareEnabled);
 
         // If square enabled, then configure the client
         if (squareEnabled) {
-            squareClient = new SquareClient.Builder()
-                    .bearerAuthCredentials( new BearerAuthModel.Builder(key).build())
-                    .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
-                    .build();
+            squareClient = AsyncSquareClient.builder()
+                    .token(key)
+                    .environment(switch (senv) {
+                default ->
+                    Environment.PRODUCTION;
+                case "SANDBOX", "sandbox" ->
+                    Environment.SANDBOX;
+            }).build();
         } else {
             squareClient = null;
         }
@@ -106,7 +114,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
      *
      * @return client or null if not enabled
      */
-    protected final static SquareClient getSquareClient() {
+    protected final static AsyncSquareClient getSquareClient() {
         return squareClient;
     }
 
@@ -168,16 +176,16 @@ public abstract class AbstractFunction<T> implements Cloneable {
                 func.setCallingNumber(callingNumber);
                 func.setChannelPlatform(channelPlatform);
                 func.setSessionId(sessionId);
-                
+
                 if (isText) {
                     if (func.isText()) {
                         list.add(func);
-                    } 
+                    }
                 } else {
                     // If not Text, then this is voice of course
                     if (func.isVoice()) {
                         list.add(func);
-                    } 
+                    }
                 }
             } catch (CloneNotSupportedException ex) {
                 log.error("Error cloning Functions", ex);
@@ -300,7 +308,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     private String convertPinpointResposeToJson(NumberValidateResponse res) {
         return mapper.valueToTree(mapper.convertValue(res.toBuilder(), NumberValidateResponse.serializableBuilderClass())).toPrettyString();
     }
-    
+
     /**
      * Given a String with several words, return all combinations of that in specific order for passing to searches.
      *
@@ -328,9 +336,10 @@ public abstract class AbstractFunction<T> implements Cloneable {
     }
 
     /**
-     * Override and return false to disable a particular function.  This is only checked at function initialization time.
-     * If you want to disable/enable at request time you can return false for both isVoice() and isText().  This is meant
+     * Override and return false to disable a particular function. This is only checked at function initialization time.
+     * If you want to disable/enable at request time you can return false for both isVoice() and isText(). This is meant
      * to disable a function and leave the code laying around, or based on static initialized data.
+     *
      * @see isVoice()
      * @see isText()
      * @return

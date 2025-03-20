@@ -6,10 +6,11 @@ import static cloud.cleo.squareup.functions.AbstractFunction.log;
 import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.squareup.square.models.CatalogQuery;
-import com.squareup.square.models.CatalogQueryText;
-import com.squareup.square.models.SearchCatalogObjectsRequest;
-import com.squareup.square.models.SearchCatalogObjectsResponse;
+import com.squareup.square.types.CatalogObjectType;
+import com.squareup.square.types.CatalogQuery;
+import com.squareup.square.types.CatalogQueryText;
+import com.squareup.square.types.SearchCatalogObjectsRequest;
+import com.squareup.square.types.SearchCatalogObjectsResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -58,13 +59,11 @@ public class SquareCategories<Request> extends AbstractFunction {
                 List<Future<SearchCatalogObjectsResponse>> futures = tokens.stream()
                         .map(token -> executor.submit(() -> {
                             log.debug("Executing category search for [{}]", token);
-                            return getSquareClient().getCatalogApi()
-                                    .searchCatalogObjectsAsync(new SearchCatalogObjectsRequest.Builder()
+                            return getSquareClient().catalog()
+                                    .search(SearchCatalogObjectsRequest.builder()
                                             .includeDeletedObjects(false)
-                                            .objectTypes(List.of("CATEGORY"))
-                                            .query(new CatalogQuery.Builder()
-                                                    .textQuery(new CatalogQueryText(List.of(r.search_text)))
-                                                    .build())
+                                            .objectTypes(List.of(CatalogObjectType.CATEGORY))
+                                            .query(CatalogQuery.builder().textQuery( CatalogQueryText.builder().addKeywords(token).build()).build())
                                             .build())
                                     .join(); // Block only inside the virtual thread
                         }))
@@ -75,8 +74,8 @@ public class SquareCategories<Request> extends AbstractFunction {
                     try {
                         SearchCatalogObjectsResponse response = future.get(); // Blocking only inside virtual threads
                         if (response.getObjects() != null) {
-                            response.getObjects().stream()
-                                    .map(item -> item.getCategoryData().getName())
+                            response.getObjects().get().stream()
+                                    .map(item -> item.getCategory().get().getCategoryData().get().getName().get())
                                     .forEach(catNames::add);
                         }
                     } catch (Exception e) {

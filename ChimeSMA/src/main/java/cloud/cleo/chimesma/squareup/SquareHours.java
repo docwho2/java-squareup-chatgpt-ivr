@@ -1,11 +1,11 @@
 package cloud.cleo.chimesma.squareup;
 
-import com.squareup.square.Environment;
+import com.squareup.square.LocationsClient;
 import com.squareup.square.SquareClient;
-import com.squareup.square.api.LocationsApi;
-import com.squareup.square.authentication.BearerAuthModel;
-import com.squareup.square.models.BusinessHoursPeriod;
-import com.squareup.square.models.Location;
+import com.squareup.square.core.Environment;
+import com.squareup.square.types.BusinessHoursPeriod;
+import com.squareup.square.types.GetLocationsRequest;
+import com.squareup.square.types.Location;
 import java.time.DayOfWeek;
 import static java.time.DayOfWeek.*;
 import java.time.LocalDateTime;
@@ -27,13 +27,18 @@ public class SquareHours {
 
     private final static String SQUARE_LOCATION_ID = System.getenv("SQUARE_LOCATION_ID");
     private final static String SQUARE_API_KEY = System.getenv("SQUARE_API_KEY");
+    private final static String SQUARE_ENVIRONMENT = System.getenv("SQUARE_ENVIRONMENT");
 
-    private final static SquareClient client = new SquareClient.Builder()
-            .bearerAuthCredentials(new BearerAuthModel.Builder(SQUARE_API_KEY).build())
-            .environment(Environment.valueOf(System.getenv("SQUARE_ENVIRONMENT")))
-            .build();
+    private final static SquareClient client = SquareClient.builder()
+            .token(SQUARE_API_KEY)
+            .environment(switch (SQUARE_ENVIRONMENT) {
+        default ->
+            Environment.PRODUCTION;
+        case "SANDBOX", "sandbox" ->
+            Environment.SANDBOX;
+    }).build();
 
-    private final static LocationsApi locationsApi = client.getLocationsApi();
+    private final static LocationsClient locationsApi = client.locations();
 
     private final boolean squareEnabled;
 
@@ -80,10 +85,10 @@ public class SquareHours {
     private void loadLocation() {
         lock.lock();
         try {
-            final var res = locationsApi.retrieveLocation(SQUARE_LOCATION_ID);
+            final var res = locationsApi.get(GetLocationsRequest.builder().locationId(SQUARE_LOCATION_ID).build());
             if (res.getLocation() != null) {
-                loc = res.getLocation();
-                tz = ZoneId.of(loc.getTimezone());
+                loc = res.getLocation().get();
+                tz = ZoneId.of(loc.getTimezone().get());
                 loc_last = ZonedDateTime.now();
             }
         } catch (Exception e) {
@@ -100,7 +105,7 @@ public class SquareHours {
      */
     public boolean isOpen() {
         if (squareEnabled && getLocation() != null) {
-            return new BusinessHours(loc.getBusinessHours().getPeriods()).isOpen();
+            return new BusinessHours(loc.getBusinessHours().get().getPeriods().get()).isOpen();
         }
         return false;
     }
@@ -134,27 +139,27 @@ public class SquareHours {
         final LocalTime end;
 
         public OpenPeriod(BusinessHoursPeriod bhp) {
-            dow = switch (bhp.getDayOfWeek()) {
-                case "SUN" ->
+            dow = switch (bhp.getDayOfWeek().get().getEnumValue()) {
+                case SUN ->
                     SUNDAY;
-                case "MON" ->
+                case MON ->
                     MONDAY;
-                case "TUE" ->
+                case TUE ->
                     TUESDAY;
-                case "WED" ->
+                case WED ->
                     WEDNESDAY;
-                case "THU" ->
+                case THU ->
                     THURSDAY;
-                case "FRI" ->
+                case FRI ->
                     FRIDAY;
-                case "SAT" ->
+                case SAT ->
                     SATURDAY;
-                default ->
-                    throw new RuntimeException("Day of Week Cannot be matched " + bhp.getDayOfWeek());
+                case UNKNOWN ->
+                    throw new RuntimeException("Day of Week Cannot be matched " + bhp.getDayOfWeek().get());
             };
 
-            start = LocalTime.parse(bhp.getStartLocalTime());
-            end = LocalTime.parse(bhp.getEndLocalTime());
+            start = LocalTime.parse(bhp.getStartLocalTime().get());
+            end = LocalTime.parse(bhp.getEndLocalTime().get());
         }
     }
 }

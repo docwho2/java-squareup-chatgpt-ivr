@@ -1,8 +1,9 @@
 package cloud.cleo.squareup.functions;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.squareup.square.models.BusinessHoursPeriod;
-import com.squareup.square.models.Location;
+import com.squareup.square.types.BusinessHoursPeriod;
+import com.squareup.square.types.GetLocationsRequest;
+import com.squareup.square.types.Location;
 import java.time.DayOfWeek;
 import static java.time.DayOfWeek.FRIDAY;
 import static java.time.DayOfWeek.MONDAY;
@@ -58,7 +59,7 @@ public class SquareHours<Request> extends AbstractFunction {
                 final Location loc = getLocation();
                 final var bh = new BusinessHours(loc);
 
-                final var tz = ZoneId.of(loc.getTimezone());
+                final var tz = ZoneId.of(loc.getTimezone().get());
                 final var now = ZonedDateTime.now(tz);
                 final var dow = now.getDayOfWeek();
 
@@ -72,7 +73,7 @@ public class SquareHours<Request> extends AbstractFunction {
                 json.put("open_closed_status", bh.isOpen() ? "OPEN" : "CLOSED");
                 json.put("current_date_time", now.toString());
                 json.put("current_day_of_week", now.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.US).toUpperCase());
-                json.putPOJO("open_hours", loc.getBusinessHours().getPeriods());
+                json.putPOJO("open_hours", loc.getBusinessHours().get().getPeriods().get());
 
                 return json;
             } catch (Exception ex) {
@@ -93,7 +94,7 @@ public class SquareHours<Request> extends AbstractFunction {
      */
     private Location getLocation() throws Exception {
         try {
-            Location loc = getSquareClient().getLocationsApi().retrieveLocation(System.getenv("SQUARE_LOCATION_ID")).getLocation();
+            Location loc = getSquareClient().locations().get( GetLocationsRequest.builder().locationId(System.getenv("SQUARE_LOCATION_ID")).build()).get().getLocation().get();
             cachedLocation = loc;
             return loc;
         } catch (Exception ex) {
@@ -113,12 +114,12 @@ public class SquareHours<Request> extends AbstractFunction {
 
         public BusinessHours(Location loc) {
             this.loc = loc;
-            loc.getBusinessHours().getPeriods().forEach(p -> add(new OpenPeriod(p)));
+            loc.getBusinessHours().get().getPeriods().get().forEach(p -> add(new OpenPeriod(p)));
         }
 
         public boolean isOpen() {
             // The current time in the TZ
-            final var tz = ZoneId.of(loc.getTimezone());
+            final var tz = ZoneId.of(loc.getTimezone().get());
             final var now = ZonedDateTime.now(tz);
             final var today = now.toLocalDate();
 
@@ -140,27 +141,27 @@ public class SquareHours<Request> extends AbstractFunction {
         final LocalTime end;
 
         public OpenPeriod(BusinessHoursPeriod bhp) {
-            dow = switch (bhp.getDayOfWeek()) {
-                case "SUN" ->
+            dow = switch (bhp.getDayOfWeek().get().getEnumValue()) {
+                case SUN ->
                     SUNDAY;
-                case "MON" ->
+                case MON ->
                     MONDAY;
-                case "TUE" ->
+                case TUE ->
                     TUESDAY;
-                case "WED" ->
+                case WED ->
                     WEDNESDAY;
-                case "THU" ->
+                case THU ->
                     THURSDAY;
-                case "FRI" ->
+                case FRI ->
                     FRIDAY;
-                case "SAT" ->
+                case SAT ->
                     SATURDAY;
-                default ->
+                case UNKNOWN ->
                     throw new RuntimeException("Day of Week Cannot be matched " + bhp.getDayOfWeek());
             };
 
-            start = LocalTime.parse(bhp.getStartLocalTime());
-            end = LocalTime.parse(bhp.getEndLocalTime());
+            start = LocalTime.parse(bhp.getStartLocalTime().get());
+            end = LocalTime.parse(bhp.getEndLocalTime().get());
         }
     }
 

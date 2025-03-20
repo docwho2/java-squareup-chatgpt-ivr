@@ -6,11 +6,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.squareup.square.models.Customer;
-import com.squareup.square.models.CustomerFilter;
-import com.squareup.square.models.CustomerQuery;
-import com.squareup.square.models.CustomerTextFilter;
-import com.squareup.square.models.SearchCustomersRequest;
+import com.squareup.square.types.Customer;
+import com.squareup.square.types.CustomerFilter;
+import com.squareup.square.types.CustomerQuery;
+import com.squareup.square.types.CustomerTextFilter;
+import com.squareup.square.types.SearchCustomersRequest;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
@@ -58,18 +60,18 @@ public class SendEmail<Request> extends AbstractFunction {
                 // If we have a valid phone number, try and look up customer in Square
                 if (hasValidUSE164Number()) {
                     try {
-                        final var customerList = getSquareClient().getCustomersApi().searchCustomers(new SearchCustomersRequest.Builder()
-                                .query(new CustomerQuery.Builder()
-                                        .filter(new CustomerFilter.Builder()
-                                                .phoneNumber(new CustomerTextFilter.Builder().exact(getCallingNumber()).build())
+                        final var customerList = getSquareClient().customers().search(SearchCustomersRequest.builder()
+                                .query(CustomerQuery.builder()
+                                        .filter(CustomerFilter.builder()
+                                                .phoneNumber(CustomerTextFilter.builder().exact(getCallingNumber()).build())
                                                 .build())
                                         .build())
                                 .limit(1L) // Only request one match, very unlikely more than one match
-                                .build()).getCustomers();
+                                .build()).get().getCustomers().get();
                         if (!customerList.isEmpty()) {
                             customer = customerList.get(0);
-                            if (customer.getEmailAddress() != null && !customer.getEmailAddress().isBlank()) {
-                                email = customer.getEmailAddress();
+                            if (customer.getEmailAddress() != null && customer.getEmailAddress().isPresent()) {
+                                email = customer.getEmailAddress().get();
                             }
                         }
                     } catch (Exception e) {
@@ -128,6 +130,7 @@ public class SendEmail<Request> extends AbstractFunction {
         };
     }
 
+    
     private static class Request {
 
         @JsonPropertyDescription("The employee email address")

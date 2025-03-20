@@ -1,10 +1,11 @@
 package cloud.cleo.squareup.functions;
 
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.squareup.square.models.SearchTeamMembersFilter;
-import com.squareup.square.models.SearchTeamMembersQuery;
-import com.squareup.square.models.SearchTeamMembersRequest;
-import com.squareup.square.models.TeamMember;
+import com.squareup.square.types.SearchTeamMembersFilter;
+import com.squareup.square.types.SearchTeamMembersQuery;
+import com.squareup.square.types.SearchTeamMembersRequest;
+import com.squareup.square.types.TeamMember;
+import com.squareup.square.types.TeamMemberStatus;
 import java.util.List;
 import java.util.function.Function;
 import lombok.Getter;
@@ -41,12 +42,12 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
     public Function<Request, Object> getExecutor() {
         return (var r) -> {
             try {
-                return getSquareClient().getTeamApi()
-                        .searchTeamMembers(new SearchTeamMembersRequest.Builder().query(new SearchTeamMembersQuery.Builder()
+                return getSquareClient().teamMembers()
+                        .search(SearchTeamMembersRequest.builder().query(SearchTeamMembersQuery.builder()
                                 // Only return active employees at the defined location
-                                .filter(new SearchTeamMembersFilter.Builder().status("ACTIVE").locationIds(List.of(System.getenv("SQUARE_LOCATION_ID"))).build())
+                                .filter(SearchTeamMembersFilter.builder().status(TeamMemberStatus.ACTIVE).locationIds(List.of(System.getenv("SQUARE_LOCATION_ID"))).build())
                                 .build()).build())
-                        .getTeamMembers().stream()
+                        .get().getTeamMembers().get().stream()
                         .map(tm -> new Response(tm))
                         .toList();
             } catch (Exception ex) {
@@ -69,10 +70,10 @@ public class SquareTeamMembers<Request> extends AbstractFunction {
         String email;
 
         private Response(TeamMember tm){
-            this.first_name = tm.getGivenName();
-            this.last_name = tm.getFamilyName();
-            this.phone_number = tm.getPhoneNumber();
-            this.email = tm.getEmailAddress();
+            this.first_name = tm.getGivenName().orElse(null);
+            this.last_name = tm.getFamilyName().orElse(null);
+            this.phone_number = tm.getPhoneNumber().orElse(null);
+            this.email = tm.getEmailAddress().orElse(null);
         }
     }
 

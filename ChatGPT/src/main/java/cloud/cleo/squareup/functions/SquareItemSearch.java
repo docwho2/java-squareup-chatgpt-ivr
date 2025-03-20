@@ -4,8 +4,8 @@ import static cloud.cleo.squareup.functions.AbstractFunction.log;
 import static cloud.cleo.squareup.functions.AbstractFunction.mapper;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.squareup.square.models.SearchCatalogItemsRequest;
-import com.squareup.square.models.SearchCatalogItemsResponse;
+import com.squareup.square.types.SearchCatalogItemsRequest;
+import com.squareup.square.types.SearchCatalogItemsResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -54,8 +54,8 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                 List<Future<SearchCatalogItemsResponse>> futures = tokens.stream()
                         .map(token -> executor.submit(() -> {
                             log.debug("Executing search for [{}]", token);
-                            return getSquareClient().getCatalogApi()
-                                    .searchCatalogItemsAsync(new SearchCatalogItemsRequest.Builder()
+                            return getSquareClient().catalog()
+                                    .searchItems(SearchCatalogItemsRequest.builder()
                                             .textFilter(token)
                                             .limit(5)
                                             .build())
@@ -68,8 +68,8 @@ public class SquareItemSearch<Request> extends AbstractFunction {
                     try {
                         SearchCatalogItemsResponse response = future.get(); // Blocking only inside virtual threads
                         if (response.getItems() != null) {
-                            response.getItems().stream()
-                                    .map(item -> item.getItemData().getName())
+                            response.getItems().get().stream()
+                                    .map(item -> item.getItem().get().getItemData().get().getName().get())
                                     .forEach(itemNames::add);
                         }
                     } catch (Exception e) {
