@@ -1,5 +1,6 @@
 package cloud.cleo.squareup.functions;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.squareup.square.types.BusinessHoursPeriod;
 import com.squareup.square.types.GetLocationsRequest;
@@ -73,7 +74,7 @@ public class SquareHours<Request> extends AbstractFunction {
                 json.put("open_closed_status", bh.isOpen() ? "OPEN" : "CLOSED");
                 json.put("current_date_time", now.toString());
                 json.put("current_day_of_week", now.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.US).toUpperCase());
-                json.putPOJO("open_hours", loc.getBusinessHours().get().getPeriods().get());
+                json.putPOJO("open_hours",  bh);
 
                 return json;
             } catch (Exception ex) {
@@ -110,6 +111,7 @@ public class SquareHours<Request> extends AbstractFunction {
 
     private static class BusinessHours extends ArrayList<OpenPeriod> {
 
+        @JsonIgnore
         private final Location loc;
 
         public BusinessHours(Location loc) {
