@@ -20,6 +20,8 @@ import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatFunctionCall;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -49,7 +51,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
  *
  * @author sjensen
  */
-public abstract class ChatGPTLambda  {
+public abstract class ChatGPTLambda {
 
     // Initialize the Log4j logger.
     Logger log = LogManager.getLogger(ChatGPTLambda.class);
@@ -78,8 +80,7 @@ public abstract class ChatGPTLambda  {
     public final static String DRIVING_DIRECTIONS_VOICE_FUNCTION_NAME = "driving_directions_voice";
     public final static String PRIVATE_SHOPPING_TEXT_FUNCTION_NAME = "private_shopping_url_text";
     public final static String PRIVATE_SHOPPING_VOICE_FUNCTION_NAME = "private_shopping_url_voice";
-    
-    
+
     public final static String WEBSITE_URL = "CopperFoxGifts.com";
 
     // Eveverything here will be done at SnapStart init
@@ -87,14 +88,19 @@ public abstract class ChatGPTLambda  {
         // Build up the mapper 
         mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        
+        // Register these first, so ours override anything Jackson has
+        mapper.registerModule(new JavaTimeModule());
+        mapper.registerModule(new Jdk8Module());
+
         // Add module for inputs
         SimpleModule module = new SimpleModule();
+        
         // Serializers
         module.addSerializer(ZonedDateTime.class, new ZonedSerializer());
         module.addSerializer(LocalTime.class, new LocalTimeSerializer());
         module.addSerializer(LocalDate.class, new LocalDateSerializer());
         module.addSerializer(Duration.class, new DurationSerializer());
-        module.addSerializer((Class<Optional<?>>)(Class<?>) Optional.class, new OptionalSerializer());
 
         // Deserializers for Input Types
         module.addDeserializer(LocalTime.class, new LocalTimeDeserializer());
@@ -109,7 +115,6 @@ public abstract class ChatGPTLambda  {
         // Hit static initializers in this as well so it's loaded and hot
         new FaceBookOperations();
     }
-
 
     protected LexV2Response processGPT(LexV2EventWrapper lexRequest) {
         var input = lexRequest.getInputTranscript();
@@ -175,15 +180,14 @@ public abstract class ChatGPTLambda  {
             functionExecutor.setObjectMapper(mapper);
 
             //functionExecutor.getFunctions().forEach(log::debug);
-            
             while (true) {
                 final var chatMessages = session.getChatMessages();
                 ChatCompletionRequest request = ChatCompletionRequest.builder()
                         .messages(chatMessages)
                         .model(OPENAI_MODEL)
-                        .maxTokens(500)     // Limit the response tokens to something reasonable
-                        .temperature(0.2)   // More focused
-                        .n(1)               // Only return 1 completion
+                        .maxTokens(500) // Limit the response tokens to something reasonable
+                        .temperature(0.2) // More focused
+                        .n(1) // Only return 1 completion
                         .functions(functionExecutor.getFunctions())
                         .functionCall(ChatCompletionRequest.ChatCompletionRequestFunctionCall.of("auto"))
                         .build();
@@ -280,8 +284,8 @@ public abstract class ChatGPTLambda  {
     }
 
     /**
-     * Response that will tell Lex we are done so some action can be performed at the Chime Level (hang up, transfer,
-     * MOH, etc.)
+     * Response that will tell Lex we are done so some action can be performed
+     * at the Chime Level (hang up, transfer, MOH, etc.)
      *
      * @param lexRequest
      * @param transferNumber
@@ -315,8 +319,9 @@ public abstract class ChatGPTLambda  {
     }
 
     /**
-     * General Response used to send back a message and Elicit Intent again at LEX. IE, we are sending back GPT
-     * response, and then waiting for Lex to collect speech and once again call us so we can send to GPT, effectively
+     * General Response used to send back a message and Elicit Intent again at
+     * LEX. IE, we are sending back GPT response, and then waiting for Lex to
+     * collect speech and once again call us so we can send to GPT, effectively
      * looping until we call a terminating event like Quit or Transfer.
      *
      * @param lexRequest
