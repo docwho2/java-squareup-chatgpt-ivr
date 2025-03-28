@@ -13,15 +13,12 @@ import cloud.cleo.squareup.json.LocalDateDeserializer;
 import cloud.cleo.squareup.json.LocalDateSerializer;
 import cloud.cleo.squareup.json.LocalTimeDeserializer;
 import cloud.cleo.squareup.json.LocalTimeSerializer;
-import cloud.cleo.squareup.json.OptionalSerializer;
 import cloud.cleo.squareup.json.ZoneIdDeserializer;
 import cloud.cleo.squareup.json.ZonedSerializer;
 import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatFunctionCall;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -56,7 +53,7 @@ public abstract class ChatGPTLambda {
     // Initialize the Log4j logger.
     Logger log = LogManager.getLogger(ChatGPTLambda.class);
 
-    final static ObjectMapper mapper;
+    public final static ObjectMapper mapper;
 
     final static TableSchema<ChatGPTSessionState> schema = TableSchema.fromBean(ChatGPTSessionState.class);
 

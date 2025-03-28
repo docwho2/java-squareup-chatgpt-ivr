@@ -1,5 +1,6 @@
 package cloud.cleo.squareup.functions;
 
+import cloud.cleo.squareup.ChatGPTLambda;
 import cloud.cleo.squareup.enums.ChannelPlatform;
 import static cloud.cleo.squareup.ChatGPTLambda.crtAsyncHttpClient;
 import cloud.cleo.squareup.LexV2EventWrapper;
@@ -41,7 +42,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     // Initialize the Log4j logger.
     protected static final Logger log = LogManager.getLogger(AbstractFunction.class);
 
-    protected final static ObjectMapper mapper = new ObjectMapper();
+    protected final static ObjectMapper mapper = ChatGPTLambda.mapper;
 
     private static final Map<String, AbstractFunction> functions = new HashMap<>();
     private static boolean inited = false;
