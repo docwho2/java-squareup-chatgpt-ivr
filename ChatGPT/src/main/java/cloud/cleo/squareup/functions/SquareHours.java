@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.squareup.square.types.BusinessHoursPeriod;
 import com.squareup.square.types.GetLocationsRequest;
 import com.squareup.square.types.Location;
-import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import static java.time.DayOfWeek.FRIDAY;
 import static java.time.DayOfWeek.MONDAY;

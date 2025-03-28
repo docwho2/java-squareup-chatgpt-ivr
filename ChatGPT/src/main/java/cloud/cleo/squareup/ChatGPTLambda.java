@@ -13,7 +13,6 @@ import cloud.cleo.squareup.json.LocalDateDeserializer;
 import cloud.cleo.squareup.json.LocalDateSerializer;
 import cloud.cleo.squareup.json.LocalTimeDeserializer;
 import cloud.cleo.squareup.json.LocalTimeSerializer;
-import cloud.cleo.squareup.json.OptionalSerializer;
 import cloud.cleo.squareup.json.ZoneIdDeserializer;
 import cloud.cleo.squareup.json.ZonedSerializer;
 import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;

@@ -11,8 +11,6 @@ import com.squareup.square.types.CustomerFilter;
 import com.squareup.square.types.CustomerQuery;
 import com.squareup.square.types.CustomerTextFilter;
 import com.squareup.square.types.SearchCustomersRequest;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
