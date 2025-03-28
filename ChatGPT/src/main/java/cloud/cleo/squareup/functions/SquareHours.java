@@ -119,6 +119,7 @@ public class SquareHours<Request> extends AbstractFunction {
             loc.getBusinessHours().get().getPeriods().get().forEach(p -> add(new OpenPeriod(p)));
         }
 
+        @JsonIgnore
         public boolean isOpen() {
             // The current time in the TZ
             final var tz = ZoneId.of(loc.getTimezone().get());
@@ -135,7 +136,7 @@ public class SquareHours<Request> extends AbstractFunction {
         }
     }
 
-    @Getter(AccessLevel.PRIVATE)
+    @Getter(AccessLevel.PUBLIC)
     private static class OpenPeriod {
 
         final DayOfWeek dow;
