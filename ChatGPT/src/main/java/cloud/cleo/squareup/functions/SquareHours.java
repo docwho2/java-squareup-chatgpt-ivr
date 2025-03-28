@@ -62,7 +62,6 @@ public class SquareHours<Request> extends AbstractFunction {
 
                 final var tz = ZoneId.of(loc.getTimezone().get());
                 final var now = ZonedDateTime.now(tz);
-                final var dow = now.getDayOfWeek();
 
                 /**
                  * GPT gives wrong information sometimes saying its open when store is closed. Giving it the concrete
@@ -73,7 +72,7 @@ public class SquareHours<Request> extends AbstractFunction {
                 final ObjectNode json = mapper.createObjectNode();
                 json.put("open_closed_status", bh.isOpen() ? "OPEN" : "CLOSED");
                 json.put("current_date_time", now.toString());
-                json.put("current_day_of_week", now.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.US).toUpperCase());
+                json.put("current_day_of_week", now.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.US).toUpperCase());
                 json.putPOJO("open_hours",  bh);
 
                 return json;

@@ -89,10 +89,6 @@ public abstract class ChatGPTLambda {
         mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         
-        // Register these first, so ours override anything Jackson has
-        mapper.registerModule(new JavaTimeModule());
-        mapper.registerModule(new Jdk8Module());
-
         // Add module for inputs
         SimpleModule module = new SimpleModule();
         
