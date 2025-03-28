@@ -42,6 +42,7 @@ public abstract class AbstractFunction<T> implements Cloneable {
     // Initialize the Log4j logger.
     protected static final Logger log = LogManager.getLogger(AbstractFunction.class);
 
+    // Use the GPT mapper that has modules defined
     protected final static ObjectMapper mapper = ChatGPTLambda.mapper;
 
     private static final Map<String, AbstractFunction> functions = new HashMap<>();

@@ -20,6 +20,8 @@ import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatFunctionCall;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -87,6 +89,11 @@ public abstract class ChatGPTLambda {
         mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         
+        // Register module for Optional types
+        mapper.registerModule(new Jdk8Module());
+        // Register module for java.time types (LocalDate, LocalDateTime, etc.)
+        mapper.registerModule(new JavaTimeModule());
+        
         // Add module for inputs
         SimpleModule module = new SimpleModule();
         
@@ -95,7 +102,7 @@ public abstract class ChatGPTLambda {
         module.addSerializer(LocalTime.class, new LocalTimeSerializer());
         module.addSerializer(LocalDate.class, new LocalDateSerializer());
         module.addSerializer(Duration.class, new DurationSerializer());
-        module.addSerializer((Class<Optional<?>>)(Class<?>) Optional.class, new OptionalSerializer());
+        //module.addSerializer((Class<Optional<?>>)(Class<?>) Optional.class, new OptionalSerializer());
 
         // Deserializers for Input Types
         module.addDeserializer(LocalTime.class, new LocalTimeDeserializer());
