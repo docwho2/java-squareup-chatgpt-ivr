@@ -94,7 +94,7 @@ public abstract class ChatGPTLambda  {
         module.addSerializer(LocalTime.class, new LocalTimeSerializer());
         module.addSerializer(LocalDate.class, new LocalDateSerializer());
         module.addSerializer(Duration.class, new DurationSerializer());
-        module.addSerializer(new OptionalSerializer());
+        module.addSerializer((Class<Optional<?>>)(Class<?>) Optional.class, new OptionalSerializer());
 
         // Deserializers for Input Types
         module.addDeserializer(LocalTime.class, new LocalTimeDeserializer());
