@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.squareup.square.types.BusinessHoursPeriod;
 import com.squareup.square.types.GetLocationsRequest;
 import com.squareup.square.types.Location;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import static java.time.DayOfWeek.FRIDAY;
 import static java.time.DayOfWeek.MONDAY;
@@ -73,7 +74,11 @@ public class SquareHours<Request> extends AbstractFunction {
                 json.put("open_closed_status", bh.isOpen() ? "OPEN" : "CLOSED");
                 json.put("current_date_time", now.toString());
                 json.put("current_day_of_week", now.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.US).toUpperCase());
-                json.putPOJO("open_hours",  bh);
+                if ( bh.isEmpty() ) {
+                    json.put("open_hours", "Store is temporarily closed and will re-open soon");
+                } else {
+                    json.set("open_hours", mapper.valueToTree(bh));
+                }
 
                 return json;
             } catch (Exception ex) {
