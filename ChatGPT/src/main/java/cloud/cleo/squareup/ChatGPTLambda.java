@@ -13,6 +13,7 @@ import cloud.cleo.squareup.json.LocalDateDeserializer;
 import cloud.cleo.squareup.json.LocalDateSerializer;
 import cloud.cleo.squareup.json.LocalTimeDeserializer;
 import cloud.cleo.squareup.json.LocalTimeSerializer;
+import cloud.cleo.squareup.json.OptionalSerializer;
 import cloud.cleo.squareup.json.ZoneIdDeserializer;
 import cloud.cleo.squareup.json.ZonedSerializer;
 import static cloud.cleo.squareup.lang.LangUtil.LanguageIds.*;
@@ -93,6 +94,7 @@ public abstract class ChatGPTLambda  {
         module.addSerializer(LocalTime.class, new LocalTimeSerializer());
         module.addSerializer(LocalDate.class, new LocalDateSerializer());
         module.addSerializer(Duration.class, new DurationSerializer());
+        module.addSerializer(new OptionalSerializer());
 
         // Deserializers for Input Types
         module.addDeserializer(LocalTime.class, new LocalTimeDeserializer());
