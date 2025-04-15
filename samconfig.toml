@@ -63,7 +63,7 @@ image_repositories = []
 [cfox-east.deploy]
 [cfox-east.deploy.parameters]
 region = "us-east-1"
-parameter_overrides = "SMAID=\"SMA_ID\" VOICECONNECTORARN=\"VOICE_CONNECTOR_ARN\" OPENAIMODEL=\"gpt-3.5-turbo-1106\" SQUAREENVIRONMENT=\"PRODUCTION\" TRANSFERNUMBER=\"+13204952424\""
+parameter_overrides = "SMAID=\"SMA_ID\" VOICECONNECTORARN=\"VOICE_CONNECTOR_ARN\" OPENAIMODEL=\"gpt-4.1-nano\" SQUAREENVIRONMENT=\"PRODUCTION\" TRANSFERNUMBER=\"+13204952424\""
 stack_name = "squareup-chatgpt-ivr"
 resolve_s3 = true
 s3_prefix = "squareup-chatgpt-ivr"
@@ -76,7 +76,7 @@ image_repositories = []
 [cfox-west.deploy]
 [cfox-west.deploy.parameters]
 region = "us-west-2"
-parameter_overrides = "SMAID=\"SMA_ID\" VOICECONNECTORARN=\"VOICE_CONNECTOR_ARN\" OPENAIMODEL=\"gpt-3.5-turbo-1106\" SQUAREENVIRONMENT=\"PRODUCTION\" TRANSFERNUMBER=\"+13204952424\""
+parameter_overrides = "SMAID=\"SMA_ID\" VOICECONNECTORARN=\"VOICE_CONNECTOR_ARN\" OPENAIMODEL=\"gpt-4.1-nano\" SQUAREENVIRONMENT=\"PRODUCTION\" TRANSFERNUMBER=\"+13204952424\""
 stack_name = "squareup-chatgpt-ivr"
 resolve_s3 = true
 s3_prefix = "squareup-chatgpt-ivr"
