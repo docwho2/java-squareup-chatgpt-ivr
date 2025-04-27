@@ -329,7 +329,7 @@ To allow the workflow to operate on your AWS environment, you can use several me
         # The full role ARN if you are using OIDC
         # https://github.com/aws-actions/configure-aws-credentials#oidc
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
+        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practice is to use just role above with OIDC provider)
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         mask-aws-account-id: true
