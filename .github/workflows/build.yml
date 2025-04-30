@@ -5,6 +5,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read  # This is required for actions/checkout
+  
 jobs:
   build:
 
