@@ -51,3 +51,6 @@ jobs:
     - name: Validate SAM Template
       run:  sam validate --lint
       
+    - name: Submit Dependency Snapshot
+      uses: advanced-security/maven-dependency-submission-action@v5
+      
