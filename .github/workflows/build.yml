@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: read,write  # This is required for actions/checkout and graph submission
+  contents: write  # This is required for actions/checkout and graph submission
   
 jobs:
   build:
