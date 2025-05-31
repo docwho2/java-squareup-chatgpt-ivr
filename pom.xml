@@ -82,21 +82,23 @@
                 <artifactId>aws-lambda-java-log4j2</artifactId>
                 <version>1.6.0</version>
             </dependency>
+            
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.19.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-api</artifactId>
+                <artifactId>log4j-bom</artifactId>
                 <version>2.24.3</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>2.24.3</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j2-impl</artifactId>
-                <version>2.24.3</version>
-            </dependency>
+            
             
             
             <!-- Used when we need to respond to CloudFormation for Custom Resources --> 
@@ -112,6 +114,12 @@
                 <artifactId>service</artifactId>
                 <version>0.18.2</version>       
             </dependency>
+            <!-- Included in above, but need to bump higher due to security alert in this package --> 
+            <dependency>
+                <groupId>io.github.classgraph</groupId>
+                <artifactId>classgraph</artifactId>
+                <version>4.8.179</version>
+            </dependency>
             
             <!-- Square Lib --> 
             <dependency>
@@ -124,22 +132,6 @@
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections</artifactId>
                 <version>0.10.2</version>
-            </dependency>
-            
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>2.19.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>2.19.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>2.19.0</version>
             </dependency>
         
         </dependencies>
