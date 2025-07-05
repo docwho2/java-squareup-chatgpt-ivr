@@ -82,12 +82,6 @@
         <dependency>
             <groupId>com.theokanning.openai-gpt3-java</groupId>
             <artifactId>service</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.squareup.okhttp3</groupId>
-                    <artifactId>okhttp</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         
         <!-- Square API Calls -->
@@ -100,12 +94,6 @@
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>5.0.0</version>
         </dependency>
         
         <dependency>
