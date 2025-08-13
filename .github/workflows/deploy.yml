@@ -59,7 +59,7 @@ jobs:
 
     steps:
     - name:  Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
      
@@ -126,7 +126,7 @@ jobs:
     
     steps:     
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
     
@@ -266,7 +266,7 @@ jobs:
     needs: [sam-deploy]
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Execute Tests
         uses: ./.github/actions/test
