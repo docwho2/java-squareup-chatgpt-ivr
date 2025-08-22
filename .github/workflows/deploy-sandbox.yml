@@ -44,7 +44,7 @@ jobs:
       run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
       
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'corretto'
@@ -101,7 +101,7 @@ jobs:
       run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
       
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'corretto'
