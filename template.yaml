@@ -96,10 +96,12 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: java21
+    Runtime: java25
     Timeout: 30
     MemorySize: 3009
-    
+    Environment:
+        Variables:
+            JAVA_TOOL_OPTIONS: -XX:+UseShenandoahGC -XX:ShenandoahGCMode=generational
 Resources:
     
   PromptBucket:
