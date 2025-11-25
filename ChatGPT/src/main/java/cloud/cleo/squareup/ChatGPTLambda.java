@@ -32,7 +32,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,7 +53,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 public abstract class ChatGPTLambda {
 
     // Initialize the Log4j logger.
-    Logger log = LogManager.getLogger(ChatGPTLambda.class);
+    final static Logger log = LogManager.getLogger(ChatGPTLambda.class);
 
     public final static ObjectMapper mapper;
 
@@ -175,7 +175,7 @@ public abstract class ChatGPTLambda {
 
         String botResponse;
         // Store all the calls made
-        List<ChatFunctionCall> functionCallsMade = new LinkedList<>();
+        List<ChatFunctionCall> functionCallsMade = new ArrayList<>();
         try {
             FunctionExecutor functionExecutor = AbstractFunction.getFunctionExecuter(lexRequest);
             functionExecutor.setObjectMapper(mapper);
@@ -331,7 +331,7 @@ public abstract class ChatGPTLambda {
      */
     private LexV2Response buildResponse(LexV2EventWrapper lexRequest, String response, ImageResponseCard card) {
 
-        final var messages = new LinkedList<LexV2Response.Message>();
+        final var messages = new ArrayList<LexV2Response.Message>(card != null ? 2 : 1);
 
         // Always send a plain text response
         //  If this is not first in the list, Lex will error

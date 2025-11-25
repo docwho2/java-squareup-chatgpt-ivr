@@ -2,7 +2,7 @@ package cloud.cleo.chimesma.squareup;
 
 import cloud.cleo.chimesma.actions.*;
 import cloud.cleo.chimesma.model.ParticipantTag;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -73,7 +73,7 @@ public class ChimeSMA extends AbstractFlow {
         };
 
         // Map to Hold all all our Bots by Language
-        Map<Language, StartBotConversationAction> botLangMap = new HashMap<>();
+        Map<Language, StartBotConversationAction> botLangMap = new EnumMap<>(Language.class);
 
         final var lexBotEN = StartBotConversationAction.builder()
                 .withDescription("ChatGPT English")
