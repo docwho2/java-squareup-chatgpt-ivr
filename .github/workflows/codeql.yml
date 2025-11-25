@@ -86,11 +86,11 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       if: matrix.build-mode == 'manual'
       uses: actions/setup-java@v5
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'corretto'
         
     - name: Install ChimeSMALibrary Parent POM
