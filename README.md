@@ -1,5 +1,20 @@
 # Amazon Chime SMA ChatGPT IVR for Square Retail
 
+## 🚨 This Repository is Now Deprecated
+
+Please refer to **[Amazon Chime SMA Spring AI IVR for Square Retail](https://github.com/docwho2/java-squareup-spring-ai-ivr)**.
+
+### Background
+- The **[Theo Kanning Java library](https://github.com/TheoKanning/openai-java)** was ahead of its time when this application was created. However, it is now archived and not relevant moving forward.
+- Rather than switching to another OpenAI-specific library, the project has been migrated to a **Spring Boot** application.
+- **Spring AI** provides compatibility with many of the most widely used models:
+  - **[Amazon Bedrock](https://docs.spring.io/spring-ai/reference/api/chat/bedrock-converse.html)**
+    - Lower latency since the application is deployed within AWS.
+    - Access to multiple models such as Nova, Claude, etc.
+  - **[OpenAI ChatGPT Models](https://docs.spring.io/spring-ai/reference/api/chat/openai-chat.html)**
+    - Currently my preferred option at the time of this writing.
+
+
 ## Background
 
 This project is a [SIP Media Application](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) and makes use of the 
