@@ -4,7 +4,7 @@
 
 Please refer to **[Amazon Chime SMA Spring AI IVR for Square Retail](https://github.com/docwho2/java-squareup-spring-ai-ivr)**.
 
-### Background
+### Why?
 - The **[Theo Kanning Java library](https://github.com/TheoKanning/openai-java)** was ahead of its time when this application was created. However, it is now archived and not relevant moving forward.
 - Rather than switching to another OpenAI-specific library, the project has been migrated to a **Spring Boot** application.
 - **Spring AI** provides compatibility with many of the most widely used models:
