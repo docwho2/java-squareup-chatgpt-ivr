@@ -221,7 +221,16 @@ Resources:
         PromptName: closed.wav
         PromptText: |
             Our store is currently closed.
-                
+  
+  ExtendedClosePrompt:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: extended_closed.wav
+        PromptText: |
+            Our store is currently closed for the Season.  Please ask about our Private Shopping experience until we resume normal business hours.
+            
   GoodbyePromptEN:
     Type: Custom::PromptCreator
     Properties:
