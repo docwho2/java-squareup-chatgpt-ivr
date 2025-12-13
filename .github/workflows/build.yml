@@ -40,7 +40,7 @@ jobs:
         use-installer: true
     
     - name: Cache SAM Build files
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .aws-sam
         key: ${{ runner.os }}-sam
