@@ -238,7 +238,7 @@ public class FaceBookOperations {
         final var sb = new StringBuilder("https://graph.facebook.com/");
 
         // Version of API we are calling
-        sb.append("v18.0");
+        sb.append("v24.0");
 
         // ID for the entity we are using (Page ID, or Page scoped User ID)
         if (id != null) {
